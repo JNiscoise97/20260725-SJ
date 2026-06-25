@@ -19,4 +19,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Composants générés par shadcn (vendor) et fichiers de contexte exposant
+    // volontairement un hook à côté de leur provider : la fast-refresh stricte
+    // ne s'applique pas à ces conventions.
+    files: ['src/components/ui/**/*.{ts,tsx}', 'src/context/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

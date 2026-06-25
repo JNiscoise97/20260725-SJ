@@ -1,75 +1,61 @@
-# React + TypeScript + Vite
+# Fiançailles de Sarah & Jordan
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Application privée de gestion de projet événementiel pour les fiançailles de Sarah & Jordan (25 juillet 2026) : tâches, référents, planning, déroulé, logistique, invités, documents.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React 19 + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui (style `radix-nova`) + React Router + TanStack Query + React Hook Form + Zod + Framer Motion + Supabase.
 
-## React Compiler
+## Démarrage
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Tant que `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` ne sont pas renseignées (voir `.env.example`), l'application fonctionne entièrement avec une couche de données mock persistée dans le `localStorage` du navigateur — aucun backend n'est requis pour développer ou faire une démo.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Connexion par code d'accès personnel (pas de mot de passe). Codes de démonstration (voir `src/services/mock/data/people.ts`) :
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Personne | Rôle      | Code        |
+| -------- | --------- | ----------- |
+| Sarah    | Fiancée   | `SARAH2026` |
+| Jordan   | Fiancé    | `JORDAN2026`|
+| Camille  | Référente décoration | `DECO2026` |
+| Hugo     | Référent boissons    | `BOISSON2026` |
+| Nina     | Référente DJ         | `DJ2026` |
+| Léa      | Proche    | `LEA2026` |
+
+Pour tester le mode "jour J" sans attendre la vraie date, ajoutez `?simulatePhase=jour-j` à l'URL (valeurs possibles : `prep`, `j-1`, `jour-j`, `j+1`, `post`).
+
+## Brancher Supabase
+
+1. Créer un projet Supabase.
+2. Appliquer les migrations dans `src/supabase/migrations/` (dans l'ordre numéroté), puis `src/supabase/seed.sql`.
+3. Copier `.env.example` vers `.env` et renseigner `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
+4. Relancer `npm run dev` — l'app bascule automatiquement sur Supabase (voir `src/supabase/client.ts`).
+
+⚠️ L'authentification se fait par code d'accès, pas par Supabase Auth : la RLS appliquée dans `0009_rls_policies.sql` est volontairement permissive (app privée, non indexée). Voir les commentaires de ce fichier pour le détail du compromis et la piste d'évolution.
+
+## Organisation du code
 
 ```
+src/
+  app/        routage et providers globaux
+  pages/      une page par route, composent les modules
+  layouts/    coquille de l'application (sidebar, bottom nav, garde-fous de rôle)
+  components/ ui/ (primitives shadcn) + shared/ + un dossier par module métier
+  hooks/      hooks, dont hooks/queries/ (TanStack Query par domaine)
+  services/   interface + implémentation mock par domaine, bascule Supabase automatique
+  context/    identité (code d'accès) et configuration de l'événement
+  types/      types du domaine, permissions, types Supabase
+  supabase/   client, migrations SQL, seed
+  lib/        utilitaires (dates, liens tel/whatsapp/sms, constantes)
+```
+
+## Scripts
+
+- `npm run dev` — serveur de développement
+- `npm run build` — typecheck + build de production
+- `npm run lint` — ESLint
+- `npm run preview` — prévisualiser le build de production

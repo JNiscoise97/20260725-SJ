@@ -1,0 +1,34 @@
+import type { Checklist, ChecklistItem, ChecklistOwnerType } from "@/types/domain"
+import { createMockTable } from "@/services/mock/db"
+import { checklistsSeed, checklistItemsSeed } from "@/services/mock/data/checklists"
+
+export interface ChecklistsService {
+  listAll(): Promise<Checklist[]>
+  listForOwner(ownerType: ChecklistOwnerType, ownerId: string): Promise<Checklist[]>
+  listItems(checklistId: string): Promise<ChecklistItem[]>
+  listAllItems(): Promise<ChecklistItem[]>
+  toggleItem(itemId: string, isDone: boolean): Promise<ChecklistItem>
+}
+
+const checklistsTable = createMockTable<Checklist>("sj-checklists", checklistsSeed)
+const checklistItemsTable = createMockTable<ChecklistItem>("sj-checklist-items", checklistItemsSeed)
+
+export const checklistsService: ChecklistsService = {
+  async listAll() {
+    return checklistsTable.getAll()
+  },
+  async listForOwner(ownerType, ownerId) {
+    const checklists = await checklistsTable.getAll()
+    return checklists.filter((c) => c.ownerType === ownerType && c.ownerId === ownerId)
+  },
+  async listItems(checklistId) {
+    const items = await checklistItemsTable.getAll()
+    return items.filter((item) => item.checklistId === checklistId).sort((a, b) => a.sortOrder - b.sortOrder)
+  },
+  async listAllItems() {
+    return checklistItemsTable.getAll()
+  },
+  async toggleItem(itemId, isDone) {
+    return checklistItemsTable.update(itemId, { isDone })
+  },
+}
