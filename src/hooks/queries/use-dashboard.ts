@@ -82,7 +82,7 @@ export function useDashboardSummary() {
     const referentsReadiness: ReferentReadiness[] = referents.map((person) => {
       const ownMissionIds = missions.filter((m) => m.referentId === person.id).map((m) => m.id)
       const ownChecklistIds = checklists
-        .filter((c) => c.ownerType === "mission" && ownMissionIds.includes(c.ownerId))
+        .filter((c) => c.ownerType === "mission" && c.ownerId != null && ownMissionIds.includes(c.ownerId))
         .map((c) => c.id)
       const items = checklistItems.filter((item) => ownChecklistIds.includes(item.checklistId))
       const totalItems = items.length

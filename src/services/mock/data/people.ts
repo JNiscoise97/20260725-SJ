@@ -23,8 +23,6 @@ export const peopleSeed: Person[] = [
     role: "referent",
     accessCode: "DECO2026",
     isActive: true,
-    referentCategoryId: "rc-decoration",
-    partnerReferentId: "p-ref-boissons",
     phone: "+33600000003",
   },
   {
@@ -33,8 +31,6 @@ export const peopleSeed: Person[] = [
     role: "referent",
     accessCode: "BOISSON2026",
     isActive: true,
-    referentCategoryId: "rc-boissons",
-    partnerReferentId: "p-ref-deco",
     phone: "+33600000004",
   },
   {
@@ -43,7 +39,6 @@ export const peopleSeed: Person[] = [
     role: "referent",
     accessCode: "DJ2026",
     isActive: true,
-    referentCategoryId: "rc-dj",
     phone: "+33600000005",
   },
   {

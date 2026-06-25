@@ -1,0 +1,1 @@
+-- TODO(missions) : à compléter une fois les personnes (02_people.sql) en place.

@@ -6,8 +6,6 @@ export interface Person {
   phone?: string
   role: AppRole
   accessCode: string
-  referentCategoryId?: string | null
-  partnerReferentId?: string | null
   avatarUrl?: string | null
   isActive: boolean
 }
@@ -19,6 +17,10 @@ export interface RoleCategory {
   icon?: string
   color?: string
   sortOrder: number
+  solicitedMilestone?: PlanningMilestone | null
+  preferredContactId?: string | null
+  primaryReferentId?: string | null
+  secondaryReferentId?: string | null
 }
 
 export type ProgressStatus = "todo" | "in_progress" | "done" | "blocked"
@@ -46,13 +48,16 @@ export interface Task {
   ownerId?: string | null
 }
 
-export type ChecklistOwnerType = "referent" | "mission" | "logistique_item"
+export type ChecklistOwnerType = "referent" | "mission" | "logistique_item" | "standalone"
+
+export type ChecklistPhase = "avant" | "installation" | "evenement" | "desinstallation" | "apres"
 
 export interface Checklist {
   id: string
   ownerType: ChecklistOwnerType
-  ownerId: string
+  ownerId?: string | null
   title: string
+  phase?: ChecklistPhase | null
 }
 
 export interface ChecklistItem {
@@ -82,6 +87,9 @@ export interface RunOfShowStep {
   label: string
   durationMinutes?: number | null
   location?: string | null
+  phase?: string | null
+  music?: string | null
+  notes?: string | null
   responsibleIds: string[]
 }
 

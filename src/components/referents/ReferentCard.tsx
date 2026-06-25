@@ -1,4 +1,4 @@
-import { Users2, FileText } from "lucide-react"
+import { FileText } from "lucide-react"
 
 import type { DocumentItem, Mission, Person, RoleCategory } from "@/types/domain"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -8,11 +8,15 @@ import { ContactQuickActions } from "@/components/shared/ContactQuickActions"
 import { ChecklistWidget } from "@/components/shared/ChecklistWidget"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 
+export interface ReferentRoleCategoryAssignment {
+  category: RoleCategory
+  rank: "principal" | "secondaire"
+}
+
 interface ReferentCardProps {
   person: Person
-  roleCategory?: RoleCategory
+  roleCategories: ReferentRoleCategoryAssignment[]
   mission?: Mission
-  partner?: Person
   contacts: Person[]
   documents: DocumentItem[]
   openTaskCount: number
@@ -29,9 +33,8 @@ function initials(fullName: string) {
 
 export function ReferentCard({
   person,
-  roleCategory,
+  roleCategories,
   mission,
-  partner,
   contacts,
   documents,
   openTaskCount,
@@ -46,8 +49,15 @@ export function ReferentCard({
         </Avatar>
         <div>
           <p className="font-heading text-lg font-semibold text-foreground">{person.fullName}</p>
-          {roleCategory ? (
-            <Badge className="bg-dore/20 text-brun">{roleCategory.name}</Badge>
+          {roleCategories.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {roleCategories.map(({ category, rank }) => (
+                <Badge key={category.id} className="bg-dore/20 text-brun">
+                  {category.name}
+                  {rank === "secondaire" ? " (secondaire)" : null}
+                </Badge>
+              ))}
+            </div>
           ) : null}
         </div>
       </CardHeader>
@@ -81,13 +91,6 @@ export function ReferentCard({
                 {doc.title}
               </div>
             ))}
-          </div>
-        ) : null}
-
-        {partner ? (
-          <div className="flex items-center gap-2 text-sm text-foreground">
-            <Users2 className="size-3.5 text-muted-foreground" />
-            Binôme : {partner.fullName}
           </div>
         ) : null}
 

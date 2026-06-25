@@ -10,7 +10,7 @@ import { useRoleCategories } from "@/hooks/queries/use-role-categories"
 import { useMissions } from "@/hooks/queries/use-missions"
 import { useDocuments } from "@/hooks/queries/use-documents"
 import { useTasks } from "@/hooks/queries/use-tasks"
-import { ReferentCard } from "@/components/referents/ReferentCard"
+import { ReferentCard, type ReferentRoleCategoryAssignment } from "@/components/referents/ReferentCard"
 
 export function ReferentsPage() {
   const { person } = useIdentity()
@@ -50,10 +50,17 @@ export function ReferentsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {referents.map((referent) => {
-            const roleCategory = roleCategories?.find((c) => c.id === referent.referentCategoryId)
+            const referentRoleCategories: ReferentRoleCategoryAssignment[] = (roleCategories ?? [])
+              .filter((c) => c.primaryReferentId === referent.id || c.secondaryReferentId === referent.id)
+              .map((category) => ({
+                category,
+                rank: category.primaryReferentId === referent.id ? "principal" : "secondaire",
+              }))
+            const categoryNames = referentRoleCategories.map((a) => a.category.name)
             const mission = missions?.find((m) => m.referentId === referent.id)
-            const partner = (people ?? []).find((p) => p.id === referent.partnerReferentId)
-            const referentDocuments = (documents ?? []).filter((doc) => doc.category === roleCategory?.name)
+            const referentDocuments = (documents ?? []).filter(
+              (doc) => doc.category != null && categoryNames.includes(doc.category)
+            )
             const openTaskCount = (tasks ?? []).filter(
               (task) => task.ownerId === referent.id && task.status !== "done"
             ).length
@@ -62,9 +69,8 @@ export function ReferentsPage() {
               <ReferentCard
                 key={referent.id}
                 person={referent}
-                roleCategory={roleCategory}
+                roleCategories={referentRoleCategories}
                 mission={mission}
-                partner={partner}
                 contacts={fiances}
                 documents={referentDocuments}
                 openTaskCount={openTaskCount}

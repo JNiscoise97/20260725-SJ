@@ -18,6 +18,7 @@ export type PlanningMilestoneRow = "j_moins_30" | "j_moins_15" | "j_moins_7" | "
 export type RsvpStatusRow = "pending" | "confirmed" | "declined"
 export type NotificationChannelRow = "push" | "email" | "sms" | "whatsapp"
 export type NotificationStatusRow = "pending" | "sent" | "failed"
+export type ChecklistPhaseRow = "avant" | "installation" | "evenement" | "desinstallation" | "apres"
 
 interface RoleCategoryRow {
   id: string
@@ -26,6 +27,10 @@ interface RoleCategoryRow {
   icon: string | null
   color: string | null
   sort_order: number
+  solicited_milestone: PlanningMilestoneRow | null
+  preferred_contact_id: string | null
+  primary_referent_id: string | null
+  secondary_referent_id: string | null
   created_at: string
 }
 
@@ -35,8 +40,6 @@ interface PersonRow {
   phone: string | null
   role: AppRoleRow
   access_code_hash: string
-  referent_category_id: string | null
-  partner_referent_id: string | null
   avatar_url: string | null
   is_active: boolean
   created_at: string
@@ -78,9 +81,10 @@ interface TaskRow {
 
 interface ChecklistRow {
   id: string
-  owner_type: "referent" | "mission" | "logistique_item"
-  owner_id: string
+  owner_type: "referent" | "mission" | "logistique_item" | "standalone"
+  owner_id: string | null
   title: string
+  phase: ChecklistPhaseRow | null
   created_at: string
 }
 
@@ -113,6 +117,9 @@ interface RunOfShowStepRow {
   label: string
   duration_minutes: number | null
   location: string | null
+  phase: string | null
+  music: string | null
+  notes: string | null
   sort_order: number
   created_at: string
 }
@@ -214,20 +221,30 @@ interface NotificationLogRow {
   error_message: string | null
 }
 
+// Tables préfixées par _20260725_ : ce schéma cohabite avec d'autres tables
+// dans un projet Supabase partagé, le préfixe évite toute collision de noms.
 export interface Database {
   public: {
     Tables: {
-      role_categories: TableDef<RoleCategoryRow, "id" | "icon" | "color" | "sort_order" | "created_at">
-      people: TableDef<
-        PersonRow,
-        "id" | "phone" | "referent_category_id" | "partner_referent_id" | "avatar_url" | "is_active" | "created_at"
+      _20260725_role_categories: TableDef<
+        RoleCategoryRow,
+        | "id"
+        | "icon"
+        | "color"
+        | "sort_order"
+        | "solicited_milestone"
+        | "preferred_contact_id"
+        | "primary_referent_id"
+        | "secondary_referent_id"
+        | "created_at"
       >
-      app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
-      missions: TableDef<
+      _20260725_people: TableDef<PersonRow, "id" | "phone" | "avatar_url" | "is_active" | "created_at">
+      _20260725_app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
+      _20260725_missions: TableDef<
         MissionRow,
         "id" | "role_category_id" | "referent_id" | "description" | "status" | "created_at" | "updated_at"
       >
-      tasks: TableDef<
+      _20260725_tasks: TableDef<
         TaskRow,
         | "id"
         | "mission_id"
@@ -241,39 +258,39 @@ export interface Database {
         | "created_at"
         | "updated_at"
       >
-      checklists: TableDef<ChecklistRow, "id" | "created_at">
-      checklist_items: TableDef<ChecklistItemRow, "id" | "is_done" | "sort_order" | "done_by" | "done_at">
-      planning_events: TableDef<
+      _20260725_checklists: TableDef<ChecklistRow, "id" | "owner_id" | "phase" | "created_at">
+      _20260725_checklist_items: TableDef<ChecklistItemRow, "id" | "is_done" | "sort_order" | "done_by" | "done_at">
+      _20260725_planning_events: TableDef<
         PlanningEventRow,
         "id" | "description" | "location" | "starts_at" | "ends_at" | "sort_order" | "created_at"
       >
-      run_of_show_steps: TableDef<
+      _20260725_run_of_show_steps: TableDef<
         RunOfShowStepRow,
-        "id" | "starts_at" | "duration_minutes" | "location" | "sort_order" | "created_at"
+        "id" | "starts_at" | "duration_minutes" | "location" | "phase" | "music" | "notes" | "sort_order" | "created_at"
       >
-      run_of_show_responsibles: TableDef<RunOfShowResponsibleRow, never>
-      logistique_items: TableDef<
+      _20260725_run_of_show_responsibles: TableDef<RunOfShowResponsibleRow, never>
+      _20260725_logistique_items: TableDef<
         LogistiqueItemRow,
         "id" | "role_category_id" | "responsable_id" | "quantity" | "unit" | "notes" | "created_at"
       >
-      guest_groups: TableDef<GuestGroupRow, "id" | "notes">
-      guests: TableDef<
+      _20260725_guest_groups: TableDef<GuestGroupRow, "id" | "notes">
+      _20260725_guests: TableDef<
         GuestRow,
         "id" | "group_id" | "phone" | "email" | "rsvp_status" | "dietary_constraints" | "plus_one" | "created_at"
       >
-      tables: TableDef<TableRow, "id">
-      table_assignments: TableDef<TableAssignmentRow, "id" | "seat_number">
-      attachments: TableDef<
+      _20260725_tables: TableDef<TableRow, "id">
+      _20260725_table_assignments: TableDef<TableAssignmentRow, "id" | "seat_number">
+      _20260725_attachments: TableDef<
         AttachmentRow,
         "id" | "entity_type" | "entity_id" | "mime_type" | "uploaded_by" | "created_at"
       >
-      documents: TableDef<DocumentRow, "id" | "category" | "visible_to_roles" | "created_at">
-      comments: TableDef<CommentRow, "id" | "author_id" | "created_at">
-      notifications: TableDef<
+      _20260725_documents: TableDef<DocumentRow, "id" | "category" | "visible_to_roles" | "created_at">
+      _20260725_comments: TableDef<CommentRow, "id" | "author_id" | "created_at">
+      _20260725_notifications: TableDef<
         NotificationRow,
         "id" | "recipient_id" | "body" | "related_entity_type" | "related_entity_id" | "status" | "created_at" | "sent_at"
       >
-      notification_log: TableDef<NotificationLogRow, "id" | "attempted_at" | "error_message">
+      _20260725_notification_log: TableDef<NotificationLogRow, "id" | "attempted_at" | "error_message">
     }
   }
 }

@@ -12,7 +12,7 @@ export interface PeopleService {
 }
 
 // TODO(supabase): quand un projet Supabase existe, remplacer cette implémentation
-// par un appel RPC `resolve_access_code` (SECURITY DEFINER) pour ne jamais exposer
+// par un appel RPC `_20260725_resolve_access_code` (SECURITY DEFINER) pour ne jamais exposer
 // access_code en lecture directe via la clé anon. Voir src/supabase/migrations/0009_rls_policies.sql.
 const peopleTable = createMockTable<Person>("sj-people", peopleSeed)
 

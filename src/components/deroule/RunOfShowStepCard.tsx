@@ -1,8 +1,9 @@
 import { motion } from "framer-motion"
-import { Clock, MapPin, User } from "lucide-react"
+import { Clock, MapPin, Music, User } from "lucide-react"
 
 import type { Person, RunOfShowStep } from "@/types/domain"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 interface RunOfShowStepCardProps {
   step: RunOfShowStep
@@ -24,7 +25,10 @@ export function RunOfShowStepCard({ step, responsibles }: RunOfShowStepCardProps
       </div>
       <Card className="flex-1">
         <CardContent className="space-y-2">
-          <p className="font-heading text-lg font-medium text-foreground">{step.label}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-heading text-lg font-medium text-foreground">{step.label}</p>
+            {step.phase ? <Badge className="bg-dore/20 text-brun">{step.phase}</Badge> : null}
+          </div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             {step.durationMinutes ? (
               <span className="flex items-center gap-1">
@@ -45,6 +49,13 @@ export function RunOfShowStepCard({ step, responsibles }: RunOfShowStepCardProps
               </span>
             ))}
           </div>
+          {step.music ? (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Music className="mt-0.5 size-3.5 shrink-0" />
+              {step.music}
+            </p>
+          ) : null}
+          {step.notes ? <p className="text-xs italic text-muted-foreground">{step.notes}</p> : null}
         </CardContent>
       </Card>
     </motion.div>

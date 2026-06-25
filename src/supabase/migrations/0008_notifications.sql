@@ -4,9 +4,9 @@
 create type notification_channel as enum ('push', 'email', 'sms', 'whatsapp');
 create type notification_status as enum ('pending', 'sent', 'failed');
 
-create table notifications (
+create table _20260725_notifications (
   id uuid primary key default gen_random_uuid(),
-  recipient_id uuid references people(id) on delete cascade,
+  recipient_id uuid references _20260725_people(id) on delete cascade,
   channel notification_channel not null,
   title text not null,
   body text,
@@ -17,11 +17,11 @@ create table notifications (
   sent_at timestamptz
 );
 
-create index notifications_recipient_id_idx on notifications(recipient_id);
+create index _20260725_notifications_recipient_id_idx on _20260725_notifications(recipient_id);
 
-create table notification_log (
+create table _20260725_notification_log (
   id uuid primary key default gen_random_uuid(),
-  notification_id uuid not null references notifications(id) on delete cascade,
+  notification_id uuid not null references _20260725_notifications(id) on delete cascade,
   attempted_at timestamptz not null default now(),
   result text not null,
   error_message text

@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Tant que `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` ne sont pas renseignées (voir `.env.example`), l'application fonctionne entièrement avec une couche de données mock persistée dans le `localStorage` du navigateur — aucun backend n'est requis pour développer ou faire une démo.
+Tant que `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` ne sont pas renseignées (voir `.env.example`), l'application fonctionne entièrement avec une couche de données mock persistée dans le `localStorage` du navigateur — aucun backend n'est requis pour développer ou faire une démo.
 
 Connexion par code d'accès personnel (pas de mot de passe). Codes de démonstration (voir `src/services/mock/data/people.ts`) :
 
@@ -30,10 +30,12 @@ Pour tester le mode "jour J" sans attendre la vraie date, ajoutez `?simulatePhas
 
 ## Brancher Supabase
 
-1. Créer un projet Supabase.
-2. Appliquer les migrations dans `src/supabase/migrations/` (dans l'ordre numéroté), puis `src/supabase/seed.sql`.
-3. Copier `.env.example` vers `.env` et renseigner `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
+1. Créer un projet Supabase (ou utiliser un projet existant — voir note ci-dessous).
+2. Appliquer les migrations dans `src/supabase/migrations/` (dans l'ordre numéroté), puis les fichiers de `src/supabase/seed/` (également dans l'ordre numéroté — un fichier par module métier, pour pouvoir les coller au fur et à mesure que les données réelles sont disponibles).
+3. Copier `.env.example` vers `.env` et renseigner `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`.
 4. Relancer `npm run dev` — l'app bascule automatiquement sur Supabase (voir `src/supabase/client.ts`).
+
+Toutes les tables créées par cette application sont préfixées par `_20260725_` (ex. `_20260725_people`, `_20260725_tasks`) afin de pouvoir cohabiter sans collision dans un projet Supabase partagé avec d'autres tables.
 
 ⚠️ L'authentification se fait par code d'accès, pas par Supabase Auth : la RLS appliquée dans `0009_rls_policies.sql` est volontairement permissive (app privée, non indexée). Voir les commentaires de ce fichier pour le détail du compromis et la piste d'évolution.
 

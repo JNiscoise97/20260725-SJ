@@ -8,11 +8,12 @@ import {
   Armchair,
   FolderOpen,
   Settings,
+  ListChecks,
   type LucideIcon,
 } from "lucide-react"
 
 import type { Capability } from "@/types/permissions"
-import type { PlanningMilestone } from "@/types/domain"
+import type { ChecklistPhase, PlanningMilestone } from "@/types/domain"
 
 export const EVENT_NAME = "Fiançailles de Sarah & Jordan"
 
@@ -31,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Référents", path: "/referents", icon: Users, capability: "view:referents" },
   { label: "Planning", path: "/planning", icon: CalendarRange, capability: "view:planning" },
   { label: "Déroulé", path: "/deroule", icon: PartyPopper, capability: "view:deroule" },
+  { label: "Feuille de route", path: "/feuille-de-route", icon: ListChecks, capability: "view:checklists" },
   { label: "Logistique", path: "/logistique", icon: Utensils, capability: "view:logistique" },
   { label: "Invités", path: "/invites", icon: Armchair, capability: "view:guests" },
   { label: "Documents", path: "/documents", icon: FolderOpen, capability: "view:documents" },
@@ -53,4 +55,20 @@ export const MILESTONE_LABELS: Record<PlanningMilestone, string> = {
   j_moins_1: "J-1",
   jour_j: "Jour J",
   j_plus_1: "J+1",
+}
+
+export const CHECKLIST_PHASE_ORDER: ChecklistPhase[] = [
+  "avant",
+  "installation",
+  "evenement",
+  "desinstallation",
+  "apres",
+]
+
+export const CHECKLIST_PHASE_LABELS: Record<ChecklistPhase, string> = {
+  avant: "Avant",
+  installation: "Installation (la veille)",
+  evenement: "Jour J",
+  desinstallation: "Désinstallation",
+  apres: "Après",
 }

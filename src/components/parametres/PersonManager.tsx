@@ -4,7 +4,6 @@ import { toast } from "sonner"
 
 import type { AppRole, Person } from "@/types/domain"
 import { useCreatePerson, useDeletePerson, usePeople, useUpdatePerson } from "@/hooks/queries/use-people"
-import { useRoleCategories } from "@/hooks/queries/use-role-categories"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -33,10 +32,9 @@ interface PersonFormState {
   phone: string
   role: AppRole
   accessCode: string
-  referentCategoryId: string
 }
 
-const EMPTY_FORM: PersonFormState = { fullName: "", phone: "", role: "proche", accessCode: "", referentCategoryId: "" }
+const EMPTY_FORM: PersonFormState = { fullName: "", phone: "", role: "proche", accessCode: "" }
 
 function PersonDialog({ person }: { person?: Person }) {
   const [open, setOpen] = useState(false)
@@ -47,11 +45,9 @@ function PersonDialog({ person }: { person?: Person }) {
           phone: person.phone ?? "",
           role: person.role,
           accessCode: person.accessCode,
-          referentCategoryId: person.referentCategoryId ?? "",
         }
       : EMPTY_FORM
   )
-  const { data: roleCategories } = useRoleCategories()
   const createPerson = useCreatePerson()
   const updatePerson = useUpdatePerson()
 
@@ -62,7 +58,6 @@ function PersonDialog({ person }: { person?: Person }) {
       phone: form.phone || undefined,
       role: form.role,
       accessCode: form.accessCode,
-      referentCategoryId: form.role === "referent" ? form.referentCategoryId || null : null,
       isActive: true,
     }
     if (person) {
@@ -125,26 +120,6 @@ function PersonDialog({ person }: { person?: Person }) {
               </SelectContent>
             </Select>
           </Field>
-          {form.role === "referent" ? (
-            <Field>
-              <FieldLabel>Catégorie</FieldLabel>
-              <Select
-                value={form.referentCategoryId}
-                onValueChange={(value) => setForm((f) => ({ ...f, referentCategoryId: value }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choisir une catégorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roleCategories?.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          ) : null}
           <Field>
             <FieldLabel htmlFor="person-code">Code d&apos;accès</FieldLabel>
             <Input

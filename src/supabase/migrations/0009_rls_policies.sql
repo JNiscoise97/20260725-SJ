@@ -17,26 +17,26 @@
 -- policies réelles puissent être écrites.
 -- ============================================================================
 
-alter table role_categories enable row level security;
-alter table people enable row level security;
-alter table app_settings enable row level security;
-alter table missions enable row level security;
-alter table tasks enable row level security;
-alter table checklists enable row level security;
-alter table checklist_items enable row level security;
-alter table planning_events enable row level security;
-alter table run_of_show_steps enable row level security;
-alter table run_of_show_responsibles enable row level security;
-alter table logistique_items enable row level security;
-alter table guest_groups enable row level security;
-alter table guests enable row level security;
-alter table tables enable row level security;
-alter table table_assignments enable row level security;
-alter table attachments enable row level security;
-alter table documents enable row level security;
-alter table comments enable row level security;
-alter table notifications enable row level security;
-alter table notification_log enable row level security;
+alter table _20260725_role_categories enable row level security;
+alter table _20260725_people enable row level security;
+alter table _20260725_app_settings enable row level security;
+alter table _20260725_missions enable row level security;
+alter table _20260725_tasks enable row level security;
+alter table _20260725_checklists enable row level security;
+alter table _20260725_checklist_items enable row level security;
+alter table _20260725_planning_events enable row level security;
+alter table _20260725_run_of_show_steps enable row level security;
+alter table _20260725_run_of_show_responsibles enable row level security;
+alter table _20260725_logistique_items enable row level security;
+alter table _20260725_guest_groups enable row level security;
+alter table _20260725_guests enable row level security;
+alter table _20260725_tables enable row level security;
+alter table _20260725_table_assignments enable row level security;
+alter table _20260725_attachments enable row level security;
+alter table _20260725_documents enable row level security;
+alter table _20260725_comments enable row level security;
+alter table _20260725_notifications enable row level security;
+alter table _20260725_notification_log enable row level security;
 
 -- TEMPORAIRE : accès anon complet ; l'application est protégée uniquement par
 -- le code d'accès côté client et par une URL non indexée/non partagée.
@@ -45,10 +45,12 @@ declare
   t text;
 begin
   for t in select unnest(array[
-    'role_categories', 'people', 'app_settings', 'missions', 'tasks', 'checklists',
-    'checklist_items', 'planning_events', 'run_of_show_steps', 'run_of_show_responsibles',
-    'logistique_items', 'guest_groups', 'guests', 'tables', 'table_assignments',
-    'attachments', 'documents', 'comments', 'notifications', 'notification_log'
+    '_20260725_role_categories', '_20260725_people', '_20260725_app_settings', '_20260725_missions',
+    '_20260725_tasks', '_20260725_checklists', '_20260725_checklist_items', '_20260725_planning_events',
+    '_20260725_run_of_show_steps', '_20260725_run_of_show_responsibles', '_20260725_logistique_items',
+    '_20260725_guest_groups', '_20260725_guests', '_20260725_tables', '_20260725_table_assignments',
+    '_20260725_attachments', '_20260725_documents', '_20260725_comments', '_20260725_notifications',
+    '_20260725_notification_log'
   ])
   loop
     execute format(
@@ -60,20 +62,20 @@ end $$;
 
 -- ----------------------------------------------------------------------------
 -- Durcissement minimal malgré tout : ne jamais exposer access_code_hash via un
--- SELECT direct sur `people`. Toute résolution de code passe par cette fonction
--- SECURITY DEFINER, qui ne renvoie la personne correspondante que si le code
--- fourni correspond au hash stocké.
+-- SELECT direct sur `_20260725_people`. Toute résolution de code passe par cette
+-- fonction SECURITY DEFINER, qui ne renvoie la personne correspondante que si le
+-- code fourni correspond au hash stocké.
 -- ----------------------------------------------------------------------------
-revoke select (access_code_hash) on people from anon, authenticated;
+revoke select (access_code_hash) on _20260725_people from anon, authenticated;
 
-create or replace function resolve_access_code(code text)
-returns setof people
+create or replace function _20260725_resolve_access_code(code text)
+returns setof _20260725_people
 language sql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
   select *
-  from people
+  from _20260725_people
   where is_active
     and access_code_hash = crypt(code, access_code_hash)
   limit 1;

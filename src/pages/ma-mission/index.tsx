@@ -7,7 +7,7 @@ import { useRoleCategories } from "@/hooks/queries/use-role-categories"
 import { useMissions } from "@/hooks/queries/use-missions"
 import { useDocuments } from "@/hooks/queries/use-documents"
 import { useTasks } from "@/hooks/queries/use-tasks"
-import { ReferentCard } from "@/components/referents/ReferentCard"
+import { ReferentCard, type ReferentRoleCategoryAssignment } from "@/components/referents/ReferentCard"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export function MaMissionPage() {
@@ -28,10 +28,17 @@ export function MaMissionPage() {
     return <Skeleton className="h-96 max-w-md rounded-2xl" />
   }
 
-  const roleCategory = roleCategories?.find((c) => c.id === person.referentCategoryId)
+  const personRoleCategories: ReferentRoleCategoryAssignment[] = (roleCategories ?? [])
+    .filter((c) => c.primaryReferentId === person.id || c.secondaryReferentId === person.id)
+    .map((category) => ({
+      category,
+      rank: category.primaryReferentId === person.id ? "principal" : "secondaire",
+    }))
+  const categoryNames = personRoleCategories.map((a) => a.category.name)
   const mission = missions?.find((m) => m.referentId === person.id)
-  const partner = (people ?? []).find((p) => p.id === person.partnerReferentId)
-  const referentDocuments = (documents ?? []).filter((doc) => doc.category === roleCategory?.name)
+  const referentDocuments = (documents ?? []).filter(
+    (doc) => doc.category != null && categoryNames.includes(doc.category)
+  )
   const fiances = (people ?? []).filter((p) => p.role === "fiance")
   const openTaskCount = (tasks ?? []).filter((task) => task.ownerId === person.id && task.status !== "done").length
 
@@ -41,9 +48,8 @@ export function MaMissionPage() {
       <div className="max-w-md">
         <ReferentCard
           person={person}
-          roleCategory={roleCategory}
+          roleCategories={personRoleCategories}
           mission={mission}
-          partner={partner}
           contacts={fiances}
           documents={referentDocuments}
           openTaskCount={openTaskCount}

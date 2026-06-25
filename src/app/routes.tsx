@@ -10,6 +10,7 @@ import { TasksPage } from "@/pages/tasks"
 import { ReferentsPage } from "@/pages/referents"
 import { PlanningPage } from "@/pages/planning"
 import { DeroulePage } from "@/pages/deroule"
+import { FeuilleDeRoutePage } from "@/pages/feuille-de-route"
 import { LogistiquePage } from "@/pages/logistique"
 import { InvitesPage } from "@/pages/invites"
 import { DocumentsPage } from "@/pages/documents"
@@ -63,6 +64,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:deroule">
                 <DeroulePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="feuille-de-route"
+            element={
+              <RoleGuard capability="view:checklists">
+                <FeuilleDeRoutePage />
               </RoleGuard>
             }
           />
