@@ -1,6 +1,8 @@
 import type { DocumentItem } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { documentsSeed } from "@/services/mock/data/documents"
+import { documentsSupabaseService } from "@/services/supabase/documents"
+import { USE_SUPABASE } from "@/supabase/client"
 
 export interface DocumentsService {
   list(): Promise<DocumentItem[]>
@@ -9,7 +11,7 @@ export interface DocumentsService {
 
 const documentsTable = createMockTable<DocumentItem>("sj-documents", documentsSeed)
 
-export const documentsService: DocumentsService = {
+const documentsMockService: DocumentsService = {
   async list() {
     return documentsTable.getAll()
   },
@@ -17,3 +19,5 @@ export const documentsService: DocumentsService = {
     return documentsTable.insert({ ...input, id: crypto.randomUUID() })
   },
 }
+
+export const documentsService: DocumentsService = USE_SUPABASE ? documentsSupabaseService : documentsMockService

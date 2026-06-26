@@ -1,6 +1,8 @@
 import type { RoleCategory } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { roleCategoriesSeed } from "@/services/mock/data/role-categories"
+import { rolesSupabaseService } from "@/services/supabase/roles"
+import { USE_SUPABASE } from "@/supabase/client"
 
 export interface RolesService {
   list(): Promise<RoleCategory[]>
@@ -11,7 +13,7 @@ export interface RolesService {
 
 const roleCategoriesTable = createMockTable<RoleCategory>("sj-role-categories", roleCategoriesSeed)
 
-export const rolesService: RolesService = {
+const rolesMockService: RolesService = {
   async list() {
     const categories = await roleCategoriesTable.getAll()
     return [...categories].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -26,3 +28,5 @@ export const rolesService: RolesService = {
     return roleCategoriesTable.remove(id)
   },
 }
+
+export const rolesService: RolesService = USE_SUPABASE ? rolesSupabaseService : rolesMockService

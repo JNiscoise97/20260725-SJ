@@ -1,6 +1,8 @@
 import type { Person } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { peopleSeed } from "@/services/mock/data/people"
+import { peopleSupabaseService } from "@/services/supabase/people"
+import { USE_SUPABASE } from "@/supabase/client"
 
 export interface PeopleService {
   resolveByAccessCode(code: string): Promise<Person | null>
@@ -11,12 +13,9 @@ export interface PeopleService {
   remove(id: string): Promise<void>
 }
 
-// TODO(supabase): quand un projet Supabase existe, remplacer cette implémentation
-// par un appel RPC `_20260725_resolve_access_code` (SECURITY DEFINER) pour ne jamais exposer
-// access_code en lecture directe via la clé anon. Voir src/supabase/migrations/0009_rls_policies.sql.
 const peopleTable = createMockTable<Person>("sj-people", peopleSeed)
 
-export const peopleService: PeopleService = {
+const peopleMockService: PeopleService = {
   async resolveByAccessCode(code) {
     const people = await peopleTable.getAll()
     const normalized = code.trim().toUpperCase()
@@ -40,3 +39,5 @@ export const peopleService: PeopleService = {
     return peopleTable.remove(id)
   },
 }
+
+export const peopleService: PeopleService = USE_SUPABASE ? peopleSupabaseService : peopleMockService

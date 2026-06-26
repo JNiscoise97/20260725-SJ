@@ -6,6 +6,8 @@ import {
   tablesSeed,
   tableAssignmentsSeed,
 } from "@/services/mock/data/guests"
+import { guestsSupabaseService } from "@/services/supabase/guests"
+import { USE_SUPABASE } from "@/supabase/client"
 
 export interface GuestsService {
   listGroups(): Promise<GuestGroup[]>
@@ -22,7 +24,7 @@ const guestsTable = createMockTable<Guest>("sj-guests", guestsSeed)
 const tablesTable = createMockTable<SeatingTable>("sj-tables", tablesSeed)
 const tableAssignmentsTable = createMockTable<TableAssignment>("sj-table-assignments", tableAssignmentsSeed)
 
-export const guestsService: GuestsService = {
+const guestsMockService: GuestsService = {
   async listGroups() {
     return guestGroupsTable.getAll()
   },
@@ -54,3 +56,5 @@ export const guestsService: GuestsService = {
     }
   },
 }
+
+export const guestsService: GuestsService = USE_SUPABASE ? guestsSupabaseService : guestsMockService

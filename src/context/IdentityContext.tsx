@@ -23,11 +23,19 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
     const storedId = localStorage.getItem(STORAGE_KEY)
     const lookup = storedId ? peopleService.getById(storedId) : Promise.resolve(null)
 
-    lookup.then((found) => {
-      if (!active) return
-      setPerson(found && found.isActive ? found : null)
-      setIsLoading(false)
-    })
+    lookup
+      .catch(() => {
+        // Identifiant invalide ou obsolète (ex. ancien id mock du type "p-sarah"
+        // après bascule sur Supabase, où "id" doit être un uuid) : on l'efface
+        // plutôt que de planter, l'utilisateur se reconnectera avec son code.
+        localStorage.removeItem(STORAGE_KEY)
+        return null
+      })
+      .then((found) => {
+        if (!active) return
+        setPerson(found && found.isActive ? found : null)
+        setIsLoading(false)
+      })
 
     return () => {
       active = false

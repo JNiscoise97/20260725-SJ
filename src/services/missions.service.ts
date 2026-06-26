@@ -1,6 +1,8 @@
 import type { Mission } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { missionsSeed } from "@/services/mock/data/missions"
+import { missionsSupabaseService } from "@/services/supabase/missions"
+import { USE_SUPABASE } from "@/supabase/client"
 
 export interface MissionsService {
   list(): Promise<Mission[]>
@@ -10,7 +12,7 @@ export interface MissionsService {
 
 const missionsTable = createMockTable<Mission>("sj-missions", missionsSeed)
 
-export const missionsService: MissionsService = {
+const missionsMockService: MissionsService = {
   async list() {
     return missionsTable.getAll()
   },
@@ -21,3 +23,5 @@ export const missionsService: MissionsService = {
     return missionsTable.update(id, patch)
   },
 }
+
+export const missionsService: MissionsService = USE_SUPABASE ? missionsSupabaseService : missionsMockService

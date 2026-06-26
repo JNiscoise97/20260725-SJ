@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom"
+
 import type { Guest, GuestGroup } from "@/types/domain"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { RsvpBadge } from "@/components/invites/RsvpBadge"
@@ -8,6 +10,8 @@ interface GuestTableProps {
 }
 
 export function GuestTable({ guests, groupsById }: GuestTableProps) {
+  const navigate = useNavigate()
+
   return (
     <Table>
       <TableHeader>
@@ -15,13 +19,15 @@ export function GuestTable({ guests, groupsById }: GuestTableProps) {
           <TableHead>Invité</TableHead>
           <TableHead>Famille</TableHead>
           <TableHead>Présence</TableHead>
-          <TableHead>Contraintes</TableHead>
-          <TableHead>+1</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {guests.map((guest) => (
-          <TableRow key={guest.id}>
+          <TableRow
+            key={guest.id}
+            onClick={() => navigate(`/invites/${guest.id}`)}
+            className="cursor-pointer hover:bg-muted/50"
+          >
             <TableCell className="font-medium text-foreground">{guest.fullName}</TableCell>
             <TableCell className="text-sm text-muted-foreground">
               {guest.groupId ? groupsById.get(guest.groupId)?.familyName : "—"}
@@ -29,8 +35,6 @@ export function GuestTable({ guests, groupsById }: GuestTableProps) {
             <TableCell>
               <RsvpBadge status={guest.rsvpStatus} />
             </TableCell>
-            <TableCell className="text-sm text-muted-foreground">{guest.dietaryConstraints ?? "—"}</TableCell>
-            <TableCell className="text-sm text-muted-foreground">{guest.plusOne ? "Oui" : "Non"}</TableCell>
           </TableRow>
         ))}
       </TableBody>

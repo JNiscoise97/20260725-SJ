@@ -52,19 +52,28 @@ function PersonDialog({ person }: { person?: Person }) {
   const updatePerson = useUpdatePerson()
 
   async function handleSubmit() {
-    if (!form.fullName.trim() || !form.accessCode.trim()) return
-    const payload = {
-      fullName: form.fullName,
-      phone: form.phone || undefined,
-      role: form.role,
-      accessCode: form.accessCode,
-      isActive: true,
-    }
+    if (!form.fullName.trim()) return
+    if (!person && !form.accessCode.trim()) return
+
     if (person) {
-      await updatePerson.mutateAsync({ id: person.id, patch: payload })
+      const patch: Partial<Person> & { accessCode?: string } = {
+        fullName: form.fullName,
+        phone: form.phone || undefined,
+        role: form.role,
+      }
+      // Code laissé vide en modification = on ne le change pas (le hash existant
+      // n'est jamais relisible, voir peopleSupabaseService).
+      if (form.accessCode.trim()) patch.accessCode = form.accessCode
+      await updatePerson.mutateAsync({ id: person.id, patch })
       toast.success("Personne mise à jour.")
     } else {
-      await createPerson.mutateAsync(payload)
+      await createPerson.mutateAsync({
+        fullName: form.fullName,
+        phone: form.phone || undefined,
+        role: form.role,
+        accessCode: form.accessCode,
+        isActive: true,
+      })
       toast.success("Personne ajoutée.")
     }
     setOpen(false)
@@ -124,6 +133,7 @@ function PersonDialog({ person }: { person?: Person }) {
             <FieldLabel htmlFor="person-code">Code d&apos;accès</FieldLabel>
             <Input
               id="person-code"
+              placeholder={person ? "Laisser vide pour ne pas changer le code" : undefined}
               value={form.accessCode}
               onChange={(e) => setForm((f) => ({ ...f, accessCode: e.target.value.toUpperCase() }))}
             />
@@ -159,7 +169,9 @@ export function PersonManager() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-foreground">{person.fullName}</span>
                 <Badge className="bg-secondary text-secondary-foreground">{ROLE_LABELS[person.role]}</Badge>
-                <span className="font-mono text-xs text-muted-foreground">{person.accessCode}</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {person.accessCode || "Code défini (masqué)"}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <PersonDialog person={person} />

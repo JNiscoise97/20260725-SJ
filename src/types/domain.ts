@@ -48,16 +48,13 @@ export interface Task {
   ownerId?: string | null
 }
 
-export type ChecklistOwnerType = "referent" | "mission" | "logistique_item" | "standalone"
-
-export type ChecklistPhase = "avant" | "installation" | "evenement" | "desinstallation" | "apres"
+export type ChecklistOwnerType = "referent" | "mission" | "logistique_item"
 
 export interface Checklist {
   id: string
   ownerType: ChecklistOwnerType
   ownerId?: string | null
   title: string
-  phase?: ChecklistPhase | null
 }
 
 export interface ChecklistItem {
@@ -90,6 +87,7 @@ export interface RunOfShowStep {
   phase?: string | null
   music?: string | null
   notes?: string | null
+  isHighlight: boolean
   responsibleIds: string[]
 }
 
@@ -105,6 +103,10 @@ export interface LogistiqueItem {
 
 export type RsvpStatus = "pending" | "confirmed" | "declined"
 
+export type MealChoice = "poulet" | "poisson" | "enfant"
+
+export type GuestSide = "sarah" | "jordan"
+
 export interface GuestGroup {
   id: string
   familyName: string
@@ -114,12 +116,42 @@ export interface GuestGroup {
 export interface Guest {
   id: string
   groupId?: string | null
+  firstName: string
+  lastName: string
+  /** Dérivé de firstName + lastName, en lecture uniquement. */
   fullName: string
-  phone?: string | null
-  email?: string | null
   rsvpStatus: RsvpStatus
   dietaryConstraints?: string | null
-  plusOne: boolean
+  mealChoice?: MealChoice | null
+  arrivalInfo?: string | null
+  accommodation?: string | null
+  hasVehicle: boolean
+  needsLateTransport: boolean
+  isReducedMobility: boolean
+  isChild: boolean
+  childAge?: number | null
+  inCortege: boolean
+  communicationJ30Sent: boolean
+  communicationJ15Sent: boolean
+  communicationJ3Sent: boolean
+  side?: GuestSide | null
+  ageRange?: string | null
+  relationCategory?: string | null
+  city?: string | null
+  mealMessageSent: boolean
+  rsvpRespondedAt?: string | null
+  rsvpChannel?: string | null
+  needsAccommodation: boolean
+  guideSent: boolean
+  addressChangeSent: boolean
+  reservationDone: boolean
+  allergies?: string | null
+  drinksAlcohol?: boolean | null
+  culturalOrigin?: string | null
+  primaryLanguage?: string | null
+  hasCeremonialRole: boolean
+  likelyTraditionalAttire: boolean
+  notes?: string | null
 }
 
 export interface SeatingTable {

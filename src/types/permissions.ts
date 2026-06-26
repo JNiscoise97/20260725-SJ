@@ -14,10 +14,9 @@ export type Capability =
   | "manage:logistique"
   | "view:guests"
   | "manage:guests"
+  | "view:nourriture"
   | "view:documents"
   | "manage:documents"
-  | "view:checklists"
-  | "manage:checklists"
   | "manage:settings"
 
 const FIANCE_CAPABILITIES: Capability[] = [
@@ -34,10 +33,9 @@ const FIANCE_CAPABILITIES: Capability[] = [
   "manage:logistique",
   "view:guests",
   "manage:guests",
+  "view:nourriture",
   "view:documents",
   "manage:documents",
-  "view:checklists",
-  "manage:checklists",
   "manage:settings",
 ]
 
@@ -49,10 +47,9 @@ const REFERENT_CAPABILITIES: Capability[] = [
   "view:deroule",
   "view:logistique",
   "view:documents",
-  "view:checklists",
 ]
 
-const PROCHE_CAPABILITIES: Capability[] = ["view:dashboard", "view:tasks", "view:documents", "view:checklists"]
+const PROCHE_CAPABILITIES: Capability[] = ["view:dashboard", "view:tasks", "view:documents"]
 
 const INVITE_CAPABILITIES: Capability[] = []
 

@@ -5,10 +5,14 @@
 type WithDefaults<Row, OptionalKeys extends keyof Row> = Omit<Row, OptionalKeys> &
   Partial<Pick<Row, OptionalKeys>>
 
+// Relationships: [] requis par le type GenericTable de @supabase/postgrest-js
+// pour que l'inférence insert/update/rpc fonctionne ; pas utilisé pour valider
+// les jointures (PostgREST infère les FK depuis le vrai schéma à l'exécution).
 type TableDef<Row, OptionalOnInsert extends keyof Row> = {
   Row: Row
   Insert: WithDefaults<Row, OptionalOnInsert>
   Update: Partial<WithDefaults<Row, OptionalOnInsert>>
+  Relationships: []
 }
 
 export type AppRoleRow = "fiance" | "referent" | "proche" | "invite"
@@ -18,9 +22,10 @@ export type PlanningMilestoneRow = "j_moins_30" | "j_moins_15" | "j_moins_7" | "
 export type RsvpStatusRow = "pending" | "confirmed" | "declined"
 export type NotificationChannelRow = "push" | "email" | "sms" | "whatsapp"
 export type NotificationStatusRow = "pending" | "sent" | "failed"
-export type ChecklistPhaseRow = "avant" | "installation" | "evenement" | "desinstallation" | "apres"
+export type MealChoiceRow = "poulet" | "poisson" | "enfant"
+export type GuestSideRow = "sarah" | "jordan"
 
-interface RoleCategoryRow {
+type RoleCategoryRow = {
   id: string
   name: string
   slug: string
@@ -34,7 +39,7 @@ interface RoleCategoryRow {
   created_at: string
 }
 
-interface PersonRow {
+type PersonRow = {
   id: string
   full_name: string
   phone: string | null
@@ -45,7 +50,7 @@ interface PersonRow {
   created_at: string
 }
 
-interface AppSettingsRow {
+type AppSettingsRow = {
   id: "singleton"
   event_name: string
   event_date: string
@@ -53,7 +58,7 @@ interface AppSettingsRow {
   updated_at: string
 }
 
-interface MissionRow {
+type MissionRow = {
   id: string
   role_category_id: string | null
   referent_id: string | null
@@ -64,7 +69,7 @@ interface MissionRow {
   updated_at: string
 }
 
-interface TaskRow {
+type TaskRow = {
   id: string
   mission_id: string | null
   title: string
@@ -79,16 +84,15 @@ interface TaskRow {
   updated_at: string
 }
 
-interface ChecklistRow {
+type ChecklistRow = {
   id: string
-  owner_type: "referent" | "mission" | "logistique_item" | "standalone"
+  owner_type: "referent" | "mission" | "logistique_item"
   owner_id: string | null
   title: string
-  phase: ChecklistPhaseRow | null
   created_at: string
 }
 
-interface ChecklistItemRow {
+type ChecklistItemRow = {
   id: string
   checklist_id: string
   label: string
@@ -98,7 +102,7 @@ interface ChecklistItemRow {
   done_at: string | null
 }
 
-interface PlanningEventRow {
+type PlanningEventRow = {
   id: string
   milestone: PlanningMilestoneRow
   title: string
@@ -110,7 +114,7 @@ interface PlanningEventRow {
   created_at: string
 }
 
-interface RunOfShowStepRow {
+type RunOfShowStepRow = {
   id: string
   time_label: string
   starts_at: string | null
@@ -120,16 +124,17 @@ interface RunOfShowStepRow {
   phase: string | null
   music: string | null
   notes: string | null
+  is_highlight: boolean
   sort_order: number
   created_at: string
 }
 
-interface RunOfShowResponsibleRow {
+type RunOfShowResponsibleRow = {
   run_of_show_step_id: string
   person_id: string
 }
 
-interface LogistiqueItemRow {
+type LogistiqueItemRow = {
   id: string
   role_category_id: string | null
   name: string
@@ -140,38 +145,66 @@ interface LogistiqueItemRow {
   created_at: string
 }
 
-interface GuestGroupRow {
+type GuestGroupRow = {
   id: string
   family_name: string
   notes: string | null
 }
 
-interface GuestRow {
+type GuestRow = {
   id: string
   group_id: string | null
-  full_name: string
-  phone: string | null
-  email: string | null
+  first_name: string
+  last_name: string
   rsvp_status: RsvpStatusRow
   dietary_constraints: string | null
-  plus_one: boolean
+  meal_choice: MealChoiceRow | null
+  arrival_info: string | null
+  accommodation: string | null
+  has_vehicle: boolean
+  needs_late_transport: boolean
+  is_reduced_mobility: boolean
+  is_child: boolean
+  child_age: number | null
+  in_cortege: boolean
+  communication_j30_sent: boolean
+  communication_j15_sent: boolean
+  communication_j3_sent: boolean
+  side: GuestSideRow | null
+  age_range: string | null
+  relation_category: string | null
+  city: string | null
+  meal_message_sent: boolean
+  rsvp_responded_at: string | null
+  rsvp_channel: string | null
+  needs_accommodation: boolean
+  guide_sent: boolean
+  address_change_sent: boolean
+  reservation_done: boolean
+  allergies: string | null
+  drinks_alcohol: boolean | null
+  cultural_origin: string | null
+  primary_language: string | null
+  has_ceremonial_role: boolean
+  likely_traditional_attire: boolean
+  notes: string | null
   created_at: string
 }
 
-interface TableRow {
+type TableRow = {
   id: string
   name: string
   capacity: number
 }
 
-interface TableAssignmentRow {
+type TableAssignmentRow = {
   id: string
   table_id: string
   guest_id: string
   seat_number: number | null
 }
 
-interface AttachmentRow {
+type AttachmentRow = {
   id: string
   entity_type: string | null
   entity_id: string | null
@@ -182,7 +215,7 @@ interface AttachmentRow {
   created_at: string
 }
 
-interface DocumentRow {
+type DocumentRow = {
   id: string
   attachment_id: string
   title: string
@@ -191,7 +224,7 @@ interface DocumentRow {
   created_at: string
 }
 
-interface CommentRow {
+type CommentRow = {
   id: string
   entity_type: string
   entity_id: string
@@ -200,7 +233,7 @@ interface CommentRow {
   created_at: string
 }
 
-interface NotificationRow {
+type NotificationRow = {
   id: string
   recipient_id: string | null
   channel: NotificationChannelRow
@@ -213,7 +246,7 @@ interface NotificationRow {
   sent_at: string | null
 }
 
-interface NotificationLogRow {
+type NotificationLogRow = {
   id: string
   notification_id: string
   attempted_at: string
@@ -258,7 +291,7 @@ export interface Database {
         | "created_at"
         | "updated_at"
       >
-      _20260725_checklists: TableDef<ChecklistRow, "id" | "owner_id" | "phase" | "created_at">
+      _20260725_checklists: TableDef<ChecklistRow, "id" | "owner_id" | "created_at">
       _20260725_checklist_items: TableDef<ChecklistItemRow, "id" | "is_done" | "sort_order" | "done_by" | "done_at">
       _20260725_planning_events: TableDef<
         PlanningEventRow,
@@ -266,7 +299,16 @@ export interface Database {
       >
       _20260725_run_of_show_steps: TableDef<
         RunOfShowStepRow,
-        "id" | "starts_at" | "duration_minutes" | "location" | "phase" | "music" | "notes" | "sort_order" | "created_at"
+        | "id"
+        | "starts_at"
+        | "duration_minutes"
+        | "location"
+        | "phase"
+        | "music"
+        | "notes"
+        | "is_highlight"
+        | "sort_order"
+        | "created_at"
       >
       _20260725_run_of_show_responsibles: TableDef<RunOfShowResponsibleRow, never>
       _20260725_logistique_items: TableDef<
@@ -276,7 +318,41 @@ export interface Database {
       _20260725_guest_groups: TableDef<GuestGroupRow, "id" | "notes">
       _20260725_guests: TableDef<
         GuestRow,
-        "id" | "group_id" | "phone" | "email" | "rsvp_status" | "dietary_constraints" | "plus_one" | "created_at"
+        | "id"
+        | "group_id"
+        | "rsvp_status"
+        | "dietary_constraints"
+        | "meal_choice"
+        | "arrival_info"
+        | "accommodation"
+        | "has_vehicle"
+        | "needs_late_transport"
+        | "is_reduced_mobility"
+        | "is_child"
+        | "child_age"
+        | "in_cortege"
+        | "communication_j30_sent"
+        | "communication_j15_sent"
+        | "communication_j3_sent"
+        | "side"
+        | "age_range"
+        | "relation_category"
+        | "city"
+        | "meal_message_sent"
+        | "rsvp_responded_at"
+        | "rsvp_channel"
+        | "needs_accommodation"
+        | "guide_sent"
+        | "address_change_sent"
+        | "reservation_done"
+        | "allergies"
+        | "drinks_alcohol"
+        | "cultural_origin"
+        | "primary_language"
+        | "has_ceremonial_role"
+        | "likely_traditional_attire"
+        | "notes"
+        | "created_at"
       >
       _20260725_tables: TableDef<TableRow, "id">
       _20260725_table_assignments: TableDef<TableAssignmentRow, "id" | "seat_number">
@@ -292,5 +368,29 @@ export interface Database {
       >
       _20260725_notification_log: TableDef<NotificationLogRow, "id" | "attempted_at" | "error_message">
     }
+    Views: Record<string, never>
+    Functions: {
+      _20260725_resolve_access_code: {
+        Args: { code: string }
+        Returns: PersonRow[]
+      }
+      _20260725_create_person: {
+        Args: {
+          p_full_name: string
+          p_role: AppRoleRow
+          p_code: string
+          p_phone?: string | null
+          p_avatar_url?: string | null
+          p_is_active?: boolean
+        }
+        Returns: PersonRow
+      }
+      _20260725_set_access_code: {
+        Args: { p_person_id: string; p_code: string }
+        Returns: undefined
+      }
+    }
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }

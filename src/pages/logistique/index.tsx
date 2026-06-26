@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { Utensils } from "lucide-react"
+import { Truck } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/PageHeader"
 import { EmptyState } from "@/components/shared/EmptyState"
@@ -43,7 +43,7 @@ export function LogistiquePage() {
           ))}
         </div>
       ) : categoriesWithItems.length === 0 ? (
-        <EmptyState icon={Utensils} title="Aucun élément de logistique" />
+        <EmptyState icon={Truck} title="Aucun élément de logistique" />
       ) : (
         <Tabs defaultValue={categoriesWithItems[0].category.id}>
           <TabsList>

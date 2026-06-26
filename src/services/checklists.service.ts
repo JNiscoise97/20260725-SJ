@@ -1,6 +1,8 @@
 import type { Checklist, ChecklistItem, ChecklistOwnerType } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { checklistsSeed, checklistItemsSeed } from "@/services/mock/data/checklists"
+import { checklistsSupabaseService } from "@/services/supabase/checklists"
+import { USE_SUPABASE } from "@/supabase/client"
 
 export interface ChecklistsService {
   listAll(): Promise<Checklist[]>
@@ -13,7 +15,7 @@ export interface ChecklistsService {
 const checklistsTable = createMockTable<Checklist>("sj-checklists", checklistsSeed)
 const checklistItemsTable = createMockTable<ChecklistItem>("sj-checklist-items", checklistItemsSeed)
 
-export const checklistsService: ChecklistsService = {
+const checklistsMockService: ChecklistsService = {
   async listAll() {
     return checklistsTable.getAll()
   },
@@ -32,3 +34,5 @@ export const checklistsService: ChecklistsService = {
     return checklistItemsTable.update(itemId, { isDone })
   },
 }
+
+export const checklistsService: ChecklistsService = USE_SUPABASE ? checklistsSupabaseService : checklistsMockService

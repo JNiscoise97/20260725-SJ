@@ -10,9 +10,10 @@ import { TasksPage } from "@/pages/tasks"
 import { ReferentsPage } from "@/pages/referents"
 import { PlanningPage } from "@/pages/planning"
 import { DeroulePage } from "@/pages/deroule"
-import { FeuilleDeRoutePage } from "@/pages/feuille-de-route"
 import { LogistiquePage } from "@/pages/logistique"
+import { NourriturePage } from "@/pages/nourriture"
 import { InvitesPage } from "@/pages/invites"
+import { GuestDetailPage } from "@/pages/invites/guest-detail"
 import { DocumentsPage } from "@/pages/documents"
 import { ParametresPage } from "@/pages/parametres"
 import { MaMissionPage } from "@/pages/ma-mission"
@@ -68,14 +69,6 @@ export function AppRoutes() {
             }
           />
           <Route
-            path="feuille-de-route"
-            element={
-              <RoleGuard capability="view:checklists">
-                <FeuilleDeRoutePage />
-              </RoleGuard>
-            }
-          />
-          <Route
             path="logistique"
             element={
               <RoleGuard capability="view:logistique">
@@ -84,10 +77,26 @@ export function AppRoutes() {
             }
           />
           <Route
+            path="nourriture"
+            element={
+              <RoleGuard capability="view:nourriture">
+                <NourriturePage />
+              </RoleGuard>
+            }
+          />
+          <Route
             path="invites"
             element={
               <RoleGuard capability="view:guests">
                 <InvitesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="invites/:guestId"
+            element={
+              <RoleGuard capability="view:guests">
+                <GuestDetailPage />
               </RoleGuard>
             }
           />

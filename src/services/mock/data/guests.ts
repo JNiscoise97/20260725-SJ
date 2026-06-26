@@ -6,15 +6,37 @@ export const guestGroupsSeed: GuestGroup[] = [
   { id: "gg-amis", familyName: "Amis" },
 ]
 
+const guestDefaults = {
+  hasVehicle: false,
+  needsLateTransport: false,
+  isReducedMobility: false,
+  isChild: false,
+  inCortege: false,
+  communicationJ30Sent: false,
+  communicationJ15Sent: false,
+  communicationJ3Sent: false,
+  mealMessageSent: false,
+  needsAccommodation: false,
+  guideSent: false,
+  addressChangeSent: false,
+  reservationDone: false,
+  hasCeremonialRole: false,
+  likelyTraditionalAttire: false,
+}
+
+function guest(firstName: string, lastName: string, rest: Omit<Guest, "id" | "firstName" | "lastName" | "fullName" | keyof typeof guestDefaults> & { id: string }): Guest {
+  return { firstName, lastName, fullName: `${firstName} ${lastName}`, ...guestDefaults, ...rest }
+}
+
 export const guestsSeed: Guest[] = [
-  { id: "g-paul", groupId: "gg-bluker", fullName: "Paul Bluker", phone: "+33600000010", rsvpStatus: "confirmed", plusOne: false },
-  { id: "g-claire", groupId: "gg-bluker", fullName: "Claire Bluker", phone: "+33600000011", rsvpStatus: "confirmed", dietaryConstraints: "Végétarienne", plusOne: false },
-  { id: "g-anne", groupId: "gg-martin", fullName: "Anne Martin", phone: "+33600000012", rsvpStatus: "confirmed", plusOne: true },
-  { id: "g-marc", groupId: "gg-martin", fullName: "Marc Martin", phone: "+33600000013", rsvpStatus: "pending", plusOne: false },
-  { id: "g-ines", groupId: "gg-amis", fullName: "Inès Dupont", phone: "+33600000014", rsvpStatus: "confirmed", dietaryConstraints: "Sans gluten", plusOne: false },
-  { id: "g-yanis", groupId: "gg-amis", fullName: "Yanis Cohen", phone: "+33600000015", rsvpStatus: "declined", plusOne: false },
-  { id: "g-sofia", groupId: "gg-amis", fullName: "Sofia Rossi", phone: "+33600000016", rsvpStatus: "confirmed", plusOne: true },
-  { id: "g-karim", groupId: "gg-amis", fullName: "Karim Haddad", phone: "+33600000017", rsvpStatus: "pending", plusOne: false },
+  guest("Paul", "Bluker", { id: "g-paul", groupId: "gg-bluker", rsvpStatus: "confirmed" }),
+  guest("Claire", "Bluker", { id: "g-claire", groupId: "gg-bluker", rsvpStatus: "confirmed", dietaryConstraints: "Végétarienne" }),
+  guest("Anne", "Martin", { id: "g-anne", groupId: "gg-martin", rsvpStatus: "confirmed" }),
+  guest("Marc", "Martin", { id: "g-marc", groupId: "gg-martin", rsvpStatus: "pending" }),
+  guest("Inès", "Dupont", { id: "g-ines", groupId: "gg-amis", rsvpStatus: "confirmed", dietaryConstraints: "Sans gluten" }),
+  guest("Yanis", "Cohen", { id: "g-yanis", groupId: "gg-amis", rsvpStatus: "declined" }),
+  guest("Sofia", "Rossi", { id: "g-sofia", groupId: "gg-amis", rsvpStatus: "confirmed" }),
+  guest("Karim", "Haddad", { id: "g-karim", groupId: "gg-amis", rsvpStatus: "pending" }),
 ]
 
 export const tablesSeed: SeatingTable[] = [
