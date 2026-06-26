@@ -1,6 +1,6 @@
 import { FileText } from "lucide-react"
 
-import type { DocumentItem, Mission, Person, RoleCategory } from "@/types/domain"
+import type { DocumentItem, Domaine, Identity, Mission, Person } from "@/types/domain"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -8,18 +8,13 @@ import { ContactQuickActions } from "@/components/shared/ContactQuickActions"
 import { ChecklistWidget } from "@/components/shared/ChecklistWidget"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 
-export interface ReferentRoleCategoryAssignment {
-  category: RoleCategory
-  rank: "principal" | "secondaire"
-}
-
 interface ReferentCardProps {
-  person: Person
-  roleCategories: ReferentRoleCategoryAssignment[]
-  mission?: Mission
+  identity: Identity
+  domaines: Domaine[]
+  missions: Mission[]
   contacts: Person[]
   documents: DocumentItem[]
-  openTaskCount: number
+  openItemCount: number
 }
 
 function initials(fullName: string) {
@@ -31,30 +26,22 @@ function initials(fullName: string) {
     .toUpperCase()
 }
 
-export function ReferentCard({
-  person,
-  roleCategories,
-  mission,
-  contacts,
-  documents,
-  openTaskCount,
-}: ReferentCardProps) {
+export function ReferentCard({ identity, domaines, missions, contacts, documents, openItemCount }: ReferentCardProps) {
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-3">
         <Avatar className="size-12">
           <AvatarFallback className="bg-secondary text-secondary-foreground">
-            {initials(person.fullName)}
+            {initials(identity.fullName)}
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="font-heading text-lg font-semibold text-foreground">{person.fullName}</p>
-          {roleCategories.length > 0 ? (
+          <p className="font-heading text-lg font-semibold text-foreground">{identity.fullName}</p>
+          {domaines.length > 0 ? (
             <div className="flex flex-wrap gap-1">
-              {roleCategories.map(({ category, rank }) => (
-                <Badge key={category.id} className="bg-dore/20 text-brun">
-                  {category.name}
-                  {rank === "secondaire" ? " (secondaire)" : null}
+              {domaines.map((domaine) => (
+                <Badge key={domaine.id} className="bg-dore/20 text-brun">
+                  {domaine.name}
                 </Badge>
               ))}
             </div>
@@ -62,25 +49,28 @@ export function ReferentCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ContactQuickActions phone={person.phone} />
+        <ContactQuickActions phone={identity.phone} />
 
-        {mission ? (
-          <div className="space-y-1 rounded-xl bg-muted/50 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-foreground">{mission.title}</p>
-              <StatusBadge status={mission.status} />
-            </div>
-            {mission.description ? (
-              <p className="text-xs text-muted-foreground">{mission.description}</p>
-            ) : null}
+        {missions.length > 0 ? (
+          <div className="space-y-2">
+            {missions.map((mission) => (
+              <div key={mission.id} className="space-y-1 rounded-xl bg-muted/50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">{mission.title}</p>
+                  <StatusBadge status={mission.status} />
+                </div>
+                {mission.description ? (
+                  <p className="text-xs text-muted-foreground">{mission.description}</p>
+                ) : null}
+                <ChecklistWidget ownerType="mission" ownerId={mission.id} />
+              </div>
+            ))}
           </div>
         ) : null}
 
         <p className="text-xs text-muted-foreground">
-          Charge estimée : {openTaskCount} tâche{openTaskCount === 1 ? "" : "s"} en cours
+          Charge estimée : {openItemCount} item{openItemCount === 1 ? "" : "s"} en cours
         </p>
-
-        {mission ? <ChecklistWidget ownerType="mission" ownerId={mission.id} /> : null}
 
         {documents.length > 0 ? (
           <div className="space-y-1.5">

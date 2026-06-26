@@ -7,8 +7,14 @@ import { USE_SUPABASE } from "@/supabase/client"
 export interface ChecklistsService {
   listAll(): Promise<Checklist[]>
   listForOwner(ownerType: ChecklistOwnerType, ownerId: string): Promise<Checklist[]>
+  create(input: Omit<Checklist, "id">): Promise<Checklist>
+  update(id: string, patch: Partial<Checklist>): Promise<Checklist>
+  remove(id: string): Promise<void>
   listItems(checklistId: string): Promise<ChecklistItem[]>
   listAllItems(): Promise<ChecklistItem[]>
+  createItem(input: Omit<ChecklistItem, "id">): Promise<ChecklistItem>
+  updateItem(id: string, patch: Partial<ChecklistItem>): Promise<ChecklistItem>
+  removeItem(id: string): Promise<void>
   toggleItem(itemId: string, isDone: boolean): Promise<ChecklistItem>
 }
 
@@ -23,12 +29,30 @@ const checklistsMockService: ChecklistsService = {
     const checklists = await checklistsTable.getAll()
     return checklists.filter((c) => c.ownerType === ownerType && c.ownerId === ownerId)
   },
+  async create(input) {
+    return checklistsTable.insert({ ...input, id: crypto.randomUUID() })
+  },
+  async update(id, patch) {
+    return checklistsTable.update(id, patch)
+  },
+  async remove(id) {
+    return checklistsTable.remove(id)
+  },
   async listItems(checklistId) {
     const items = await checklistItemsTable.getAll()
     return items.filter((item) => item.checklistId === checklistId).sort((a, b) => a.sortOrder - b.sortOrder)
   },
   async listAllItems() {
     return checklistItemsTable.getAll()
+  },
+  async createItem(input) {
+    return checklistItemsTable.insert({ ...input, id: crypto.randomUUID() })
+  },
+  async updateItem(id, patch) {
+    return checklistItemsTable.update(id, patch)
+  },
+  async removeItem(id) {
+    return checklistItemsTable.remove(id)
   },
   async toggleItem(itemId, isDone) {
     return checklistItemsTable.update(itemId, { isDone })

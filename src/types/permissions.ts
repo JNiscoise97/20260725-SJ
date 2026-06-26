@@ -1,9 +1,12 @@
 import type { AppRole } from "@/types/domain"
 
 export type Capability =
+  | "view:introduction"
+  | "view:role"
   | "view:dashboard"
   | "view:tasks"
   | "manage:tasks"
+  | "view:missions"
   | "view:referents"
   | "manage:referents"
   | "view:planning"
@@ -25,6 +28,7 @@ const FIANCE_CAPABILITIES: Capability[] = [
   "view:dashboard",
   "view:tasks",
   "manage:tasks",
+  "view:missions",
   "view:referents",
   "manage:referents",
   "view:planning",
@@ -44,8 +48,11 @@ const FIANCE_CAPABILITIES: Capability[] = [
 ]
 
 const REFERENT_CAPABILITIES: Capability[] = [
+  "view:introduction",
+  "view:role",
   "view:dashboard",
   "view:tasks",
+  "view:missions",
   "view:referents",
   "view:planning",
   "view:deroule",
@@ -54,7 +61,13 @@ const REFERENT_CAPABILITIES: Capability[] = [
   "view:prestataires",
 ]
 
-const PROCHE_CAPABILITIES: Capability[] = ["view:dashboard", "view:tasks", "view:documents"]
+const PROCHE_CAPABILITIES: Capability[] = [
+  "view:introduction",
+  "view:role",
+  "view:dashboard",
+  "view:tasks",
+  "view:documents",
+]
 
 const INVITE_CAPABILITIES: Capability[] = []
 

@@ -17,28 +17,49 @@ type TableDef<Row, OptionalOnInsert extends keyof Row> = {
 
 export type AppRoleRow = "fiance" | "referent" | "proche" | "invite"
 export type ProgressStatusRow = "todo" | "in_progress" | "done" | "blocked"
-export type TaskPriorityRow = "low" | "normal" | "high" | "urgent"
+export type PriorityRow = "low" | "normal" | "high" | "urgent"
 export type PlanningMilestoneRow = "j_moins_30" | "j_moins_15" | "j_moins_7" | "j_moins_1" | "jour_j" | "j_plus_1"
 export type RsvpStatusRow = "pending" | "confirmed" | "declined"
 export type NotificationChannelRow = "push" | "email" | "sms" | "whatsapp"
 export type NotificationStatusRow = "pending" | "sent" | "failed"
 export type MealChoiceRow = "poulet" | "poisson" | "enfant"
 export type GuestSideRow = "sarah" | "jordan"
+export type DomainePhaseRow = "avant" | "installation" | "jour_j" | "desinstallation" | "apres"
 
-type RoleCategoryRow = {
+type PoleRow = {
   id: string
   name: string
+  sort_order: number
+  created_at: string
+}
+
+type DomaineRow = {
+  id: string
+  pole_id: string | null
+  name: string
   slug: string
+  description: string | null
+  phase: DomainePhaseRow | null
   icon: string | null
   color: string | null
   sort_order: number
   solicited_milestone: PlanningMilestoneRow | null
   preferred_contact_id: string | null
-  primary_referent_id: string | null
-  secondary_referent_id: string | null
   created_at: string
 }
 
+type DomaineResponsableRow = {
+  id: string
+  domaine_id: string
+  person_id: string | null
+  guest_id: string | null
+  rank: "principal" | "secondaire"
+  created_at: string
+}
+
+// Réservée à Sarah & Jordan (voir types/domain.ts) — l'enum app_role reste
+// inchangé côté base (utilisé aussi par les anciens RPC), mais seule la
+// valeur 'fiance' doit subsister ici une fois la migration 0025 appliquée.
 type PersonRow = {
   id: string
   full_name: string
@@ -63,35 +84,31 @@ type AppSettingsRow = {
 
 type MissionRow = {
   id: string
-  role_category_id: string | null
-  referent_id: string | null
+  domaine_id: string | null
   title: string
   description: string | null
+  prerequisites: string | null
   status: ProgressStatusRow
   created_at: string
   updated_at: string
 }
 
-type TaskRow = {
+export type MissionAcceptanceStatusRow = "pending" | "accepted" | "declined"
+
+type MissionAcceptanceRow = {
   id: string
-  mission_id: string | null
-  title: string
-  description: string | null
-  priority: TaskPriorityRow
-  status: ProgressStatusRow
-  category: string | null
-  due_date: string | null
-  due_time: string | null
-  owner_id: string | null
+  mission_id: string
+  guest_id: string
+  status: MissionAcceptanceStatusRow
+  responded_at: string | null
   created_at: string
-  updated_at: string
 }
 
 type ChecklistRow = {
   id: string
-  owner_type: "referent" | "mission" | "logistique_item"
+  owner_type: "mission" | "logistique_item" | "domaine"
   owner_id: string | null
-  title: string
+  title: string | null
   created_at: string
 }
 
@@ -101,6 +118,12 @@ type ChecklistItemRow = {
   label: string
   is_done: boolean
   sort_order: number
+  priority: PriorityRow
+  status: ProgressStatusRow
+  estimated_start_date: string | null
+  estimated_start_time: string | null
+  estimated_end_date: string | null
+  estimated_end_time: string | null
   done_by: string | null
   done_at: string | null
 }
@@ -139,7 +162,7 @@ type RunOfShowResponsibleRow = {
 
 type LogistiqueItemRow = {
   id: string
-  role_category_id: string | null
+  domaine_id: string | null
   name: string
   responsable_id: string | null
   quantity: number | null
@@ -191,6 +214,10 @@ type GuestRow = {
   has_ceremonial_role: boolean
   likely_traditional_attire: boolean
   notes: string | null
+  status: "referent" | "proche" | "invite" | null
+  access_code_hash: string | null
+  is_active: boolean
+  introduction_seen: boolean
   created_at: string
 }
 
@@ -275,17 +302,23 @@ type NotificationLogRow = {
 export interface Database {
   public: {
     Tables: {
-      _20260725_role_categories: TableDef<
-        RoleCategoryRow,
+      _20260725_poles: TableDef<PoleRow, "id" | "sort_order" | "created_at">
+      _20260725_domaines: TableDef<
+        DomaineRow,
         | "id"
+        | "pole_id"
+        | "description"
+        | "phase"
         | "icon"
         | "color"
         | "sort_order"
         | "solicited_milestone"
         | "preferred_contact_id"
-        | "primary_referent_id"
-        | "secondary_referent_id"
         | "created_at"
+      >
+      _20260725_domaine_responsables: TableDef<
+        DomaineResponsableRow,
+        "id" | "person_id" | "guest_id" | "rank" | "created_at"
       >
       _20260725_people: TableDef<
         PersonRow,
@@ -294,24 +327,27 @@ export interface Database {
       _20260725_app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
       _20260725_missions: TableDef<
         MissionRow,
-        "id" | "role_category_id" | "referent_id" | "description" | "status" | "created_at" | "updated_at"
+        "id" | "domaine_id" | "description" | "prerequisites" | "status" | "created_at" | "updated_at"
       >
-      _20260725_tasks: TableDef<
-        TaskRow,
+      _20260725_mission_acceptances: TableDef<
+        MissionAcceptanceRow,
+        "id" | "status" | "responded_at" | "created_at"
+      >
+      _20260725_checklists: TableDef<ChecklistRow, "id" | "owner_id" | "title" | "created_at">
+      _20260725_checklist_items: TableDef<
+        ChecklistItemRow,
         | "id"
-        | "mission_id"
-        | "description"
+        | "is_done"
+        | "sort_order"
         | "priority"
         | "status"
-        | "category"
-        | "due_date"
-        | "due_time"
-        | "owner_id"
-        | "created_at"
-        | "updated_at"
+        | "estimated_start_date"
+        | "estimated_start_time"
+        | "estimated_end_date"
+        | "estimated_end_time"
+        | "done_by"
+        | "done_at"
       >
-      _20260725_checklists: TableDef<ChecklistRow, "id" | "owner_id" | "created_at">
-      _20260725_checklist_items: TableDef<ChecklistItemRow, "id" | "is_done" | "sort_order" | "done_by" | "done_at">
       _20260725_planning_events: TableDef<
         PlanningEventRow,
         "id" | "description" | "location" | "starts_at" | "ends_at" | "sort_order" | "created_at"
@@ -332,7 +368,7 @@ export interface Database {
       _20260725_run_of_show_responsibles: TableDef<RunOfShowResponsibleRow, never>
       _20260725_logistique_items: TableDef<
         LogistiqueItemRow,
-        "id" | "role_category_id" | "responsable_id" | "quantity" | "unit" | "notes" | "created_at"
+        "id" | "domaine_id" | "responsable_id" | "quantity" | "unit" | "notes" | "created_at"
       >
       _20260725_guest_groups: TableDef<GuestGroupRow, "id" | "notes">
       _20260725_guests: TableDef<
@@ -371,6 +407,10 @@ export interface Database {
         | "has_ceremonial_role"
         | "likely_traditional_attire"
         | "notes"
+        | "status"
+        | "access_code_hash"
+        | "is_active"
+        | "introduction_seen"
         | "created_at"
       >
       _20260725_prestataires: TableDef<
@@ -410,6 +450,14 @@ export interface Database {
       }
       _20260725_set_access_code: {
         Args: { p_person_id: string; p_code: string }
+        Returns: undefined
+      }
+      _20260725_resolve_guest_access_code: {
+        Args: { code: string }
+        Returns: GuestRow[]
+      }
+      _20260725_set_guest_access_code: {
+        Args: { p_guest_id: string; p_code: string }
         Returns: undefined
       }
     }

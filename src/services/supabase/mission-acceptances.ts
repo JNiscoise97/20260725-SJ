@@ -1,0 +1,41 @@
+import type { MissionAcceptance } from "@/types/domain"
+import type { MissionAcceptancesService } from "@/services/mission-acceptances.service"
+import { supabase } from "@/supabase/client"
+
+const db = supabase!
+
+function toMissionAcceptance(row: {
+  id: string
+  mission_id: string
+  guest_id: string
+  status: MissionAcceptance["status"]
+  responded_at: string | null
+}): MissionAcceptance {
+  return {
+    id: row.id,
+    missionId: row.mission_id,
+    guestId: row.guest_id,
+    status: row.status,
+    respondedAt: row.responded_at,
+  }
+}
+
+export const missionAcceptancesSupabaseService: MissionAcceptancesService = {
+  async listForGuest(guestId) {
+    const { data, error } = await db.from("_20260725_mission_acceptances").select("*").eq("guest_id", guestId)
+    if (error) throw error
+    return (data ?? []).map(toMissionAcceptance)
+  },
+  async respond(missionId, guestId, status) {
+    const { data, error } = await db
+      .from("_20260725_mission_acceptances")
+      .upsert(
+        { mission_id: missionId, guest_id: guestId, status, responded_at: new Date().toISOString() },
+        { onConflict: "mission_id,guest_id" }
+      )
+      .select("*")
+      .single()
+    if (error) throw error
+    return toMissionAcceptance(data)
+  },
+}

@@ -1,16 +1,13 @@
 import { useState } from "react"
-import { Pencil, Plus, Trash2 } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
-import { useCreateMission, useDeleteMission, useMissions, useUpdateMission } from "@/hooks/queries/use-missions"
-import { useRoleCategories } from "@/hooks/queries/use-role-categories"
-import { usePeople } from "@/hooks/queries/use-people"
+import { useCreateMission, useUpdateMission } from "@/hooks/queries/use-missions"
+import { useDomaines } from "@/hooks/queries/use-domaines"
 import type { Mission, ProgressStatus } from "@/types/domain"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -21,7 +18,6 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { StatusBadge } from "@/components/shared/StatusBadge"
 
 const NONE = "__none__"
 
@@ -32,17 +28,15 @@ const STATUS_LABELS: Record<ProgressStatus, string> = {
   blocked: "Bloquée",
 }
 
-function MissionDialog({ mission }: { mission?: Mission }) {
+export function MissionDialog({ mission, initialDomaineId }: { mission?: Mission; initialDomaineId?: string }) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState(mission?.title ?? "")
   const [description, setDescription] = useState(mission?.description ?? "")
+  const [prerequisites, setPrerequisites] = useState(mission?.prerequisites ?? "")
   const [status, setStatus] = useState<ProgressStatus>(mission?.status ?? "todo")
-  const [roleCategoryId, setRoleCategoryId] = useState(mission?.roleCategoryId ?? NONE)
-  const [referentId, setReferentId] = useState(mission?.referentId ?? NONE)
+  const [domaineId, setDomaineId] = useState(mission?.domaineId ?? initialDomaineId ?? NONE)
 
-  const { data: roleCategories } = useRoleCategories()
-  const { data: people } = usePeople()
-  const referentOptions = (people ?? []).filter((p) => p.role === "referent" || p.role === "fiance")
+  const { data: domaines } = useDomaines()
   const createMission = useCreateMission()
   const updateMission = useUpdateMission()
 
@@ -51,9 +45,9 @@ function MissionDialog({ mission }: { mission?: Mission }) {
     const payload = {
       title,
       description: description.trim() || null,
+      prerequisites: prerequisites.trim() || null,
       status,
-      roleCategoryId: roleCategoryId === NONE ? null : roleCategoryId,
-      referentId: referentId === NONE ? null : referentId,
+      domaineId: domaineId === NONE ? null : domaineId,
     }
     if (mission) {
       await updateMission.mutateAsync({ id: mission.id, patch: payload })
@@ -97,38 +91,32 @@ function MissionDialog({ mission }: { mission?: Mission }) {
             <FieldLabel htmlFor="mission-description">Description</FieldLabel>
             <Textarea
               id="mission-description"
-              rows={2}
+              rows={6}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </Field>
           <Field>
-            <FieldLabel>Catégorie</FieldLabel>
-            <Select value={roleCategoryId} onValueChange={setRoleCategoryId}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Aucune" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>Aucune</SelectItem>
-                {roleCategories?.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FieldLabel htmlFor="mission-prerequisites">Prérequis</FieldLabel>
+            <Textarea
+              id="mission-prerequisites"
+              rows={4}
+              placeholder="Ex. Avoir le permis, être disponible la veille en matinée…"
+              value={prerequisites}
+              onChange={(e) => setPrerequisites(e.target.value)}
+            />
           </Field>
           <Field>
-            <FieldLabel>Référent (ou fiancé(e))</FieldLabel>
-            <Select value={referentId} onValueChange={setReferentId}>
+            <FieldLabel>Domaine</FieldLabel>
+            <Select value={domaineId} onValueChange={setDomaineId}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Aucun" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>Aucun</SelectItem>
-                {referentOptions.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>
-                    {person.fullName}
+                {domaines?.map((domaine) => (
+                  <SelectItem key={domaine.id} value={domaine.id}>
+                    {domaine.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -158,69 +146,5 @@ function MissionDialog({ mission }: { mission?: Mission }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-export function MissionManager() {
-  const { data: missions, isLoading } = useMissions()
-  const { data: roleCategories } = useRoleCategories()
-  const { data: people } = usePeople()
-  const deleteMission = useDeleteMission()
-
-  function categoryName(id?: string | null) {
-    return id ? roleCategories?.find((c) => c.id === id)?.name : undefined
-  }
-
-  function referentName(id?: string | null) {
-    return id ? people?.find((p) => p.id === id)?.fullName : undefined
-  }
-
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle className="font-heading text-base">Missions</CardTitle>
-        <MissionDialog />
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {isLoading ? (
-          <Skeleton className="h-32 rounded-xl" />
-        ) : missions?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucune mission pour l'instant.</p>
-        ) : (
-          missions?.map((mission) => {
-            const category = categoryName(mission.roleCategoryId)
-            const referent = referentName(mission.referentId)
-            return (
-              <div
-                key={mission.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
-              >
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-foreground">{mission.title}</span>
-                    <StatusBadge status={mission.status} />
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {referent ?? "Pas de responsable"}
-                    {category ? ` · ${category}` : ""}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MissionDialog mission={mission} />
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label="Supprimer"
-                    onClick={() => deleteMission.mutate(mission.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
-              </div>
-            )
-          })
-        )}
-      </CardContent>
-    </Card>
   )
 }

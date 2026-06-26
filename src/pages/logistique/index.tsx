@@ -6,28 +6,28 @@ import { EmptyState } from "@/components/shared/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLogistiqueItems } from "@/hooks/queries/use-logistique-items"
-import { useRoleCategories } from "@/hooks/queries/use-role-categories"
+import { useDomaines } from "@/hooks/queries/use-domaines"
 import { usePeople } from "@/hooks/queries/use-people"
 import { useDocuments } from "@/hooks/queries/use-documents"
 import { LogistiqueItemCard } from "@/components/logistique/LogistiqueItemCard"
 
 export function LogistiquePage() {
   const { data: items, isLoading: itemsLoading } = useLogistiqueItems()
-  const { data: roleCategories, isLoading: categoriesLoading } = useRoleCategories()
+  const { data: domaines, isLoading: domainesLoading } = useDomaines()
   const { data: people } = usePeople()
   const { data: documents } = useDocuments()
 
-  const isLoading = itemsLoading || categoriesLoading
+  const isLoading = itemsLoading || domainesLoading
 
   const categoriesWithItems = useMemo(() => {
-    if (!items || !roleCategories) return []
-    return roleCategories
+    if (!items || !domaines) return []
+    return domaines
       .map((category) => ({
         category,
-        items: items.filter((item) => item.roleCategoryId === category.id),
+        items: items.filter((item) => item.domaineId === category.id),
       }))
       .filter((group) => group.items.length > 0)
-  }, [items, roleCategories])
+  }, [items, domaines])
 
   return (
     <div className="space-y-6">

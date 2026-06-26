@@ -1,7 +1,6 @@
 import { PageHeader } from "@/components/shared/PageHeader"
 import { EventConfigForm } from "@/components/parametres/EventConfigForm"
-import { RoleCategoryManager } from "@/components/parametres/RoleCategoryManager"
-import { MissionManager } from "@/components/parametres/MissionManager"
+import { ParametresTree } from "@/components/parametres/ParametresTree"
 import { PersonManager } from "@/components/parametres/PersonManager"
 
 export function ParametresPage() {
@@ -9,15 +8,11 @@ export function ParametresPage() {
     <div className="space-y-6">
       <PageHeader
         title="Paramètres"
-        description="Catégories de référents, missions, personnes et configuration de l'événement."
+        description="Pôles, domaines, missions, personnes et configuration de l'événement."
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <EventConfigForm />
-        <RoleCategoryManager />
-      </div>
-
-      <MissionManager />
+      <EventConfigForm />
+      <ParametresTree />
       <PersonManager />
     </div>
   )

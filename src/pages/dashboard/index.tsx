@@ -47,8 +47,8 @@ export function DashboardPage() {
             />
             <StatCard
               icon={CheckSquare}
-              label="Tâches restantes"
-              value={`${summary.tasksRemaining} / ${summary.tasksTotal}`}
+              label="Items restants"
+              value={`${summary.itemsRemaining} / ${summary.itemsTotal}`}
               accentClassName="bg-dore/20 text-brun"
             />
             <StatCard
@@ -98,13 +98,13 @@ export function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {summary.overdueTasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucune tâche en retard. 🎉</p>
+                {summary.overdueItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Aucun item en retard. 🎉</p>
                 ) : (
-                  summary.overdueTasks.map((task) => (
-                    <div key={task.id} className="flex items-start justify-between gap-3 text-sm">
-                      <p className="font-medium text-foreground">{task.title}</p>
-                      <PriorityBadge priority={task.priority} />
+                  summary.overdueItems.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-3 text-sm">
+                      <p className="font-medium text-foreground">{item.label}</p>
+                      <PriorityBadge priority={item.priority} />
                     </div>
                   ))
                 )}
@@ -134,11 +134,11 @@ export function DashboardPage() {
         </>
       )}
 
-      {!isLoading && summary && summary.tasksTotal === 0 ? (
+      {!isLoading && summary && summary.itemsTotal === 0 ? (
         <EmptyState
           icon={CheckSquare}
-          title="Aucune tâche pour l'instant"
-          description="Les tâches créées apparaîtront ici."
+          title="Aucun item pour l'instant"
+          description="Les items créés apparaîtront ici."
         />
       ) : null}
     </div>

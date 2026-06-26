@@ -6,7 +6,7 @@ const db = supabase!
 
 function toLogistiqueItem(row: {
   id: string
-  role_category_id: string | null
+  domaine_id: string | null
   name: string
   responsable_id: string | null
   quantity: number | null
@@ -15,7 +15,7 @@ function toLogistiqueItem(row: {
 }): LogistiqueItem {
   return {
     id: row.id,
-    roleCategoryId: row.role_category_id,
+    domaineId: row.domaine_id,
     name: row.name,
     responsableId: row.responsable_id,
     quantity: row.quantity,

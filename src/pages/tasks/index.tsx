@@ -1,65 +1,63 @@
 import { useMemo, useState } from "react"
 import { Plus, Search } from "lucide-react"
 
-import type { ProgressStatus, Task } from "@/types/domain"
+import type { ChecklistItem, ProgressStatus } from "@/types/domain"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useTasks, useUpdateTask } from "@/hooks/queries/use-tasks"
-import { usePeople } from "@/hooks/queries/use-people"
-import { TaskListView } from "@/components/tasks/TaskListView"
-import { TaskKanban } from "@/components/tasks/TaskKanban"
-import { TaskCalendarView } from "@/components/tasks/TaskCalendarView"
-import { TaskFormDialog } from "@/components/tasks/TaskFormDialog"
+import { useAllChecklistItems, useAllChecklists, useUpdateChecklistItem } from "@/hooks/queries/use-checklists"
+import { useMissions } from "@/hooks/queries/use-missions"
+import { ChecklistItemListView } from "@/components/checklist-items/ChecklistItemListView"
+import { ChecklistItemKanban } from "@/components/checklist-items/ChecklistItemKanban"
+import { ChecklistItemCalendarView } from "@/components/checklist-items/ChecklistItemCalendarView"
+import { ChecklistItemFormDialog } from "@/components/checklist-items/ChecklistItemFormDialog"
 
 export function TasksPage() {
-  const { data: tasks, isLoading } = useTasks()
-  const { data: people } = usePeople()
-  const updateTask = useUpdateTask()
+  const { data: items, isLoading } = useAllChecklistItems()
+  const { data: checklists } = useAllChecklists()
+  const { data: missions } = useMissions()
+  const updateItem = useUpdateChecklistItem()
 
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null)
 
-  const peopleById = useMemo(() => new Map((people ?? []).map((p) => [p.id, p])), [people])
+  const checklistsById = useMemo(() => new Map((checklists ?? []).map((c) => [c.id, c])), [checklists])
+  const missionsById = useMemo(() => new Map((missions ?? []).map((m) => [m.id, m])), [missions])
 
-  const filteredTasks = useMemo(() => {
-    if (!tasks) return []
+  const filteredItems = useMemo(() => {
+    if (!items) return []
     const query = search.trim().toLowerCase()
-    if (!query) return tasks
-    return tasks.filter(
-      (task) =>
-        task.title.toLowerCase().includes(query) ||
-        task.category?.toLowerCase().includes(query)
-    )
-  }, [tasks, search])
+    if (!query) return items
+    return items.filter((item) => item.label.toLowerCase().includes(query))
+  }, [items, search])
 
   function openCreateDialog() {
-    setEditingTask(null)
+    setEditingItem(null)
     setDialogOpen(true)
   }
 
-  function openEditDialog(task: Task) {
-    setEditingTask(task)
+  function openEditDialog(item: ChecklistItem) {
+    setEditingItem(item)
     setDialogOpen(true)
   }
 
-  function handleStatusChange(task: Task, status: ProgressStatus) {
-    updateTask.mutate({ id: task.id, patch: { status } })
+  function handleStatusChange(item: ChecklistItem, status: ProgressStatus) {
+    updateItem.mutate({ id: item.id, patch: { status, isDone: status === "done" } })
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Tâches"
-        description="Toutes les tâches à accomplir avant le jour J."
+        description="Tous les items à accomplir avant le jour J."
         actions={
           <Button onClick={openCreateDialog}>
             <Plus className="size-4" />
-            Nouvelle tâche
+            Nouvel item
           </Button>
         }
       />
@@ -67,7 +65,7 @@ export function TasksPage() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Rechercher une tâche..."
+          placeholder="Rechercher un item..."
           className="pl-9"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -80,12 +78,12 @@ export function TasksPage() {
             <Skeleton key={i} className="h-16 rounded-xl" />
           ))}
         </div>
-      ) : !tasks || tasks.length === 0 ? (
+      ) : !items || items.length === 0 ? (
         <EmptyState
           icon={Plus}
-          title="Aucune tâche pour l'instant"
-          description="Créez votre première tâche pour commencer."
-          action={<Button onClick={openCreateDialog}>Nouvelle tâche</Button>}
+          title="Aucun item pour l'instant"
+          description="Créez votre premier item pour commencer."
+          action={<Button onClick={openCreateDialog}>Nouvel item</Button>}
         />
       ) : (
         <Tabs defaultValue="liste">
@@ -95,23 +93,27 @@ export function TasksPage() {
             <TabsTrigger value="calendrier">Calendrier</TabsTrigger>
           </TabsList>
           <TabsContent value="liste">
-            <TaskListView tasks={filteredTasks} peopleById={peopleById} onTaskClick={openEditDialog} />
+            <ChecklistItemListView
+              items={filteredItems}
+              checklistsById={checklistsById}
+              missionsById={missionsById}
+              onItemClick={openEditDialog}
+            />
           </TabsContent>
           <TabsContent value="kanban">
-            <TaskKanban
-              tasks={filteredTasks}
-              peopleById={peopleById}
-              onTaskClick={openEditDialog}
+            <ChecklistItemKanban
+              items={filteredItems}
+              onItemClick={openEditDialog}
               onStatusChange={handleStatusChange}
             />
           </TabsContent>
           <TabsContent value="calendrier">
-            <TaskCalendarView tasks={filteredTasks} peopleById={peopleById} onTaskClick={openEditDialog} />
+            <ChecklistItemCalendarView items={filteredItems} onItemClick={openEditDialog} />
           </TabsContent>
         </Tabs>
       )}
 
-      <TaskFormDialog open={dialogOpen} onOpenChange={setDialogOpen} task={editingTask} />
+      <ChecklistItemFormDialog open={dialogOpen} onOpenChange={setDialogOpen} item={editingItem} />
     </div>
   )
 }

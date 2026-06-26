@@ -1,27 +1,27 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
-import type { Person } from "@/types/domain"
-import { peopleService } from "@/services/people.service"
+import type { Identity } from "@/types/domain"
+import { identityService } from "@/services/identity.service"
 
 const STORAGE_KEY = "sj-identity"
 
 interface IdentityContextValue {
-  person: Person | null
+  person: Identity | null
   isLoading: boolean
-  login: (code: string) => Promise<Person | null>
+  login: (code: string) => Promise<Identity | null>
   logout: () => void
 }
 
 const IdentityContext = createContext<IdentityContextValue | null>(null)
 
 export function IdentityProvider({ children }: { children: ReactNode }) {
-  const [person, setPerson] = useState<Person | null>(null)
+  const [person, setPerson] = useState<Identity | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let active = true
     const storedId = localStorage.getItem(STORAGE_KEY)
-    const lookup = storedId ? peopleService.getById(storedId) : Promise.resolve(null)
+    const lookup = storedId ? identityService.getById(storedId) : Promise.resolve(null)
 
     lookup
       .catch(() => {
@@ -43,7 +43,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function login(code: string) {
-    const found = await peopleService.resolveByAccessCode(code)
+    const found = await identityService.resolveByAccessCode(code)
     if (found) {
       localStorage.setItem(STORAGE_KEY, found.id)
       setPerson(found)

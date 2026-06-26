@@ -1,6 +1,9 @@
 import {
+  Heart,
+  UserCheck,
   Home,
   CheckSquare,
+  ListChecks,
   Users,
   CalendarRange,
   PartyPopper,
@@ -14,7 +17,7 @@ import {
 } from "lucide-react"
 
 import type { Capability } from "@/types/permissions"
-import type { PlanningMilestone } from "@/types/domain"
+import type { DomainePhase, PlanningMilestone } from "@/types/domain"
 
 export const EVENT_NAME = "Fiançailles de Sarah & Jordan"
 
@@ -28,8 +31,11 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  { label: "Introduction", path: "/introduction", icon: Heart, capability: "view:introduction" },
+  { label: "Rôle", path: "/ma-mission", icon: UserCheck, capability: "view:role" },
   { label: "Tableau de bord", path: "/", icon: Home, capability: "view:dashboard" },
   { label: "Tâches", path: "/taches", icon: CheckSquare, capability: "view:tasks" },
+  { label: "Missions", path: "/missions", icon: ListChecks, capability: "view:missions" },
   { label: "Référents", path: "/referents", icon: Users, capability: "view:referents" },
   { label: "Planning", path: "/planning", icon: CalendarRange, capability: "view:planning" },
   { label: "Déroulé", path: "/deroule", icon: PartyPopper, capability: "view:deroule" },
@@ -57,4 +63,20 @@ export const MILESTONE_LABELS: Record<PlanningMilestone, string> = {
   j_moins_1: "J-1",
   jour_j: "Jour J",
   j_plus_1: "J+1",
+}
+
+export const DOMAINE_PHASE_ORDER: DomainePhase[] = [
+  "avant",
+  "installation",
+  "jour_j",
+  "desinstallation",
+  "apres",
+]
+
+export const DOMAINE_PHASE_LABELS: Record<DomainePhase, string> = {
+  avant: "Avant",
+  installation: "Installation",
+  jour_j: "Jour J",
+  desinstallation: "Désinstallation",
+  apres: "Après",
 }

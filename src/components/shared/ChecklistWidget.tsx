@@ -9,7 +9,15 @@ interface ChecklistWidgetProps {
   ownerId: string
 }
 
-function SingleChecklist({ checklistId, title }: { checklistId: string; title: string }) {
+function SingleChecklist({
+  checklistId,
+  title,
+  showTitle,
+}: {
+  checklistId: string
+  title: string | null
+  showTitle: boolean
+}) {
   const { data: items, isLoading } = useChecklistItems(checklistId)
   const toggleItem = useToggleChecklistItem()
 
@@ -21,7 +29,7 @@ function SingleChecklist({ checklistId, title }: { checklistId: string; title: s
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-foreground">{title}</p>
+        {showTitle ? <p className="text-sm font-medium text-foreground">{title}</p> : <span />}
         <span className="text-xs text-muted-foreground">
           {doneCount} / {items.length}
         </span>
@@ -56,10 +64,21 @@ export function ChecklistWidget({ ownerType, ownerId }: ChecklistWidgetProps) {
     return <p className="text-sm text-muted-foreground">Aucune checklist pour le moment.</p>
   }
 
+  // Quand il n'y a qu'une seule checklist pour ce propriétaire, son titre fait
+  // doublon avec le titre déjà affiché par l'appelant (mission, élément de
+  // logistique...) — on ne le réaffiche que s'il y en a plusieurs (ex.
+  // Coordinateur général, qui a 3 checklists distinctes pour la même mission).
+  const showTitle = checklists.length > 1
+
   return (
     <div className="space-y-4">
       {checklists.map((checklist) => (
-        <SingleChecklist key={checklist.id} checklistId={checklist.id} title={checklist.title} />
+        <SingleChecklist
+          key={checklist.id}
+          checklistId={checklist.id}
+          title={checklist.title ?? null}
+          showTitle={showTitle}
+        />
       ))}
     </div>
   )

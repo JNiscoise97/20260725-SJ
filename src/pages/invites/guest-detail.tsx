@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { RsvpBadge } from "@/components/invites/RsvpBadge"
+import { GuestAccessSection } from "@/components/invites/GuestAccessSection"
 import { useGuestGroups, useGuests } from "@/hooks/queries/use-guests"
 import type { Guest } from "@/types/domain"
 
@@ -132,6 +133,8 @@ export function GuestDetailPage() {
             <p className="py-2 text-sm text-foreground">{guest.notes}</p>
           </Section>
         ) : null}
+
+        <GuestAccessSection guest={guest} />
       </div>
     </div>
   )

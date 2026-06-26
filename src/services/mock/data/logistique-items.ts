@@ -3,7 +3,7 @@ import type { LogistiqueItem } from "@/types/domain"
 export const logistiqueItemsSeed: LogistiqueItem[] = [
   {
     id: "li-arche",
-    roleCategoryId: "rc-decoration",
+    domaineId: "rc-decoration",
     name: "Arche florale",
     responsableId: "p-ref-deco",
     quantity: 1,
@@ -12,7 +12,7 @@ export const logistiqueItemsSeed: LogistiqueItem[] = [
   },
   {
     id: "li-champagne",
-    roleCategoryId: "rc-boissons",
+    domaineId: "rc-boissons",
     name: "Champagne",
     responsableId: "p-ref-boissons",
     quantity: 24,
@@ -20,7 +20,7 @@ export const logistiqueItemsSeed: LogistiqueItem[] = [
   },
   {
     id: "li-enceintes",
-    roleCategoryId: "rc-dj",
+    domaineId: "rc-dj",
     name: "Enceintes",
     responsableId: "p-ref-dj",
     quantity: 2,
@@ -29,21 +29,21 @@ export const logistiqueItemsSeed: LogistiqueItem[] = [
   },
   {
     id: "li-panneau",
-    roleCategoryId: "rc-accueil",
+    domaineId: "rc-accueil",
     name: "Panneau de bienvenue",
     quantity: 1,
     unit: "pièce",
   },
   {
     id: "li-flechage",
-    roleCategoryId: "rc-parking",
+    domaineId: "rc-parking",
     name: "Fléchage parking",
     quantity: 6,
     unit: "pièces",
   },
   {
     id: "li-carte-memoire",
-    roleCategoryId: "rc-photos",
+    domaineId: "rc-photos",
     name: "Carte mémoire appareil photo",
     quantity: 2,
     unit: "pièces",

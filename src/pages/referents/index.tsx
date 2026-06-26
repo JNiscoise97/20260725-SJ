@@ -5,39 +5,57 @@ import { PageHeader } from "@/components/shared/PageHeader"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useIdentity } from "@/context/IdentityContext"
-import { usePeople } from "@/hooks/queries/use-people"
-import { useRoleCategories } from "@/hooks/queries/use-role-categories"
+import { useResponsableEntries } from "@/hooks/use-responsable-entries"
+import { useDomaines } from "@/hooks/queries/use-domaines"
 import { useMissions } from "@/hooks/queries/use-missions"
+import { usePeople } from "@/hooks/queries/use-people"
 import { useDocuments } from "@/hooks/queries/use-documents"
-import { useTasks } from "@/hooks/queries/use-tasks"
-import { ReferentCard, type ReferentRoleCategoryAssignment } from "@/components/referents/ReferentCard"
+import { useAllChecklistItems, useAllChecklists } from "@/hooks/queries/use-checklists"
+import { ReferentCard } from "@/components/referents/ReferentCard"
 
 export function ReferentsPage() {
   const { person } = useIdentity()
-  const { data: people, isLoading: peopleLoading } = usePeople()
-  const { data: roleCategories, isLoading: categoriesLoading } = useRoleCategories()
+  const { isLoading: entriesLoading, entries } = useResponsableEntries()
+  const { data: domaines, isLoading: domainesLoading } = useDomaines()
   const { data: missions, isLoading: missionsLoading } = useMissions()
+  const { data: people, isLoading: peopleLoading } = usePeople()
   const { data: documents, isLoading: documentsLoading } = useDocuments()
-  const { data: tasks, isLoading: tasksLoading } = useTasks()
+  const { data: checklists, isLoading: checklistsLoading } = useAllChecklists()
+  const { data: items, isLoading: itemsLoading } = useAllChecklistItems()
 
-  const isLoading = peopleLoading || categoriesLoading || missionsLoading || documentsLoading || tasksLoading
+  const isLoading =
+    entriesLoading ||
+    domainesLoading ||
+    missionsLoading ||
+    peopleLoading ||
+    documentsLoading ||
+    checklistsLoading ||
+    itemsLoading
 
-  const referents = useMemo(() => {
-    const allReferents = (people ?? []).filter((p) => p.role === "referent")
-    if (person?.role === "referent") {
-      return allReferents.filter((r) => r.id === person.id)
+  const checklistIdsByMissionId = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const checklist of checklists ?? []) {
+      if (checklist.ownerType !== "mission" || !checklist.ownerId) continue
+      const ids = map.get(checklist.ownerId) ?? []
+      ids.push(checklist.id)
+      map.set(checklist.ownerId, ids)
     }
-    return allReferents
-  }, [people, person])
+    return map
+  }, [checklists])
+
+  // Un référent connecté ne voit que sa propre fiche.
+  const visibleEntries = useMemo(() => {
+    if (person?.role === "referent") {
+      return entries.filter((entry) => entry.identity.id === person.id)
+    }
+    return entries
+  }, [entries, person])
 
   const fiances = useMemo(() => (people ?? []).filter((p) => p.role === "fiance"), [people])
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Référents"
-        description="Les personnes qui pilotent chaque mission."
-      />
+      <PageHeader title="Référents" description="Les personnes qui pilotent chaque domaine." />
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -45,35 +63,35 @@ export function ReferentsPage() {
             <Skeleton key={i} className="h-64 rounded-2xl" />
           ))}
         </div>
-      ) : referents.length === 0 ? (
-        <EmptyState icon={Users} title="Aucun référent" description="Ajoutez des référents depuis Paramètres." />
+      ) : visibleEntries.length === 0 ? (
+        <EmptyState icon={Users} title="Aucun référent" description="Ajoutez des responsables depuis Paramètres." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {referents.map((referent) => {
-            const referentRoleCategories: ReferentRoleCategoryAssignment[] = (roleCategories ?? [])
-              .filter((c) => c.primaryReferentId === referent.id || c.secondaryReferentId === referent.id)
-              .map((category) => ({
-                category,
-                rank: category.primaryReferentId === referent.id ? "principal" : "secondaire",
-              }))
-            const categoryNames = referentRoleCategories.map((a) => a.category.name)
-            const mission = missions?.find((m) => m.referentId === referent.id)
-            const referentDocuments = (documents ?? []).filter(
-              (doc) => doc.category != null && categoryNames.includes(doc.category)
+          {visibleEntries.map((entry) => {
+            const entryDomaines = (domaines ?? []).filter((d) => entry.domaineIds.includes(d.id))
+            const domaineNames = entryDomaines.map((d) => d.name)
+            const entryMissions = (missions ?? []).filter(
+              (m) => m.domaineId != null && entry.domaineIds.includes(m.domaineId)
             )
-            const openTaskCount = (tasks ?? []).filter(
-              (task) => task.ownerId === referent.id && task.status !== "done"
+            const entryDocuments = (documents ?? []).filter(
+              (doc) => doc.category != null && domaineNames.includes(doc.category)
+            )
+            const entryChecklistIds = new Set(
+              entryMissions.flatMap((m) => checklistIdsByMissionId.get(m.id) ?? [])
+            )
+            const openItemCount = (items ?? []).filter(
+              (item) => entryChecklistIds.has(item.checklistId) && item.status !== "done"
             ).length
 
             return (
               <ReferentCard
-                key={referent.id}
-                person={referent}
-                roleCategories={referentRoleCategories}
-                mission={mission}
+                key={entry.identity.id}
+                identity={entry.identity}
+                domaines={entryDomaines}
+                missions={entryMissions}
                 contacts={fiances}
-                documents={referentDocuments}
-                openTaskCount={openTaskCount}
+                documents={entryDocuments}
+                openItemCount={openItemCount}
               />
             )
           })}

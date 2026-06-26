@@ -2,12 +2,11 @@ import { useState } from "react"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import type { AppRole, Person } from "@/types/domain"
+import type { Person } from "@/types/domain"
 import { useCreatePerson, useDeletePerson, usePeople, useUpdatePerson } from "@/hooks/queries/use-people"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -18,35 +17,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-const ROLE_LABELS: Record<AppRole, string> = {
-  fiance: "Fiancé(e)",
-  referent: "Référent",
-  proche: "Proche",
-  invite: "Invité",
-}
 
 interface PersonFormState {
   fullName: string
   phone: string
-  role: AppRole
   accessCode: string
 }
 
-const EMPTY_FORM: PersonFormState = { fullName: "", phone: "", role: "proche", accessCode: "" }
+const EMPTY_FORM: PersonFormState = { fullName: "", phone: "", accessCode: "" }
 
+// Réservé à Sarah & Jordan (voir types/domain.ts : Person.role = "fiance").
+// Les référents/proches sont gérés comme des invités depuis DomaineManager.
 function PersonDialog({ person }: { person?: Person }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<PersonFormState>(
-    person
-      ? {
-          fullName: person.fullName,
-          phone: person.phone ?? "",
-          role: person.role,
-          accessCode: person.accessCode,
-        }
-      : EMPTY_FORM
+    person ? { fullName: person.fullName, phone: person.phone ?? "", accessCode: person.accessCode } : EMPTY_FORM
   )
   const createPerson = useCreatePerson()
   const updatePerson = useUpdatePerson()
@@ -59,7 +44,6 @@ function PersonDialog({ person }: { person?: Person }) {
       const patch: Partial<Person> & { accessCode?: string } = {
         fullName: form.fullName,
         phone: form.phone || undefined,
-        role: form.role,
       }
       // Code laissé vide en modification = on ne le change pas (le hash existant
       // n'est jamais relisible, voir peopleSupabaseService).
@@ -70,7 +54,7 @@ function PersonDialog({ person }: { person?: Person }) {
       await createPerson.mutateAsync({
         fullName: form.fullName,
         phone: form.phone || undefined,
-        role: form.role,
+        role: "fiance",
         accessCode: form.accessCode,
         isActive: true,
       })
@@ -89,13 +73,13 @@ function PersonDialog({ person }: { person?: Person }) {
         ) : (
           <Button size="sm">
             <Plus className="size-4" />
-            Nouvelle personne
+            Nouveau fiancé(e)
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-heading">{person ? "Modifier" : "Nouvelle personne"}</DialogTitle>
+          <DialogTitle className="font-heading">{person ? "Modifier" : "Nouveau fiancé(e)"}</DialogTitle>
         </DialogHeader>
         <FieldGroup>
           <Field>
@@ -113,21 +97,6 @@ function PersonDialog({ person }: { person?: Person }) {
               value={form.phone}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             />
-          </Field>
-          <Field>
-            <FieldLabel>Rôle</FieldLabel>
-            <Select value={form.role} onValueChange={(role: AppRole) => setForm((f) => ({ ...f, role }))}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(ROLE_LABELS) as AppRole[]).map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {ROLE_LABELS[role]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor="person-code">Code d&apos;accès</FieldLabel>
@@ -157,7 +126,7 @@ export function PersonManager() {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
-        <CardTitle className="font-heading text-base">Personnes &amp; codes d&apos;accès</CardTitle>
+        <CardTitle className="font-heading text-base">Fiancés &amp; codes d&apos;accès</CardTitle>
         <PersonDialog />
       </CardHeader>
       <CardContent className="space-y-2">
@@ -168,7 +137,6 @@ export function PersonManager() {
             <div key={person.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-foreground">{person.fullName}</span>
-                <Badge className="bg-secondary text-secondary-foreground">{ROLE_LABELS[person.role]}</Badge>
                 <span className="font-mono text-xs text-muted-foreground">
                   {person.accessCode || "Code défini (masqué)"}
                 </span>

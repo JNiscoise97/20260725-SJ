@@ -6,18 +6,18 @@ const db = supabase!
 
 function toMission(row: {
   id: string
-  role_category_id: string | null
-  referent_id: string | null
+  domaine_id: string | null
   title: string
   description: string | null
+  prerequisites: string | null
   status: Mission["status"]
 }): Mission {
   return {
     id: row.id,
-    roleCategoryId: row.role_category_id,
-    referentId: row.referent_id,
+    domaineId: row.domaine_id,
     title: row.title,
     description: row.description,
+    prerequisites: row.prerequisites,
     status: row.status,
   }
 }
@@ -38,10 +38,10 @@ export const missionsSupabaseService: MissionsService = {
       .from("_20260725_missions")
       .insert({
         id: mission.id,
-        role_category_id: mission.roleCategoryId ?? null,
-        referent_id: mission.referentId ?? null,
+        domaine_id: mission.domaineId ?? null,
         title: mission.title,
         description: mission.description ?? null,
+        prerequisites: mission.prerequisites ?? null,
         status: mission.status,
       })
       .select("*")
@@ -55,16 +55,16 @@ export const missionsSupabaseService: MissionsService = {
   },
   async update(id, patch) {
     const row: Partial<{
-      role_category_id: string | null
-      referent_id: string | null
+      domaine_id: string | null
       title: string
       description: string | null
+      prerequisites: string | null
       status: Mission["status"]
     }> = {}
-    if (patch.roleCategoryId !== undefined) row.role_category_id = patch.roleCategoryId
-    if (patch.referentId !== undefined) row.referent_id = patch.referentId
+    if (patch.domaineId !== undefined) row.domaine_id = patch.domaineId
     if (patch.title !== undefined) row.title = patch.title
     if (patch.description !== undefined) row.description = patch.description
+    if (patch.prerequisites !== undefined) row.prerequisites = patch.prerequisites
     if (patch.status !== undefined) row.status = patch.status
     const { data, error } = await db.from("_20260725_missions").update(row).eq("id", id).select("*").single()
     if (error) throw error

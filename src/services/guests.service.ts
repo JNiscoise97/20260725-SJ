@@ -17,6 +17,9 @@ export interface GuestsService {
   listAssignments(): Promise<TableAssignment[]>
   assignSeat(tableId: string, guestId: string): Promise<TableAssignment>
   unassignGuest(guestId: string): Promise<void>
+  /** Pour l'identité composée (voir identity.service.ts) : seuls les invités avec un `status` non nul peuvent se connecter. */
+  resolveByAccessCode(code: string): Promise<Guest | null>
+  getById(id: string): Promise<Guest | null>
 }
 
 const guestGroupsTable = createMockTable<GuestGroup>("sj-guest-groups", guestGroupsSeed)
@@ -33,6 +36,18 @@ const guestsMockService: GuestsService = {
   },
   async updateGuest(id, patch) {
     return guestsTable.update(id, patch)
+  },
+  async resolveByAccessCode(code) {
+    const guests = await guestsTable.getAll()
+    const normalized = code.trim().toUpperCase()
+    return (
+      guests.find(
+        (g) => g.status && g.isActive && g.accessCode && g.accessCode.toUpperCase() === normalized
+      ) ?? null
+    )
+  },
+  async getById(id) {
+    return guestsTable.getById(id)
   },
   async listTables() {
     return tablesTable.getAll()

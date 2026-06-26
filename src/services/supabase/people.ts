@@ -1,14 +1,18 @@
 import type { Person } from "@/types/domain"
+import type { AppRoleRow } from "@/types/supabase"
 import type { PeopleService } from "@/services/people.service"
 import { supabase } from "@/supabase/client"
 
 const db = supabase!
 
+// `role` reste typé AppRoleRow côté ligne brute (l'enum Postgres n'est pas
+// resserré, voir types/supabase.ts) : seules des lignes 'fiance' doivent
+// subsister dans _20260725_people une fois la migration 0025 appliquée.
 function toPerson(row: {
   id: string
   full_name: string
   phone: string | null
-  role: Person["role"]
+  role: AppRoleRow
   avatar_url: string | null
   is_active: boolean
   meal_choice: Person["mealChoice"]
@@ -19,7 +23,7 @@ function toPerson(row: {
     id: row.id,
     fullName: row.full_name,
     phone: row.phone ?? undefined,
-    role: row.role,
+    role: row.role as Person["role"],
     // access_code_hash n'est jamais lisible côté client (voir 0009/0012) ;
     // un code vide signale à l'UI qu'il est défini mais masqué.
     accessCode: "",

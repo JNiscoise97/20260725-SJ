@@ -45,6 +45,9 @@ function toGuest(row: {
   has_ceremonial_role: boolean
   likely_traditional_attire: boolean
   notes: string | null
+  status: Guest["status"]
+  is_active: boolean
+  introduction_seen: boolean
 }): Guest {
   return {
     id: row.id,
@@ -84,6 +87,12 @@ function toGuest(row: {
     hasCeremonialRole: row.has_ceremonial_role,
     likelyTraditionalAttire: row.likely_traditional_attire,
     notes: row.notes,
+    status: row.status,
+    // access_code_hash n'est jamais lisible côté client (voir migration 0024) ;
+    // un code vide signale à l'UI qu'il est défini mais masqué.
+    accessCode: "",
+    isActive: row.is_active,
+    introductionSeen: row.introduction_seen,
   }
 }
 
@@ -143,6 +152,9 @@ export const guestsSupabaseService: GuestsService = {
       has_ceremonial_role: boolean
       likely_traditional_attire: boolean
       notes: string | null
+      status: Guest["status"]
+      is_active: boolean
+      introduction_seen: boolean
     }> = {}
     if (patch.groupId !== undefined) row.group_id = patch.groupId
     if (patch.firstName !== undefined) row.first_name = patch.firstName
@@ -179,9 +191,34 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.hasCeremonialRole !== undefined) row.has_ceremonial_role = patch.hasCeremonialRole
     if (patch.likelyTraditionalAttire !== undefined) row.likely_traditional_attire = patch.likelyTraditionalAttire
     if (patch.notes !== undefined) row.notes = patch.notes
-    const { data, error } = await db.from("_20260725_guests").update(row).eq("id", id).select("*").single()
+    if (patch.status !== undefined) row.status = patch.status
+    if (patch.isActive !== undefined) row.is_active = patch.isActive
+    if (patch.introductionSeen !== undefined) row.introduction_seen = patch.introductionSeen
+    if (Object.keys(row).length > 0) {
+      const { error } = await db.from("_20260725_guests").update(row).eq("id", id)
+      if (error) throw error
+    }
+    if (patch.accessCode) {
+      const { error } = await db.rpc("_20260725_set_guest_access_code", {
+        p_guest_id: id,
+        p_code: patch.accessCode,
+      })
+      if (error) throw error
+    }
+    const { data, error } = await db.from("_20260725_guests").select("*").eq("id", id).single()
     if (error) throw error
     return toGuest(data)
+  },
+  async resolveByAccessCode(code) {
+    const { data, error } = await db.rpc("_20260725_resolve_guest_access_code", { code })
+    if (error) throw error
+    const row = data?.[0]
+    return row ? toGuest(row) : null
+  },
+  async getById(id) {
+    const { data, error } = await db.from("_20260725_guests").select("*").eq("id", id).maybeSingle()
+    if (error) throw error
+    return data ? toGuest(data) : null
   },
   async listTables() {
     const { data, error } = await db.from("_20260725_tables").select("*")

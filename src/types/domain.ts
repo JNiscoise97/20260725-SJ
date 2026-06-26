@@ -1,10 +1,15 @@
 export type AppRole = "fiance" | "referent" | "proche" | "invite"
 
+/**
+ * Réservée à Sarah & Jordan : ce n'est pas une table d'identité générique.
+ * Les référents/proches sont des `Guest` (voir `Guest.status`) — on fait la
+ * jointure plutôt que de dupliquer leurs infos ici.
+ */
 export interface Person {
   id: string
   fullName: string
   phone?: string
-  role: AppRole
+  role: "fiance"
   accessCode: string
   avatarUrl?: string | null
   isActive: boolean
@@ -14,51 +19,81 @@ export interface Person {
   allergies?: string | null
 }
 
-export interface RoleCategory {
+/** Forme unifiée de l'identité connectée, que la personne soit un fiancé (Person) ou un invité délégué (Guest). */
+export interface Identity {
+  id: string
+  fullName: string
+  phone?: string | null
+  role: AppRole
+  accessCode: string
+  avatarUrl?: string | null
+  isActive: boolean
+  mealChoice?: MealChoice | null
+  dietaryConstraints?: string | null
+  allergies?: string | null
+}
+
+export interface Pole {
   id: string
   name: string
+  sortOrder: number
+}
+
+export type DomainePhase = "avant" | "installation" | "jour_j" | "desinstallation" | "apres"
+
+export interface Domaine {
+  id: string
+  poleId?: string | null
+  name: string
   slug: string
+  description?: string | null
+  phase?: DomainePhase | null
   icon?: string
   color?: string
   sortOrder: number
   solicitedMilestone?: PlanningMilestone | null
   preferredContactId?: string | null
-  primaryReferentId?: string | null
-  secondaryReferentId?: string | null
+}
+
+/** Un responsable de domaine est soit un fiancé (`personId`), soit un invité de confiance qui en devient "référent" (`guestId`) — jamais les deux. */
+export interface DomaineResponsable {
+  id: string
+  domaineId: string
+  personId?: string | null
+  guestId?: string | null
+  rank: "principal" | "secondaire"
 }
 
 export type ProgressStatus = "todo" | "in_progress" | "done" | "blocked"
-export type TaskPriority = "low" | "normal" | "high" | "urgent"
+export type Priority = "low" | "normal" | "high" | "urgent"
 
 export interface Mission {
   id: string
-  roleCategoryId?: string | null
-  referentId?: string | null
+  domaineId?: string | null
   title: string
   description?: string | null
+  prerequisites?: string | null
   status: ProgressStatus
 }
 
-export interface Task {
+export type MissionAcceptanceStatus = "pending" | "accepted" | "declined"
+
+/** Réponse d'un invité référent/proche à une mission qui lui est confiée (voir page "Rôle"). */
+export interface MissionAcceptance {
   id: string
-  missionId?: string | null
-  title: string
-  description?: string | null
-  priority: TaskPriority
-  status: ProgressStatus
-  category?: string | null
-  dueDate?: string | null
-  dueTime?: string | null
-  ownerId?: string | null
+  missionId: string
+  guestId: string
+  status: MissionAcceptanceStatus
+  respondedAt?: string | null
 }
 
-export type ChecklistOwnerType = "referent" | "mission" | "logistique_item"
+export type ChecklistOwnerType = "mission" | "logistique_item" | "domaine"
 
 export interface Checklist {
   id: string
   ownerType: ChecklistOwnerType
   ownerId?: string | null
-  title: string
+  title?: string | null
 }
 
 export interface ChecklistItem {
@@ -67,6 +102,12 @@ export interface ChecklistItem {
   label: string
   isDone: boolean
   sortOrder: number
+  priority: Priority
+  status: ProgressStatus
+  estimatedStartDate?: string | null
+  estimatedStartTime?: string | null
+  estimatedEndDate?: string | null
+  estimatedEndTime?: string | null
 }
 
 export type PlanningMilestone = "j_moins_30" | "j_moins_15" | "j_moins_7" | "j_moins_1" | "jour_j" | "j_plus_1"
@@ -97,7 +138,7 @@ export interface RunOfShowStep {
 
 export interface LogistiqueItem {
   id: string
-  roleCategoryId?: string | null
+  domaineId?: string | null
   name: string
   responsableId?: string | null
   quantity?: number | null
@@ -156,6 +197,13 @@ export interface Guest {
   hasCeremonialRole: boolean
   likelyTraditionalAttire: boolean
   notes?: string | null
+  /** Statut spécial donnant accès à l'app (référent d'un domaine ou proche) ; null = invité ordinaire, pas de connexion. */
+  status?: "referent" | "proche" | "invite" | null
+  /** Présent uniquement à l'écriture (code en clair saisi dans l'UI) — jamais relu depuis Supabase, voir `services/supabase/guests.ts`. */
+  accessCode?: string | null
+  isActive?: boolean
+  /** A déjà vu la page Introduction (mot de Sarah & Jordan) lors d'une connexion précédente. */
+  introductionSeen?: boolean
 }
 
 export interface Prestataire {
