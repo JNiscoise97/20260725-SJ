@@ -11,6 +11,9 @@ function toPerson(row: {
   role: Person["role"]
   avatar_url: string | null
   is_active: boolean
+  meal_choice: Person["mealChoice"]
+  dietary_constraints: string | null
+  allergies: string | null
 }): Person {
   return {
     id: row.id,
@@ -22,6 +25,9 @@ function toPerson(row: {
     accessCode: "",
     avatarUrl: row.avatar_url,
     isActive: row.is_active,
+    mealChoice: row.meal_choice,
+    dietaryConstraints: row.dietary_constraints,
+    allergies: row.allergies,
   }
 }
 
@@ -65,12 +71,18 @@ export const peopleSupabaseService: PeopleService = {
       role: Person["role"]
       avatar_url: string | null | undefined
       is_active: boolean
+      meal_choice: Person["mealChoice"]
+      dietary_constraints: string | null
+      allergies: string | null
     }> = {}
     if (patch.fullName !== undefined) fields.full_name = patch.fullName
     if (patch.phone !== undefined) fields.phone = patch.phone ?? null
     if (patch.role !== undefined) fields.role = patch.role
     if (patch.avatarUrl !== undefined) fields.avatar_url = patch.avatarUrl
     if (patch.isActive !== undefined) fields.is_active = patch.isActive
+    if (patch.mealChoice !== undefined) fields.meal_choice = patch.mealChoice ?? null
+    if (patch.dietaryConstraints !== undefined) fields.dietary_constraints = patch.dietaryConstraints ?? null
+    if (patch.allergies !== undefined) fields.allergies = patch.allergies ?? null
     if (Object.keys(fields).length > 0) {
       const { error } = await db.from("_20260725_people").update(fields).eq("id", id)
       if (error) throw error

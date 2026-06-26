@@ -8,10 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { GuestMealCard } from "@/components/nourriture/GuestMealCard"
-import { GuestMealDialog } from "@/components/nourriture/GuestMealDialog"
-import { useGuests } from "@/hooks/queries/use-guests"
-import type { Guest, MealChoice } from "@/types/domain"
+import { MealAttendeeCard } from "@/components/nourriture/MealAttendeeCard"
+import { MealAttendeeDialog, type MealAttendeePatch } from "@/components/nourriture/MealAttendeeDialog"
+import { useGuests, useUpdateGuest } from "@/hooks/queries/use-guests"
+import { usePeople, useUpdatePerson } from "@/hooks/queries/use-people"
+import { usePrestataires, useUpdatePrestataire } from "@/hooks/queries/use-prestataires"
+import { guestsToAttendees, fiancesToAttendees, prestatairesToAttendees, type MealAttendee } from "@/lib/meal-attendees"
+import type { MealChoice } from "@/types/domain"
 
 const MEAL_FILTER_NONE = "non_renseigne"
 const ALL = "all"
@@ -25,50 +28,74 @@ const MEAL_FILTERS: { value: string; label: string }[] = [
 ]
 
 export function NourriturePage() {
-  const { data: guests, isLoading } = useGuests()
-  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
+  const { data: guests, isLoading: guestsLoading } = useGuests()
+  const { data: people, isLoading: peopleLoading } = usePeople()
+  const { data: prestataires, isLoading: prestatairesLoading } = usePrestataires()
+  const updateGuest = useUpdateGuest()
+  const updatePerson = useUpdatePerson()
+  const updatePrestataire = useUpdatePrestataire()
+
+  const [selectedAttendee, setSelectedAttendee] = useState<MealAttendee | null>(null)
   const [search, setSearch] = useState("")
   const [mealFilter, setMealFilter] = useState(ALL)
 
+  const isLoading = guestsLoading || peopleLoading || prestatairesLoading
+
+  const attendees = useMemo(() => {
+    if (!guests || !people || !prestataires) return []
+    return [
+      ...guestsToAttendees(guests),
+      ...fiancesToAttendees(people),
+      ...prestatairesToAttendees(prestataires),
+    ]
+  }, [guests, people, prestataires])
+
   const summary = useMemo(() => {
-    if (!guests) return null
-    const catered = guests.filter((g) => g.rsvpStatus !== "declined")
     const mealCounts: Record<MealChoice, number> = { poulet: 0, poisson: 0, enfant: 0 }
     let unset = 0
-    catered.forEach((g) => {
-      if (g.mealChoice) mealCounts[g.mealChoice] += 1
+    attendees.forEach((a) => {
+      if (a.mealChoice) mealCounts[a.mealChoice] += 1
       else unset += 1
     })
-    return { total: catered.length, mealCounts, unset, catered }
-  }, [guests])
+    return { total: attendees.length, mealCounts, unset }
+  }, [attendees])
 
-  const filteredGuests = useMemo(() => {
-    if (!summary) return []
+  const filteredAttendees = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return summary.catered.filter((guest) => {
-      if (mealFilter === MEAL_FILTER_NONE && guest.mealChoice) return false
-      if (mealFilter !== ALL && mealFilter !== MEAL_FILTER_NONE && guest.mealChoice !== mealFilter) return false
-      if (query && !guest.fullName.toLowerCase().includes(query)) return false
+    return attendees.filter((attendee) => {
+      if (mealFilter === MEAL_FILTER_NONE && attendee.mealChoice) return false
+      if (mealFilter !== ALL && mealFilter !== MEAL_FILTER_NONE && attendee.mealChoice !== mealFilter) return false
+      if (query && !attendee.fullName.toLowerCase().includes(query)) return false
       return true
     })
-  }, [summary, search, mealFilter])
+  }, [attendees, search, mealFilter])
 
-  const groupedGuests = useMemo(() => {
-    const groups: { value: string; label: string; guests: Guest[] }[] = MEAL_FILTERS.filter(
+  const groupedAttendees = useMemo(() => {
+    const groups: { value: string; label: string; attendees: MealAttendee[] }[] = MEAL_FILTERS.filter(
       (f) => f.value !== ALL
-    ).map((f) => ({ ...f, guests: [] }))
-    filteredGuests.forEach((guest) => {
-      const group = groups.find((g) => g.value === (guest.mealChoice ?? MEAL_FILTER_NONE))
-      group?.guests.push(guest)
+    ).map((f) => ({ ...f, attendees: [] }))
+    filteredAttendees.forEach((attendee) => {
+      const group = groups.find((g) => g.value === (attendee.mealChoice ?? MEAL_FILTER_NONE))
+      group?.attendees.push(attendee)
     })
-    return groups.filter((g) => g.guests.length > 0)
-  }, [filteredGuests])
+    return groups.filter((g) => g.attendees.length > 0)
+  }, [filteredAttendees])
+
+  async function handleSave(attendee: MealAttendee, patch: MealAttendeePatch) {
+    if (attendee.source === "guest") {
+      await updateGuest.mutateAsync({ id: attendee.id, patch })
+    } else if (attendee.source === "fiance") {
+      await updatePerson.mutateAsync({ id: attendee.id, patch })
+    } else {
+      await updatePrestataire.mutateAsync({ id: attendee.id, patch })
+    }
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Nourriture"
-        description="Récapitulatif traiteur : effectifs par plat, régimes et allergies à signaler."
+        description="Récapitulatif traiteur : effectifs par plat, régimes et allergies à signaler (invités, fiancés et prestataires qui mangent avec nous)."
       />
 
       {isLoading ? (
@@ -77,12 +104,12 @@ export function NourriturePage() {
             <Skeleton key={i} className="h-28 rounded-2xl" />
           ))}
         </div>
-      ) : !summary || summary.total === 0 ? (
-        <EmptyState icon={Utensils} title="Aucun invité pour l'instant" />
+      ) : summary.total === 0 ? (
+        <EmptyState icon={Utensils} title="Aucune personne à nourrir pour l'instant" />
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={Utensils} label="Invités à nourrir" value={summary.total} hint="Hors invités déclinés" />
+            <StatCard icon={Utensils} label="Personnes à nourrir" value={summary.total} hint="Invités, fiancés et prestataires" />
             <StatCard
               icon={Drumstick}
               label="Poulet"
@@ -108,7 +135,7 @@ export function NourriturePage() {
               <CardContent className="flex items-center gap-3">
                 <AlertTriangle className="size-5 shrink-0 text-bordeaux" />
                 <p className="text-sm text-foreground">
-                  {summary.unset} invité{summary.unset === 1 ? "" : "s"} à nourrir sans plat renseigné — à relancer.
+                  {summary.unset} personne{summary.unset === 1 ? "" : "s"} à nourrir sans plat renseigné — à relancer.
                 </p>
               </CardContent>
             </Card>
@@ -119,7 +146,7 @@ export function NourriturePage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher un invité..."
+                placeholder="Rechercher une personne..."
                 className="max-w-xs"
               />
               <div className="flex flex-wrap gap-2">
@@ -132,22 +159,22 @@ export function NourriturePage() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                {filteredGuests.length} invité{filteredGuests.length === 1 ? "" : "s"}
+                {filteredAttendees.length} personne{filteredAttendees.length === 1 ? "" : "s"}
               </p>
             </div>
 
-            {groupedGuests.length === 0 ? (
-              <EmptyState icon={Utensils} title="Aucun invité ne correspond à ces filtres" />
+            {groupedAttendees.length === 0 ? (
+              <EmptyState icon={Utensils} title="Aucune personne ne correspond à ces filtres" />
             ) : (
               <div className="space-y-6">
-                {groupedGuests.map((group) => (
+                {groupedAttendees.map((group) => (
                   <div key={group.value} className="space-y-3">
                     <h2 className="font-heading text-base font-medium text-foreground">
-                      {group.label} ({group.guests.length})
+                      {group.label} ({group.attendees.length})
                     </h2>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {group.guests.map((guest) => (
-                        <GuestMealCard key={guest.id} guest={guest} onSelect={setSelectedGuest} />
+                      {group.attendees.map((attendee) => (
+                        <MealAttendeeCard key={`${attendee.source}-${attendee.id}`} attendee={attendee} onSelect={setSelectedAttendee} />
                       ))}
                     </div>
                   </div>
@@ -158,10 +185,11 @@ export function NourriturePage() {
         </>
       )}
 
-      <GuestMealDialog
-        guest={selectedGuest}
+      <MealAttendeeDialog
+        attendee={selectedAttendee}
+        onSave={handleSave}
         onOpenChange={(open) => {
-          if (!open) setSelectedGuest(null)
+          if (!open) setSelectedAttendee(null)
         }}
       />
     </div>

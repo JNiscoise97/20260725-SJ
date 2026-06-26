@@ -7,7 +7,9 @@ import { USE_SUPABASE } from "@/supabase/client"
 export interface MissionsService {
   list(): Promise<Mission[]>
   getById(id: string): Promise<Mission | null>
+  create(mission: Mission): Promise<Mission>
   update(id: string, patch: Partial<Mission>): Promise<Mission>
+  remove(id: string): Promise<void>
 }
 
 const missionsTable = createMockTable<Mission>("sj-missions", missionsSeed)
@@ -19,8 +21,14 @@ const missionsMockService: MissionsService = {
   async getById(id) {
     return missionsTable.getById(id)
   },
+  async create(mission) {
+    return missionsTable.insert(mission)
+  },
   async update(id, patch) {
     return missionsTable.update(id, patch)
+  },
+  async remove(id) {
+    return missionsTable.remove(id)
   },
 }
 

@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { toast } from "sonner"
 
-import type { Guest, MealChoice } from "@/types/domain"
+import type { MealChoice } from "@/types/domain"
+import type { MealAttendee } from "@/lib/meal-attendees"
 import {
   Dialog,
   DialogContent,
@@ -13,37 +14,48 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useUpdateGuest } from "@/hooks/queries/use-guests"
 
 const NONE = "__none__"
 
-function GuestMealForm({ guest, onClose }: { guest: Guest; onClose: () => void }) {
-  const updateGuest = useUpdateGuest()
-  const [mealChoice, setMealChoice] = useState(guest.mealChoice ?? NONE)
-  const [dietary, setDietary] = useState(guest.dietaryConstraints ?? "")
-  const [allergies, setAllergies] = useState(guest.allergies ?? "")
+export interface MealAttendeePatch {
+  mealChoice: MealChoice | null
+  dietaryConstraints: string | null
+  allergies: string | null
+}
+
+interface MealAttendeeFormProps {
+  attendee: MealAttendee
+  onSave: (patch: MealAttendeePatch) => Promise<void>
+  onClose: () => void
+}
+
+function MealAttendeeForm({ attendee, onSave, onClose }: MealAttendeeFormProps) {
+  const [mealChoice, setMealChoice] = useState(attendee.mealChoice ?? NONE)
+  const [dietary, setDietary] = useState(attendee.dietaryConstraints ?? "")
+  const [allergies, setAllergies] = useState(attendee.allergies ?? "")
+  const [isSaving, setIsSaving] = useState(false)
 
   async function handleSave() {
+    setIsSaving(true)
     try {
-      await updateGuest.mutateAsync({
-        id: guest.id,
-        patch: {
-          mealChoice: mealChoice === NONE ? null : (mealChoice as MealChoice),
-          dietaryConstraints: dietary || null,
-          allergies: allergies || null,
-        },
+      await onSave({
+        mealChoice: mealChoice === NONE ? null : (mealChoice as MealChoice),
+        dietaryConstraints: dietary || null,
+        allergies: allergies || null,
       })
-      toast.success("Invité mis à jour.")
+      toast.success(`${attendee.fullName} mis à jour.`)
       onClose()
     } catch {
       toast.error("Échec de l'enregistrement.")
+    } finally {
+      setIsSaving(false)
     }
   }
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="font-heading">{guest.fullName}</DialogTitle>
+        <DialogTitle className="font-heading">{attendee.fullName}</DialogTitle>
       </DialogHeader>
       <FieldGroup>
         <Field>
@@ -83,7 +95,7 @@ function GuestMealForm({ guest, onClose }: { guest: Guest; onClose: () => void }
         <Button type="button" variant="outline" onClick={onClose}>
           Annuler
         </Button>
-        <Button type="button" onClick={handleSave} disabled={updateGuest.isPending}>
+        <Button type="button" onClick={handleSave} disabled={isSaving}>
           Enregistrer
         </Button>
       </DialogFooter>
@@ -91,16 +103,24 @@ function GuestMealForm({ guest, onClose }: { guest: Guest; onClose: () => void }
   )
 }
 
-interface GuestMealDialogProps {
-  guest: Guest | null
+interface MealAttendeeDialogProps {
+  attendee: MealAttendee | null
   onOpenChange: (open: boolean) => void
+  onSave: (attendee: MealAttendee, patch: MealAttendeePatch) => Promise<void>
 }
 
-export function GuestMealDialog({ guest, onOpenChange }: GuestMealDialogProps) {
+export function MealAttendeeDialog({ attendee, onOpenChange, onSave }: MealAttendeeDialogProps) {
   return (
-    <Dialog open={guest !== null} onOpenChange={onOpenChange}>
+    <Dialog open={attendee !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {guest ? <GuestMealForm key={guest.id} guest={guest} onClose={() => onOpenChange(false)} /> : null}
+        {attendee ? (
+          <MealAttendeeForm
+            key={attendee.id}
+            attendee={attendee}
+            onSave={(patch) => onSave(attendee, patch)}
+            onClose={() => onOpenChange(false)}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   )

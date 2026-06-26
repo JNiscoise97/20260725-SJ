@@ -14,6 +14,7 @@ import { LogistiquePage } from "@/pages/logistique"
 import { NourriturePage } from "@/pages/nourriture"
 import { InvitesPage } from "@/pages/invites"
 import { GuestDetailPage } from "@/pages/invites/guest-detail"
+import { PrestatairesPage } from "@/pages/prestataires"
 import { DocumentsPage } from "@/pages/documents"
 import { ParametresPage } from "@/pages/parametres"
 import { MaMissionPage } from "@/pages/ma-mission"
@@ -97,6 +98,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:guests">
                 <GuestDetailPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="prestataires"
+            element={
+              <RoleGuard capability="view:prestataires">
+                <PrestatairesPage />
               </RoleGuard>
             }
           />

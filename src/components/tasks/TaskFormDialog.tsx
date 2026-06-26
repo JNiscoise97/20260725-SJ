@@ -6,6 +6,7 @@ import { toast } from "sonner"
 
 import type { Task } from "@/types/domain"
 import { usePeople } from "@/hooks/queries/use-people"
+import { useMissions } from "@/hooks/queries/use-missions"
 import { useCreateTask, useUpdateTask } from "@/hooks/queries/use-tasks"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+const NONE = "__none__"
+
 const taskSchema = z.object({
   title: z.string().trim().min(1, "Le titre est requis."),
   description: z.string().trim().optional(),
@@ -35,6 +38,7 @@ const taskSchema = z.object({
   dueDate: z.string().trim().optional(),
   dueTime: z.string().trim().optional(),
   ownerId: z.string().optional(),
+  missionId: z.string().optional(),
 })
 
 type TaskFormValues = z.infer<typeof taskSchema>
@@ -48,6 +52,7 @@ const EMPTY_VALUES: TaskFormValues = {
   dueDate: "",
   dueTime: "",
   ownerId: undefined,
+  missionId: NONE,
 }
 
 interface TaskFormDialogProps {
@@ -58,6 +63,7 @@ interface TaskFormDialogProps {
 
 export function TaskFormDialog({ open, onOpenChange, task }: TaskFormDialogProps) {
   const { data: people } = usePeople()
+  const { data: missions } = useMissions()
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
 
@@ -82,6 +88,7 @@ export function TaskFormDialog({ open, onOpenChange, task }: TaskFormDialogProps
             dueDate: task.dueDate ?? "",
             dueTime: task.dueTime ?? "",
             ownerId: task.ownerId ?? undefined,
+            missionId: task.missionId ?? NONE,
           }
         : EMPTY_VALUES
     )
@@ -97,6 +104,7 @@ export function TaskFormDialog({ open, onOpenChange, task }: TaskFormDialogProps
       dueDate: values.dueDate || null,
       dueTime: values.dueTime || null,
       ownerId: values.ownerId || null,
+      missionId: values.missionId && values.missionId !== NONE ? values.missionId : null,
     }
 
     if (task) {
@@ -211,6 +219,29 @@ export function TaskFormDialog({ open, onOpenChange, task }: TaskFormDialogProps
                 />
               </Field>
             </div>
+
+            <Field>
+              <FieldLabel>Mission</FieldLabel>
+              <Controller
+                control={control}
+                name="missionId"
+                render={({ field }) => (
+                  <Select value={field.value ?? NONE} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Aucune" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Aucune</SelectItem>
+                      {missions?.map((mission) => (
+                        <SelectItem key={mission.id} value={mission.id}>
+                          {mission.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
           </FieldGroup>
 
           <DialogFooter className="mt-6">

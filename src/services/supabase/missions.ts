@@ -33,6 +33,26 @@ export const missionsSupabaseService: MissionsService = {
     if (error) throw error
     return data ? toMission(data) : null
   },
+  async create(mission) {
+    const { data, error } = await db
+      .from("_20260725_missions")
+      .insert({
+        id: mission.id,
+        role_category_id: mission.roleCategoryId ?? null,
+        referent_id: mission.referentId ?? null,
+        title: mission.title,
+        description: mission.description ?? null,
+        status: mission.status,
+      })
+      .select("*")
+      .single()
+    if (error) throw error
+    return toMission(data)
+  },
+  async remove(id) {
+    const { error } = await db.from("_20260725_missions").delete().eq("id", id)
+    if (error) throw error
+  },
   async update(id, patch) {
     const row: Partial<{
       role_category_id: string | null

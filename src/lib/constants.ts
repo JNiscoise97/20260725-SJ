@@ -8,6 +8,7 @@ import {
   Utensils,
   Armchair,
   FolderOpen,
+  Briefcase,
   Settings,
   type LucideIcon,
 } from "lucide-react"
@@ -35,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Logistique", path: "/logistique", icon: Truck, capability: "view:logistique" },
   { label: "Nourriture", path: "/nourriture", icon: Utensils, capability: "view:nourriture" },
   { label: "Invités", path: "/invites", icon: Armchair, capability: "view:guests" },
+  { label: "Prestataires", path: "/prestataires", icon: Briefcase, capability: "view:prestataires" },
   { label: "Documents", path: "/documents", icon: FolderOpen, capability: "view:documents" },
   { label: "Paramètres", path: "/parametres", icon: Settings, capability: "manage:settings" },
 ]

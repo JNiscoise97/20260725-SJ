@@ -47,6 +47,9 @@ type PersonRow = {
   access_code_hash: string
   avatar_url: string | null
   is_active: boolean
+  meal_choice: MealChoiceRow | null
+  dietary_constraints: string | null
+  allergies: string | null
   created_at: string
 }
 
@@ -191,6 +194,19 @@ type GuestRow = {
   created_at: string
 }
 
+type PrestataireRow = {
+  id: string
+  name: string
+  company: string | null
+  role: string | null
+  needs_meal: boolean
+  meal_choice: MealChoiceRow | null
+  dietary_constraints: string | null
+  allergies: string | null
+  notes: string | null
+  created_at: string
+}
+
 type TableRow = {
   id: string
   name: string
@@ -271,7 +287,10 @@ export interface Database {
         | "secondary_referent_id"
         | "created_at"
       >
-      _20260725_people: TableDef<PersonRow, "id" | "phone" | "avatar_url" | "is_active" | "created_at">
+      _20260725_people: TableDef<
+        PersonRow,
+        "id" | "phone" | "avatar_url" | "is_active" | "meal_choice" | "dietary_constraints" | "allergies" | "created_at"
+      >
       _20260725_app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
       _20260725_missions: TableDef<
         MissionRow,
@@ -353,6 +372,10 @@ export interface Database {
         | "likely_traditional_attire"
         | "notes"
         | "created_at"
+      >
+      _20260725_prestataires: TableDef<
+        PrestataireRow,
+        "id" | "company" | "role" | "needs_meal" | "meal_choice" | "dietary_constraints" | "allergies" | "notes" | "created_at"
       >
       _20260725_tables: TableDef<TableRow, "id">
       _20260725_table_assignments: TableDef<TableAssignmentRow, "id" | "seat_number">

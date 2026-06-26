@@ -8,6 +8,10 @@ export interface Person {
   accessCode: string
   avatarUrl?: string | null
   isActive: boolean
+  /** Pertinent pour les fiancés : pris en compte dans le comptage repas (page Nourriture). */
+  mealChoice?: MealChoice | null
+  dietaryConstraints?: string | null
+  allergies?: string | null
 }
 
 export interface RoleCategory {
@@ -151,6 +155,19 @@ export interface Guest {
   primaryLanguage?: string | null
   hasCeremonialRole: boolean
   likelyTraditionalAttire: boolean
+  notes?: string | null
+}
+
+export interface Prestataire {
+  id: string
+  name: string
+  company?: string | null
+  role?: string | null
+  /** Doit-il être nourri ? (ex. photographe et vidéaste de la même société, même devis). */
+  needsMeal: boolean
+  mealChoice?: MealChoice | null
+  dietaryConstraints?: string | null
+  allergies?: string | null
   notes?: string | null
 }
 
