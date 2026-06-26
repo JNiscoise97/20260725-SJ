@@ -15,7 +15,7 @@ type TableDef<Row, OptionalOnInsert extends keyof Row> = {
   Relationships: []
 }
 
-export type AppRoleRow = "fiance" | "referent" | "proche" | "invite"
+export type AppRoleRow = "fiance" | "referent" | "invite"
 export type ProgressStatusRow = "todo" | "in_progress" | "done" | "blocked"
 export type PriorityRow = "low" | "normal" | "high" | "urgent"
 export type PlanningMilestoneRow = "j_moins_30" | "j_moins_15" | "j_moins_7" | "j_moins_1" | "jour_j" | "j_plus_1"
@@ -214,7 +214,6 @@ type GuestRow = {
   has_ceremonial_role: boolean
   likely_traditional_attire: boolean
   notes: string | null
-  status: "referent" | "proche" | "invite" | null
   access_code_hash: string | null
   is_active: boolean
   introduction_seen: boolean
@@ -407,7 +406,6 @@ export interface Database {
         | "has_ceremonial_role"
         | "likely_traditional_attire"
         | "notes"
-        | "status"
         | "access_code_hash"
         | "is_active"
         | "introduction_seen"

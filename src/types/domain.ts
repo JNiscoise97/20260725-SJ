@@ -1,9 +1,10 @@
-export type AppRole = "fiance" | "referent" | "proche" | "invite"
+export type AppRole = "fiance" | "referent" | "invite"
 
 /**
  * Réservée à Sarah & Jordan : ce n'est pas une table d'identité générique.
- * Les référents/proches sont des `Guest` (voir `Guest.status`) — on fait la
- * jointure plutôt que de dupliquer leurs infos ici.
+ * Les référents sont des `Guest` affectés à un domaine (voir
+ * `domaine_responsables`) — on fait la jointure plutôt que de dupliquer leurs
+ * infos ici.
  */
 export interface Person {
   id: string
@@ -197,8 +198,6 @@ export interface Guest {
   hasCeremonialRole: boolean
   likelyTraditionalAttire: boolean
   notes?: string | null
-  /** Statut spécial donnant accès à l'app (référent d'un domaine ou proche) ; null = invité ordinaire, pas de connexion. */
-  status?: "referent" | "proche" | "invite" | null
   /** Présent uniquement à l'écriture (code en clair saisi dans l'UI) — jamais relu depuis Supabase, voir `services/supabase/guests.ts`. */
   accessCode?: string | null
   isActive?: boolean

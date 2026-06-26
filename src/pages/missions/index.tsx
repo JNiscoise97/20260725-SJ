@@ -54,7 +54,7 @@ export function MissionsPage() {
     missionsLoading || domainesLoading || polesLoading || checklistsLoading || itemsLoading || entriesLoading
 
   // Un fiancé voit l'ensemble des missions (vue d'organisation) ; un
-  // référent/proche ne voit que celles des domaines qui lui sont confiés.
+  // référent ne voit que celles des domaines qui lui sont confiés.
   const myDomaineIds = useMemo(() => {
     if (!person || person.role === "fiance") return null
     return entries.find((e) => e.identity.id === person.id)?.domaineIds ?? []

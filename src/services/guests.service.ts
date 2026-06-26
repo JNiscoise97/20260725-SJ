@@ -17,7 +17,7 @@ export interface GuestsService {
   listAssignments(): Promise<TableAssignment[]>
   assignSeat(tableId: string, guestId: string): Promise<TableAssignment>
   unassignGuest(guestId: string): Promise<void>
-  /** Pour l'identité composée (voir identity.service.ts) : seuls les invités avec un `status` non nul peuvent se connecter. */
+  /** Pour l'identité composée (voir identity.service.ts) : tout invité actif avec un code valide peut se connecter. */
   resolveByAccessCode(code: string): Promise<Guest | null>
   getById(id: string): Promise<Guest | null>
 }
@@ -41,9 +41,7 @@ const guestsMockService: GuestsService = {
     const guests = await guestsTable.getAll()
     const normalized = code.trim().toUpperCase()
     return (
-      guests.find(
-        (g) => g.status && g.isActive && g.accessCode && g.accessCode.toUpperCase() === normalized
-      ) ?? null
+      guests.find((g) => g.isActive && g.accessCode && g.accessCode.toUpperCase() === normalized) ?? null
     )
   },
   async getById(id) {

@@ -27,7 +27,7 @@ interface PersonFormState {
 const EMPTY_FORM: PersonFormState = { fullName: "", phone: "", accessCode: "" }
 
 // Réservé à Sarah & Jordan (voir types/domain.ts : Person.role = "fiance").
-// Les référents/proches sont gérés comme des invités depuis DomaineManager.
+// Les référents sont gérés comme des invités depuis DomaineManager.
 function PersonDialog({ person }: { person?: Person }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<PersonFormState>(

@@ -45,7 +45,6 @@ function toGuest(row: {
   has_ceremonial_role: boolean
   likely_traditional_attire: boolean
   notes: string | null
-  status: Guest["status"]
   is_active: boolean
   introduction_seen: boolean
 }): Guest {
@@ -87,7 +86,6 @@ function toGuest(row: {
     hasCeremonialRole: row.has_ceremonial_role,
     likelyTraditionalAttire: row.likely_traditional_attire,
     notes: row.notes,
-    status: row.status,
     // access_code_hash n'est jamais lisible côté client (voir migration 0024) ;
     // un code vide signale à l'UI qu'il est défini mais masqué.
     accessCode: "",
@@ -152,7 +150,6 @@ export const guestsSupabaseService: GuestsService = {
       has_ceremonial_role: boolean
       likely_traditional_attire: boolean
       notes: string | null
-      status: Guest["status"]
       is_active: boolean
       introduction_seen: boolean
     }> = {}
@@ -191,7 +188,6 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.hasCeremonialRole !== undefined) row.has_ceremonial_role = patch.hasCeremonialRole
     if (patch.likelyTraditionalAttire !== undefined) row.likely_traditional_attire = patch.likelyTraditionalAttire
     if (patch.notes !== undefined) row.notes = patch.notes
-    if (patch.status !== undefined) row.status = patch.status
     if (patch.isActive !== undefined) row.is_active = patch.isActive
     if (patch.introductionSeen !== undefined) row.introduction_seen = patch.introductionSeen
     if (Object.keys(row).length > 0) {

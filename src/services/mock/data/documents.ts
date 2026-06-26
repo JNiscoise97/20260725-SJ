@@ -7,7 +7,7 @@ export const documentsSeed: DocumentItem[] = [
     category: "Planning",
     fileName: "Planning général.pdf",
     filePath: "documents/planning.pdf",
-    visibleToRoles: ["fiance", "referent", "proche"],
+    visibleToRoles: ["fiance", "referent"],
   },
   {
     id: "doc-inventaire-boissons",

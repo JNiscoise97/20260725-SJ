@@ -34,7 +34,7 @@ export function DocumentUploadDialog() {
       category: category || null,
       fileName: file.name,
       filePath: URL.createObjectURL(file),
-      visibleToRoles: ["fiance", "referent", "proche"],
+      visibleToRoles: ["fiance", "referent"],
     })
     toast.success("Document ajouté.")
     setOpen(false)

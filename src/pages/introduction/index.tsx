@@ -17,11 +17,11 @@ export function IntroductionPage() {
   const firstName = person?.fullName.split(" ")[0] ?? ""
   const updateGuest = useUpdateGuest()
 
-  // Cette page n'est accessible qu'aux référents/proches (voir RoleGuard sur
-  // la route), qui sont toujours portés par une ligne _20260725_guests —
+  // Cette page n'est accessible qu'aux référents (voir RoleGuard sur la
+  // route), qui sont toujours portés par une ligne _20260725_guests —
   // person.id y correspond donc directement (voir identity.service.ts).
   useEffect(() => {
-    if (!person || (person.role !== "referent" && person.role !== "proche")) return
+    if (!person || person.role !== "referent") return
     updateGuest.mutate({ id: person.id, patch: { introductionSeen: true } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person?.id])

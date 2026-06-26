@@ -37,11 +37,11 @@ export const guestsSeed: Guest[] = [
   guest("Yanis", "Cohen", { id: "g-yanis", groupId: "gg-amis", rsvpStatus: "declined" }),
   guest("Sofia", "Rossi", { id: "g-sofia", groupId: "gg-amis", rsvpStatus: "confirmed" }),
   guest("Karim", "Haddad", { id: "g-karim", groupId: "gg-amis", rsvpStatus: "pending" }),
-  // Invités avec un statut spécial : référents délégués sur un domaine, ou proche.
-  guest("Camille", "Rivière", { id: "g-ref-deco", groupId: "gg-amis", rsvpStatus: "confirmed", status: "referent", accessCode: "DECO2026", isActive: true }),
-  guest("Hugo", "Lenoir", { id: "g-ref-boissons", groupId: "gg-amis", rsvpStatus: "confirmed", status: "referent", accessCode: "BOISSON2026", isActive: true }),
-  guest("Nina", "Castel", { id: "g-ref-dj", groupId: "gg-amis", rsvpStatus: "confirmed", status: "referent", accessCode: "DJ2026", isActive: true }),
-  guest("Léa", "Fontaine", { id: "g-proche-1", groupId: "gg-amis", rsvpStatus: "confirmed", status: "proche", accessCode: "LEA2026", isActive: true }),
+  // Invités avec un accès à l'app : Camille/Hugo/Nina sont référents (voir domaine-responsables.ts), Léa a un accès simple.
+  guest("Camille", "Rivière", { id: "g-ref-deco", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "DECO2026", isActive: true }),
+  guest("Hugo", "Lenoir", { id: "g-ref-boissons", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "BOISSON2026", isActive: true }),
+  guest("Nina", "Castel", { id: "g-ref-dj", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "DJ2026", isActive: true }),
+  guest("Léa", "Fontaine", { id: "g-proche-1", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "LEA2026", isActive: true }),
 ]
 
 export const tablesSeed: SeatingTable[] = [

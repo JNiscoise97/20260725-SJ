@@ -5,19 +5,17 @@ import { domaineResponsablesService } from "@/services/domaine-responsables.serv
 
 /**
  * Un invité "devient référent" d'un domaine par affectation (voir
- * _20260725_domaine_responsables), pas par un attribut permanent : son rôle
- * effectif prime donc sur son `status` déclaratif s'il porte au moins une
- * responsabilité de domaine.
+ * _20260725_domaine_responsables), pas par un attribut permanent. Tout autre
+ * invité actif avec un code valide se connecte avec un accès limité ("invite").
  */
 async function guestToIdentity(guest: Guest): Promise<Identity | null> {
   if (!guest.isActive) return null
   const responsables = await domaineResponsablesService.list()
   const isResponsable = responsables.some((r) => r.guestId === guest.id)
-  if (!guest.status && !isResponsable) return null
   return {
     id: guest.id,
     fullName: guest.fullName,
-    role: isResponsable ? "referent" : (guest.status as Identity["role"]),
+    role: isResponsable ? "referent" : "invite",
     accessCode: guest.accessCode ?? "",
     isActive: guest.isActive,
     mealChoice: guest.mealChoice,
