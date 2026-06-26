@@ -1,21 +1,21 @@
--- Téléphone volontairement omis (tout le monde se connaît déjà). Les codes
--- d'accès en clair ci-dessous ne servent qu'à générer le hash stocké ; voir
--- 0012_resolve_access_code_case_insensitive.sql (comparaison insensible à la casse).
-insert into _20260725_people (id, full_name, role, access_code_hash, is_active) values
-  ('22222222-2222-2222-2222-222222222301', 'Sarah', 'fiance', crypt(upper('SARAH1999'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222302', 'Jordan', 'fiance', crypt(upper('JORDAN1995'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222303', 'Papa Fidaly', 'referent', crypt(upper('PAPA1948'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222304', 'Maman Nini', 'referent', crypt(upper('MAMAN1979'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222305', 'Papa Georges', 'referent', crypt(upper('PAPA1964'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222306', 'Maman Corine', 'proche', crypt(upper('MAMAN1968'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222307', 'Coraline', 'referent', crypt(upper('COCO1997'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222308', 'Lisa', 'referent', crypt(upper('MAY1999'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222309', 'Charlotte', 'referent', crypt(upper('CHACHA'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222310', 'Maxime', 'referent', crypt(upper('MAXOU1995'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222311', 'Julien', 'referent', crypt(upper('JU1994'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222312', 'William', 'referent', crypt(upper('WILL2001'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222313', 'Florine', 'referent', crypt(upper('FLO1981'), gen_salt('bf')), true),
-  ('22222222-2222-2222-2222-222222222314', 'Tatie Patricia', 'referent', crypt(upper('TATIE1967'), gen_salt('bf')), true);
+-- Téléphone volontairement omis (tout le monde se connaît déjà). Codes
+-- d'accès stockés en clair depuis la migration 0038 (comparaison insensible
+-- à la casse via upper(), voir aussi 0012 pour l'historique).
+insert into _20260725_people (id, full_name, role, access_code, is_active) values
+  ('22222222-2222-2222-2222-222222222301', 'Sarah', 'fiance', upper('SARAH1999'), true),
+  ('22222222-2222-2222-2222-222222222302', 'Jordan', 'fiance', upper('JORDAN1995'), true),
+  ('22222222-2222-2222-2222-222222222303', 'Papa Fidaly', 'referent', upper('PAPA1948'), true),
+  ('22222222-2222-2222-2222-222222222304', 'Maman Nini', 'referent', upper('MAMAN1979'), true),
+  ('22222222-2222-2222-2222-222222222305', 'Papa Georges', 'referent', upper('PAPA1964'), true),
+  ('22222222-2222-2222-2222-222222222306', 'Maman Corine', 'proche', upper('MAMAN1968'), true),
+  ('22222222-2222-2222-2222-222222222307', 'Coraline', 'referent', upper('COCO1997'), true),
+  ('22222222-2222-2222-2222-222222222308', 'Lisa', 'referent', upper('MAY1999'), true),
+  ('22222222-2222-2222-2222-222222222309', 'Charlotte', 'referent', upper('CHACHA'), true),
+  ('22222222-2222-2222-2222-222222222310', 'Maxime', 'referent', upper('MAXOU1995'), true),
+  ('22222222-2222-2222-2222-222222222311', 'Julien', 'referent', upper('JU1994'), true),
+  ('22222222-2222-2222-2222-222222222312', 'William', 'referent', upper('WILL2001'), true),
+  ('22222222-2222-2222-2222-222222222313', 'Florine', 'referent', upper('FLO1981'), true),
+  ('22222222-2222-2222-2222-222222222314', 'Tatie Patricia', 'referent', upper('TATIE1967'), true);
 
 -- Assignation référent principal / secondaire par catégorie.
 update _20260725_role_categories set primary_referent_id = '22222222-2222-2222-2222-222222222303' where slug = 'enveloppes-cadeaux'; -- Papa Fidaly

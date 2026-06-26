@@ -24,7 +24,7 @@ function toPerson(row: {
     fullName: row.full_name,
     phone: row.phone ?? undefined,
     role: row.role as Person["role"],
-    // access_code_hash n'est jamais lisible côté client (voir 0009/0012) ;
+    // access_code n'est jamais lisible côté client (revoke select, voir 0038) ;
     // un code vide signale à l'UI qu'il est défini mais masqué.
     accessCode: "",
     avatarUrl: row.avatar_url,

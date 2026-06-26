@@ -45,8 +45,8 @@ function PersonDialog({ person }: { person?: Person }) {
         fullName: form.fullName,
         phone: form.phone || undefined,
       }
-      // Code laissé vide en modification = on ne le change pas (le hash existant
-      // n'est jamais relisible, voir peopleSupabaseService).
+      // Code laissé vide en modification = on ne le change pas (le code existant
+      // n'est jamais relisible côté client, voir peopleSupabaseService).
       if (form.accessCode.trim()) patch.accessCode = form.accessCode
       await updatePerson.mutateAsync({ id: person.id, patch })
       toast.success("Personne mise à jour.")

@@ -86,7 +86,7 @@ function toGuest(row: {
     hasCeremonialRole: row.has_ceremonial_role,
     likelyTraditionalAttire: row.likely_traditional_attire,
     notes: row.notes,
-    // access_code_hash n'est jamais lisible côté client (voir migration 0024) ;
+    // access_code n'est jamais lisible côté client (revoke select, voir 0038) ;
     // un code vide signale à l'UI qu'il est défini mais masqué.
     accessCode: "",
     isActive: row.is_active,

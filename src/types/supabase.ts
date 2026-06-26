@@ -65,7 +65,7 @@ type PersonRow = {
   full_name: string
   phone: string | null
   role: AppRoleRow
-  access_code_hash: string
+  access_code: string | null
   avatar_url: string | null
   is_active: boolean
   meal_choice: MealChoiceRow | null
@@ -214,7 +214,7 @@ type GuestRow = {
   has_ceremonial_role: boolean
   likely_traditional_attire: boolean
   notes: string | null
-  access_code_hash: string | null
+  access_code: string | null
   is_active: boolean
   introduction_seen: boolean
   created_at: string
@@ -321,7 +321,15 @@ export interface Database {
       >
       _20260725_people: TableDef<
         PersonRow,
-        "id" | "phone" | "avatar_url" | "is_active" | "meal_choice" | "dietary_constraints" | "allergies" | "created_at"
+        | "id"
+        | "phone"
+        | "access_code"
+        | "avatar_url"
+        | "is_active"
+        | "meal_choice"
+        | "dietary_constraints"
+        | "allergies"
+        | "created_at"
       >
       _20260725_app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
       _20260725_missions: TableDef<
@@ -406,7 +414,7 @@ export interface Database {
         | "has_ceremonial_role"
         | "likely_traditional_attire"
         | "notes"
-        | "access_code_hash"
+        | "access_code"
         | "is_active"
         | "introduction_seen"
         | "created_at"
