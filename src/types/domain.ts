@@ -224,10 +224,13 @@ export interface SeatingTable {
   capacity: number
 }
 
+/** Le siège est attribué à un invité, un fiancé ou un prestataire — jamais plusieurs à la fois. */
 export interface TableAssignment {
   id: string
   tableId: string
-  guestId: string
+  guestId?: string | null
+  personId?: string | null
+  prestataireId?: string | null
   seatNumber?: number | null
 }
 

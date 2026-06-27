@@ -16,9 +16,11 @@ import { LogistiquePage } from "@/pages/logistique"
 import { NourriturePage } from "@/pages/nourriture"
 import { InvitesPage } from "@/pages/invites"
 import { GuestDetailPage } from "@/pages/invites/guest-detail"
+import { PlanTablePage } from "@/pages/plan-table"
 import { PrestatairesPage } from "@/pages/prestataires"
 import { DocumentsPage } from "@/pages/documents"
 import { ParametresPage } from "@/pages/parametres"
+import { RevueContenuPage } from "@/pages/revue-contenu"
 import { MaMissionPage } from "@/pages/ma-mission"
 import { NotFoundPage } from "@/pages/not-found"
 
@@ -120,6 +122,14 @@ export function AppRoutes() {
             }
           />
           <Route
+            path="plan-table"
+            element={
+              <RoleGuard capability="view:guests">
+                <PlanTablePage />
+              </RoleGuard>
+            }
+          />
+          <Route
             path="prestataires"
             element={
               <RoleGuard capability="view:prestataires">
@@ -140,6 +150,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="manage:settings">
                 <ParametresPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="parametres/revue-contenu"
+            element={
+              <RoleGuard capability="manage:settings">
+                <RevueContenuPage />
               </RoleGuard>
             }
           />

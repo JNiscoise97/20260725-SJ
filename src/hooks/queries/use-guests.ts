@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { guestsService } from "@/services/guests.service"
+import { guestsService, type CreateGuestInput } from "@/services/guests.service"
 import type { Guest } from "@/types/domain"
 
 export function useGuestGroups() {
@@ -11,6 +11,14 @@ export function useGuests() {
   return useQuery({ queryKey: ["guests"], queryFn: () => guestsService.listGuests() })
 }
 
+export function useCreateGuest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CreateGuestInput) => guestsService.createGuest(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["guests"] }),
+  })
+}
+
 export function useUpdateGuest() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -19,27 +27,10 @@ export function useUpdateGuest() {
   })
 }
 
-export function useTables() {
-  return useQuery({ queryKey: ["tables"], queryFn: () => guestsService.listTables() })
-}
-
-export function useTableAssignments() {
-  return useQuery({ queryKey: ["table-assignments"], queryFn: () => guestsService.listAssignments() })
-}
-
-export function useAssignSeat() {
+export function useDeleteGuest() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ tableId, guestId }: { tableId: string; guestId: string }) =>
-      guestsService.assignSeat(tableId, guestId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["table-assignments"] }),
-  })
-}
-
-export function useUnassignGuest() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (guestId: string) => guestsService.unassignGuest(guestId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["table-assignments"] }),
+    mutationFn: (id: string) => guestsService.deleteGuest(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["guests"] }),
   })
 }

@@ -1,22 +1,21 @@
-import type { Guest, GuestGroup, SeatingTable, TableAssignment } from "@/types/domain"
+import type { Guest, GuestGroup } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
-import {
-  guestGroupsSeed,
-  guestsSeed,
-  tablesSeed,
-  tableAssignmentsSeed,
-} from "@/services/mock/data/guests"
+import { guestDefaults, guestGroupsSeed, guestsSeed } from "@/services/mock/data/guests"
 import { guestsSupabaseService } from "@/services/supabase/guests"
 import { USE_SUPABASE } from "@/supabase/client"
+
+export interface CreateGuestInput {
+  firstName: string
+  lastName: string
+  groupId?: string | null
+}
 
 export interface GuestsService {
   listGroups(): Promise<GuestGroup[]>
   listGuests(): Promise<Guest[]>
+  createGuest(input: CreateGuestInput): Promise<Guest>
   updateGuest(id: string, patch: Partial<Guest>): Promise<Guest>
-  listTables(): Promise<SeatingTable[]>
-  listAssignments(): Promise<TableAssignment[]>
-  assignSeat(tableId: string, guestId: string): Promise<TableAssignment>
-  unassignGuest(guestId: string): Promise<void>
+  deleteGuest(id: string): Promise<void>
   /** Pour l'identité composée (voir identity.service.ts) : tout invité actif avec un code valide peut se connecter. */
   resolveByAccessCode(code: string): Promise<Guest | null>
   getById(id: string): Promise<Guest | null>
@@ -24,8 +23,6 @@ export interface GuestsService {
 
 const guestGroupsTable = createMockTable<GuestGroup>("sj-guest-groups", guestGroupsSeed)
 const guestsTable = createMockTable<Guest>("sj-guests", guestsSeed)
-const tablesTable = createMockTable<SeatingTable>("sj-tables", tablesSeed)
-const tableAssignmentsTable = createMockTable<TableAssignment>("sj-table-assignments", tableAssignmentsSeed)
 
 const guestsMockService: GuestsService = {
   async listGroups() {
@@ -34,8 +31,23 @@ const guestsMockService: GuestsService = {
   async listGuests() {
     return guestsTable.getAll()
   },
+  async createGuest({ firstName, lastName, groupId }) {
+    return guestsTable.insert({
+      id: crypto.randomUUID(),
+      groupId: groupId ?? null,
+      firstName,
+      lastName,
+      fullName: `${firstName} ${lastName}`,
+      rsvpStatus: "pending",
+      isActive: true,
+      ...guestDefaults,
+    })
+  },
   async updateGuest(id, patch) {
     return guestsTable.update(id, patch)
+  },
+  async deleteGuest(id) {
+    return guestsTable.remove(id)
   },
   async resolveByAccessCode(code) {
     const guests = await guestsTable.getAll()
@@ -46,27 +58,6 @@ const guestsMockService: GuestsService = {
   },
   async getById(id) {
     return guestsTable.getById(id)
-  },
-  async listTables() {
-    return tablesTable.getAll()
-  },
-  async listAssignments() {
-    return tableAssignmentsTable.getAll()
-  },
-  async assignSeat(tableId, guestId) {
-    const assignments = await tableAssignmentsTable.getAll()
-    const existing = assignments.find((a) => a.guestId === guestId)
-    if (existing) {
-      return tableAssignmentsTable.update(existing.id, { tableId })
-    }
-    return tableAssignmentsTable.insert({ id: crypto.randomUUID(), tableId, guestId })
-  },
-  async unassignGuest(guestId) {
-    const assignments = await tableAssignmentsTable.getAll()
-    const existing = assignments.find((a) => a.guestId === guestId)
-    if (existing) {
-      await tableAssignmentsTable.remove(existing.id)
-    }
   },
 }
 

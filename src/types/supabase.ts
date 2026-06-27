@@ -242,7 +242,9 @@ type TableRow = {
 type TableAssignmentRow = {
   id: string
   table_id: string
-  guest_id: string
+  guest_id: string | null
+  person_id: string | null
+  prestataire_id: string | null
   seat_number: number | null
 }
 
@@ -424,7 +426,10 @@ export interface Database {
         "id" | "company" | "role" | "needs_meal" | "meal_choice" | "dietary_constraints" | "allergies" | "notes" | "created_at"
       >
       _20260725_tables: TableDef<TableRow, "id">
-      _20260725_table_assignments: TableDef<TableAssignmentRow, "id" | "seat_number">
+      _20260725_table_assignments: TableDef<
+        TableAssignmentRow,
+        "id" | "guest_id" | "person_id" | "prestataire_id" | "seat_number"
+      >
       _20260725_attachments: TableDef<
         AttachmentRow,
         "id" | "entity_type" | "entity_id" | "mime_type" | "uploaded_by" | "created_at"

@@ -4,13 +4,16 @@ import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, Tras
 import { usePoles, useDeletePole } from "@/hooks/queries/use-poles"
 import { useDomaines, useDeleteDomaine } from "@/hooks/queries/use-domaines"
 import { useMissions, useDeleteMission } from "@/hooks/queries/use-missions"
+import { useDomaineResponsables } from "@/hooks/queries/use-domaine-responsables"
+import { usePeople } from "@/hooks/queries/use-people"
+import { useGuests } from "@/hooks/queries/use-guests"
 import {
   useAllChecklists,
   useAllChecklistItems,
   useDeleteChecklist,
   useDeleteChecklistItem,
 } from "@/hooks/queries/use-checklists"
-import type { Checklist, ChecklistItem, Domaine, Mission, Pole } from "@/types/domain"
+import type { Checklist, ChecklistItem, Domaine, DomaineResponsable, Mission, Pole } from "@/types/domain"
 import { DOMAINE_PHASE_LABELS } from "@/lib/constants"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PoleDialog } from "@/components/parametres/PoleManager"
-import { DomaineDialog, DomaineResponsablesDialog } from "@/components/parametres/DomaineManager"
+import { DomaineDialog, DomaineResponsablesDialog, ResponsablePills } from "@/components/parametres/DomaineManager"
 import { MissionDialog } from "@/components/parametres/MissionManager"
 import { ChecklistDialog } from "@/components/parametres/ChecklistDialog"
 import { ChecklistItemDialog } from "@/components/parametres/ChecklistItemDialog"
@@ -82,6 +85,9 @@ export function ParametresTree() {
   const { data: missions, isLoading: missionsLoading } = useMissions()
   const { data: checklists, isLoading: checklistsLoading } = useAllChecklists()
   const { data: items, isLoading: itemsLoading } = useAllChecklistItems()
+  const { data: responsables, isLoading: responsablesLoading } = useDomaineResponsables()
+  const { data: people } = usePeople()
+  const { data: guests } = useGuests()
 
   const deletePole = useDeletePole()
   const deleteDomaine = useDeleteDomaine()
@@ -129,7 +135,8 @@ export function ParametresTree() {
   const search = searchQuery.trim().toLowerCase()
   const isSearching = search.length > 0
 
-  const isLoading = polesLoading || domainesLoading || missionsLoading || checklistsLoading || itemsLoading
+  const isLoading =
+    polesLoading || domainesLoading || missionsLoading || checklistsLoading || itemsLoading || responsablesLoading
 
   const domainesByPoleId = useMemo(() => {
     const map = new Map<string, Domaine[]>()
@@ -142,6 +149,16 @@ export function ParametresTree() {
     for (const list of map.values()) list.sort((a, b) => a.sortOrder - b.sortOrder)
     return map
   }, [domaines])
+
+  const responsablesByDomaineId = useMemo(() => {
+    const map = new Map<string, DomaineResponsable[]>()
+    for (const r of responsables ?? []) {
+      const list = map.get(r.domaineId) ?? []
+      list.push(r)
+      map.set(r.domaineId, list)
+    }
+    return map
+  }, [responsables])
 
   const missionsByDomaineId = useMemo(() => {
     const map = new Map<string, Mission[]>()
@@ -188,11 +205,19 @@ export function ParametresTree() {
     return (checklistsByOwner.get(`mission:${mission.id}`) ?? []).some(checklistMatches)
   }
 
+  function responsableNameFor(r: DomaineResponsable) {
+    if (r.personId) return people?.find((p) => p.id === r.personId)?.fullName ?? ""
+    return guests?.find((g) => g.id === r.guestId)?.fullName ?? ""
+  }
+
   function domaineMatches(domaine: Domaine) {
     if (!isSearching) return true
     if (domaine.name.toLowerCase().includes(search)) return true
     if ((missionsByDomaineId.get(domaine.id) ?? []).some(missionMatches)) return true
-    return (checklistsByOwner.get(`domaine:${domaine.id}`) ?? []).some(checklistMatches)
+    if ((checklistsByOwner.get(`domaine:${domaine.id}`) ?? []).some(checklistMatches)) return true
+    return (responsablesByDomaineId.get(domaine.id) ?? []).some((r) =>
+      responsableNameFor(r).toLowerCase().includes(search)
+    )
   }
 
   function poleMatches(pole: Pole | { id: string; name: string }) {
@@ -298,6 +323,7 @@ export function ParametresTree() {
   function renderDomaineNode(domaine: Domaine, depth: number) {
     const domaineMissions = (missionsByDomaineId.get(domaine.id) ?? []).filter(missionMatches)
     const domaineChecklists = (checklistsByOwner.get(`domaine:${domaine.id}`) ?? []).filter(checklistMatches)
+    const domaineResponsables = responsablesByDomaineId.get(domaine.id) ?? []
     const isOpen = effectiveOpen(domaine.id, false) || isSearching
     return (
       <div key={domaine.id} className="space-y-1">
@@ -309,9 +335,12 @@ export function ParametresTree() {
           onToggle={() => toggle(domaine.id)}
           label={domaine.name}
           meta={
-            domaine.phase ? (
-              <Badge className="bg-muted text-muted-foreground">{DOMAINE_PHASE_LABELS[domaine.phase]}</Badge>
-            ) : undefined
+            <div className="flex items-center gap-2">
+              {domaine.phase ? (
+                <Badge className="bg-muted text-muted-foreground">{DOMAINE_PHASE_LABELS[domaine.phase]}</Badge>
+              ) : null}
+              <ResponsablePills responsables={domaineResponsables} />
+            </div>
           }
           actions={
             <>
@@ -391,7 +420,7 @@ export function ParametresTree() {
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Rechercher un pôle, un domaine, une mission, une checklist..."
+              placeholder="Rechercher un pôle, un domaine, une mission, une checklist, un responsable..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"

@@ -1,4 +1,4 @@
-import type { Guest, GuestGroup, SeatingTable, TableAssignment } from "@/types/domain"
+import type { Guest, GuestGroup } from "@/types/domain"
 import type { GuestsService } from "@/services/guests.service"
 import { supabase } from "@/supabase/client"
 
@@ -94,14 +94,6 @@ function toGuest(row: {
   }
 }
 
-function toTable(row: { id: string; name: string; capacity: number }): SeatingTable {
-  return { id: row.id, name: row.name, capacity: row.capacity }
-}
-
-function toAssignment(row: { id: string; table_id: string; guest_id: string; seat_number: number | null }): TableAssignment {
-  return { id: row.id, tableId: row.table_id, guestId: row.guest_id, seatNumber: row.seat_number }
-}
-
 export const guestsSupabaseService: GuestsService = {
   async listGroups() {
     const { data, error } = await db.from("_20260725_guest_groups").select("*")
@@ -112,6 +104,15 @@ export const guestsSupabaseService: GuestsService = {
     const { data, error } = await db.from("_20260725_guests").select("*")
     if (error) throw error
     return (data ?? []).map(toGuest)
+  },
+  async createGuest({ firstName, lastName, groupId }) {
+    const { data, error } = await db
+      .from("_20260725_guests")
+      .insert({ first_name: firstName, last_name: lastName, group_id: groupId ?? null })
+      .select("*")
+      .single()
+    if (error) throw error
+    return toGuest(data)
   },
   async updateGuest(id, patch) {
     const row: Partial<{
@@ -205,6 +206,10 @@ export const guestsSupabaseService: GuestsService = {
     if (error) throw error
     return toGuest(data)
   },
+  async deleteGuest(id) {
+    const { error } = await db.from("_20260725_guests").delete().eq("id", id)
+    if (error) throw error
+  },
   async resolveByAccessCode(code) {
     const { data, error } = await db.rpc("_20260725_resolve_guest_access_code", { code })
     if (error) throw error
@@ -215,46 +220,5 @@ export const guestsSupabaseService: GuestsService = {
     const { data, error } = await db.from("_20260725_guests").select("*").eq("id", id).maybeSingle()
     if (error) throw error
     return data ? toGuest(data) : null
-  },
-  async listTables() {
-    const { data, error } = await db.from("_20260725_tables").select("*")
-    if (error) throw error
-    return (data ?? []).map(toTable)
-  },
-  async listAssignments() {
-    const { data, error } = await db.from("_20260725_table_assignments").select("*")
-    if (error) throw error
-    return (data ?? []).map(toAssignment)
-  },
-  async assignSeat(tableId, guestId) {
-    const { data: existing, error: findError } = await db
-      .from("_20260725_table_assignments")
-      .select("*")
-      .eq("guest_id", guestId)
-      .maybeSingle()
-    if (findError) throw findError
-
-    if (existing) {
-      const { data, error } = await db
-        .from("_20260725_table_assignments")
-        .update({ table_id: tableId })
-        .eq("id", existing.id)
-        .select("*")
-        .single()
-      if (error) throw error
-      return toAssignment(data)
-    }
-
-    const { data, error } = await db
-      .from("_20260725_table_assignments")
-      .insert({ table_id: tableId, guest_id: guestId })
-      .select("*")
-      .single()
-    if (error) throw error
-    return toAssignment(data)
-  },
-  async unassignGuest(guestId) {
-    const { error } = await db.from("_20260725_table_assignments").delete().eq("guest_id", guestId)
-    if (error) throw error
   },
 }

@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { Pencil, Plus, Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import type { Person } from "@/types/domain"
-import { useCreatePerson, useDeletePerson, usePeople, useUpdatePerson } from "@/hooks/queries/use-people"
+import { useDeletePerson, usePeople, useUpdatePerson } from "@/hooks/queries/use-people"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,62 +24,44 @@ interface PersonFormState {
   accessCode: string
 }
 
-const EMPTY_FORM: PersonFormState = { fullName: "", phone: "", accessCode: "" }
-
-// Réservé à Sarah & Jordan (voir types/domain.ts : Person.role = "fiance").
+// Réservé à Sarah & Jordan (voir types/domain.ts : Person.role = "fiance") —
+// toujours les deux mêmes, jamais de création depuis l'UI (voir lib/constants.ts
+// et les nombreuses références à leurs ids ailleurs dans l'app).
 // Les référents sont gérés comme des invités depuis DomaineManager.
-function PersonDialog({ person }: { person?: Person }) {
+function PersonDialog({ person }: { person: Person }) {
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<PersonFormState>(
-    person ? { fullName: person.fullName, phone: person.phone ?? "", accessCode: person.accessCode } : EMPTY_FORM
-  )
-  const createPerson = useCreatePerson()
+  const [form, setForm] = useState<PersonFormState>({
+    fullName: person.fullName,
+    phone: person.phone ?? "",
+    accessCode: person.accessCode,
+  })
   const updatePerson = useUpdatePerson()
 
   async function handleSubmit() {
     if (!form.fullName.trim()) return
-    if (!person && !form.accessCode.trim()) return
 
-    if (person) {
-      const patch: Partial<Person> & { accessCode?: string } = {
-        fullName: form.fullName,
-        phone: form.phone || undefined,
-      }
-      // Code laissé vide en modification = on ne le change pas (le code existant
-      // n'est jamais relisible côté client, voir peopleSupabaseService).
-      if (form.accessCode.trim()) patch.accessCode = form.accessCode
-      await updatePerson.mutateAsync({ id: person.id, patch })
-      toast.success("Personne mise à jour.")
-    } else {
-      await createPerson.mutateAsync({
-        fullName: form.fullName,
-        phone: form.phone || undefined,
-        role: "fiance",
-        accessCode: form.accessCode,
-        isActive: true,
-      })
-      toast.success("Personne ajoutée.")
+    const patch: Partial<Person> & { accessCode?: string } = {
+      fullName: form.fullName,
+      phone: form.phone || undefined,
     }
+    // Code laissé vide en modification = on ne le change pas (le code existant
+    // n'est jamais relisible côté client, voir peopleSupabaseService).
+    if (form.accessCode.trim()) patch.accessCode = form.accessCode
+    await updatePerson.mutateAsync({ id: person.id, patch })
+    toast.success("Personne mise à jour.")
     setOpen(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {person ? (
-          <Button variant="ghost" size="icon-xs" aria-label="Modifier">
-            <Pencil className="size-3.5" />
-          </Button>
-        ) : (
-          <Button size="sm">
-            <Plus className="size-4" />
-            Nouveau fiancé(e)
-          </Button>
-        )}
+        <Button variant="ghost" size="icon-xs" aria-label="Modifier">
+          <Pencil className="size-3.5" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-heading">{person ? "Modifier" : "Nouveau fiancé(e)"}</DialogTitle>
+          <DialogTitle className="font-heading">Modifier</DialogTitle>
         </DialogHeader>
         <FieldGroup>
           <Field>
@@ -102,7 +84,7 @@ function PersonDialog({ person }: { person?: Person }) {
             <FieldLabel htmlFor="person-code">Code d&apos;accès</FieldLabel>
             <Input
               id="person-code"
-              placeholder={person ? "Laisser vide pour ne pas changer le code" : undefined}
+              placeholder="Laisser vide pour ne pas changer le code"
               value={form.accessCode}
               onChange={(e) => setForm((f) => ({ ...f, accessCode: e.target.value.toUpperCase() }))}
             />
@@ -112,7 +94,7 @@ function PersonDialog({ person }: { person?: Person }) {
           <Button variant="outline" onClick={() => setOpen(false)}>
             Annuler
           </Button>
-          <Button onClick={handleSubmit}>{person ? "Enregistrer" : "Créer"}</Button>
+          <Button onClick={handleSubmit}>Enregistrer</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -125,9 +107,8 @@ export function PersonManager() {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle className="font-heading text-base">Fiancés &amp; codes d&apos;accès</CardTitle>
-        <PersonDialog />
       </CardHeader>
       <CardContent className="space-y-2">
         {isLoading ? (

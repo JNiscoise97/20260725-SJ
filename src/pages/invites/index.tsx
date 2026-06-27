@@ -6,31 +6,19 @@ import { EmptyState } from "@/components/shared/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  useAssignSeat,
-  useGuestGroups,
-  useGuests,
-  useTableAssignments,
-  useTables,
-  useUnassignGuest,
-} from "@/hooks/queries/use-guests"
+import { useGuestGroups, useGuests } from "@/hooks/queries/use-guests"
 import { GuestTable } from "@/components/invites/GuestTable"
-import { SeatingPlanBoard } from "@/components/invites/SeatingPlanBoard"
+import { GuestCreateDialog } from "@/components/invites/GuestCreateDialog"
 
 const ALL_GROUPS = "all"
 
 export function InvitesPage() {
   const { data: guests, isLoading: guestsLoading } = useGuests()
   const { data: groups, isLoading: groupsLoading } = useGuestGroups()
-  const { data: tables, isLoading: tablesLoading } = useTables()
-  const { data: assignments, isLoading: assignmentsLoading } = useTableAssignments()
-  const assignSeat = useAssignSeat()
-  const unassignGuest = useUnassignGuest()
   const [search, setSearch] = useState("")
   const [groupFilter, setGroupFilter] = useState(ALL_GROUPS)
 
-  const isLoading = guestsLoading || groupsLoading || tablesLoading || assignmentsLoading
+  const isLoading = guestsLoading || groupsLoading
 
   const groupsById = useMemo(() => new Map((groups ?? []).map((g) => [g.id, g])), [groups])
 
@@ -58,7 +46,8 @@ export function InvitesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Invités"
-        description="Liste des invités, présence et plan de table."
+        description="Liste des invités et présence."
+        actions={<GuestCreateDialog groups={groups ?? []} />}
       />
 
       {isLoading ? (
@@ -66,19 +55,8 @@ export function InvitesPage() {
       ) : !guests || guests.length === 0 ? (
         <EmptyState icon={Armchair} title="Aucun invité pour l'instant" />
       ) : (
-        <Tabs defaultValue="liste">
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <TabsList>
-              <TabsTrigger value="liste">Liste</TabsTrigger>
-              <TabsTrigger value="plan">Plan de table</TabsTrigger>
-            </TabsList>
-            {stats ? (
-              <p className="text-xs text-muted-foreground">
-                {stats.confirmed} confirmés · {stats.pending} en attente · {stats.declined} déclinés · {stats.total} au total
-              </p>
-            ) : null}
-          </div>
-          <TabsContent value="liste" className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               <Input
                 value={search}
@@ -104,22 +82,18 @@ export function InvitesPage() {
                 {filteredGuests.length} invité{filteredGuests.length === 1 ? "" : "s"} affiché{filteredGuests.length === 1 ? "" : "s"}
               </p>
             </div>
-            {filteredGuests.length === 0 ? (
-              <EmptyState icon={Armchair} title="Aucun invité ne correspond à ces filtres" />
-            ) : (
-              <GuestTable guests={filteredGuests} groupsById={groupsById} />
-            )}
-          </TabsContent>
-          <TabsContent value="plan">
-            <SeatingPlanBoard
-              tables={tables ?? []}
-              guests={guests}
-              assignments={assignments ?? []}
-              onAssign={(tableId, guestId) => assignSeat.mutate({ tableId, guestId })}
-              onUnassign={(guestId) => unassignGuest.mutate(guestId)}
-            />
-          </TabsContent>
-        </Tabs>
+            {stats ? (
+              <p className="text-xs text-muted-foreground">
+                {stats.confirmed} confirmés · {stats.pending} en attente · {stats.declined} déclinés · {stats.total} au total
+              </p>
+            ) : null}
+          </div>
+          {filteredGuests.length === 0 ? (
+            <EmptyState icon={Armchair} title="Aucun invité ne correspond à ces filtres" />
+          ) : (
+            <GuestTable guests={filteredGuests} groupsById={groupsById} />
+          )}
+        </div>
       )}
     </div>
   )
