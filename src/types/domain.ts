@@ -224,6 +224,7 @@ export interface SeatingTable {
   id: string
   name: string
   capacity: number
+  sortOrder: number
 }
 
 /** Le siège est attribué à un invité, un fiancé ou un prestataire — jamais plusieurs à la fois. */

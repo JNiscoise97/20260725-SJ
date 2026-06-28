@@ -34,7 +34,8 @@ function findExisting(assignments: TableAssignment[], target: SeatTarget) {
 
 const seatingMockService: SeatingService = {
   async listTables() {
-    return tablesTable.getAll()
+    const tables = await tablesTable.getAll()
+    return [...tables].sort((a, b) => a.sortOrder - b.sortOrder)
   },
   async createTable(input) {
     return tablesTable.insert({ ...input, id: crypto.randomUUID() })

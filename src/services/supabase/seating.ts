@@ -4,8 +4,8 @@ import { supabase } from "@/supabase/client"
 
 const db = supabase!
 
-function toTable(row: { id: string; name: string; capacity: number }): SeatingTable {
-  return { id: row.id, name: row.name, capacity: row.capacity }
+function toTable(row: { id: string; name: string; capacity: number; sort_order: number }): SeatingTable {
+  return { id: row.id, name: row.name, capacity: row.capacity, sortOrder: row.sort_order }
 }
 
 function toAssignment(row: {
@@ -28,23 +28,24 @@ function toAssignment(row: {
 
 export const seatingSupabaseService: SeatingService = {
   async listTables() {
-    const { data, error } = await db.from("_20260725_tables").select("*")
+    const { data, error } = await db.from("_20260725_tables").select("*").order("sort_order")
     if (error) throw error
     return (data ?? []).map(toTable)
   },
   async createTable(input) {
     const { data, error } = await db
       .from("_20260725_tables")
-      .insert({ name: input.name, capacity: input.capacity })
+      .insert({ name: input.name, capacity: input.capacity, sort_order: input.sortOrder })
       .select("*")
       .single()
     if (error) throw error
     return toTable(data)
   },
   async updateTable(id, patch) {
-    const row: Partial<{ name: string; capacity: number }> = {}
+    const row: Partial<{ name: string; capacity: number; sort_order: number }> = {}
     if (patch.name !== undefined) row.name = patch.name
     if (patch.capacity !== undefined) row.capacity = patch.capacity
+    if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder
     const { data, error } = await db.from("_20260725_tables").update(row).eq("id", id).select("*").single()
     if (error) throw error
     return toTable(data)

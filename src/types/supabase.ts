@@ -238,6 +238,7 @@ type TableRow = {
   id: string
   name: string
   capacity: number
+  sort_order: number
 }
 
 type TableAssignmentRow = {
@@ -429,7 +430,7 @@ export interface Database {
         PrestataireRow,
         "id" | "company" | "role" | "needs_meal" | "meal_choice" | "dietary_constraints" | "allergies" | "notes" | "created_at"
       >
-      _20260725_tables: TableDef<TableRow, "id">
+      _20260725_tables: TableDef<TableRow, "id" | "sort_order">
       _20260725_table_assignments: TableDef<
         TableAssignmentRow,
         "id" | "guest_id" | "person_id" | "prestataire_id" | "seat_number"

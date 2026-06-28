@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Pencil, Plus, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useCreateTable, useDeleteTable, useTables, useUpdateTable } from "@/hooks/queries/use-seating"
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 
-function TableDialog({ table }: { table?: SeatingTable }) {
+function TableDialog({ table, nextSortOrder }: { table?: SeatingTable; nextSortOrder: number }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(table?.name ?? "")
   const [capacity, setCapacity] = useState(String(table?.capacity ?? 8))
@@ -32,7 +32,7 @@ function TableDialog({ table }: { table?: SeatingTable }) {
       await updateTable.mutateAsync({ id: table.id, patch: { name, capacity: capacityNum } })
       toast.success("Table mise à jour.")
     } else {
-      await createTable.mutateAsync({ name, capacity: capacityNum })
+      await createTable.mutateAsync({ name, capacity: capacityNum, sortOrder: nextSortOrder })
       toast.success("Table créée.")
     }
     setOpen(false)
@@ -95,7 +95,11 @@ function BulkAddDialog({ existingCount }: { existingCount: number }) {
     const capacityNum = Number(capacity)
     if (!countNum || countNum <= 0 || !capacityNum || capacityNum <= 0) return
     for (let i = 0; i < countNum; i++) {
-      await createTable.mutateAsync({ name: `${prefix} ${existingCount + i + 1}`, capacity: capacityNum })
+      await createTable.mutateAsync({
+        name: `${prefix} ${existingCount + i + 1}`,
+        capacity: capacityNum,
+        sortOrder: existingCount + i,
+      })
     }
     toast.success(`${countNum} table(s) créée(s).`)
     setOpen(false)
@@ -147,7 +151,17 @@ function BulkAddDialog({ existingCount }: { existingCount: number }) {
 export function SeatingTablesManager() {
   const { data: tables, isLoading } = useTables()
   const deleteTable = useDeleteTable()
+  const updateTable = useUpdateTable()
   const totalCapacity = (tables ?? []).reduce((acc, t) => acc + t.capacity, 0)
+
+  function move(index: number, direction: -1 | 1) {
+    if (!tables) return
+    const current = tables[index]
+    const other = tables[index + direction]
+    if (!current || !other) return
+    updateTable.mutate({ id: current.id, patch: { sortOrder: other.sortOrder } })
+    updateTable.mutate({ id: other.id, patch: { sortOrder: current.sortOrder } })
+  }
 
   return (
     <Card>
@@ -155,7 +169,7 @@ export function SeatingTablesManager() {
         <CardTitle className="font-heading text-base">Plan de table</CardTitle>
         <div className="flex items-center gap-2">
           <BulkAddDialog existingCount={tables?.length ?? 0} />
-          <TableDialog />
+          <TableDialog nextSortOrder={tables?.length ?? 0} />
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -168,7 +182,7 @@ export function SeatingTablesManager() {
             <p className="text-xs text-muted-foreground">
               {tables?.length} table(s) · {totalCapacity} place(s) au total
             </p>
-            {tables?.map((table) => (
+            {tables?.map((table, index) => (
               <div
                 key={table.id}
                 className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
@@ -177,7 +191,25 @@ export function SeatingTablesManager() {
                   {table.name} <span className="text-muted-foreground">({table.capacity} places)</span>
                 </span>
                 <div className="flex items-center gap-1">
-                  <TableDialog table={table} />
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Monter"
+                    disabled={index === 0}
+                    onClick={() => move(index, -1)}
+                  >
+                    <ArrowUp className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Descendre"
+                    disabled={index === tables.length - 1}
+                    onClick={() => move(index, 1)}
+                  >
+                    <ArrowDown className="size-3.5" />
+                  </Button>
+                  <TableDialog table={table} nextSortOrder={tables.length} />
                   <Button
                     variant="ghost"
                     size="icon-xs"

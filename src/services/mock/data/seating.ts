@@ -1,8 +1,8 @@
 import type { SeatingTable, TableAssignment } from "@/types/domain"
 
 export const tablesSeed: SeatingTable[] = [
-  { id: "tb-1", name: "Table 1", capacity: 8 },
-  { id: "tb-2", name: "Table 2", capacity: 6 },
+  { id: "tb-1", name: "Table 1", capacity: 8, sortOrder: 0 },
+  { id: "tb-2", name: "Table 2", capacity: 6, sortOrder: 1 },
 ]
 
 export const tableAssignmentsSeed: TableAssignment[] = [
