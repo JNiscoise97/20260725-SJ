@@ -1,9 +1,13 @@
 import { useState } from "react"
-import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react"
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core"
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useCreateTable, useDeleteTable, useTables, useUpdateTable } from "@/hooks/queries/use-seating"
 import type { SeatingTable } from "@/types/domain"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -148,19 +152,68 @@ function BulkAddDialog({ existingCount }: { existingCount: number }) {
   )
 }
 
+function SortableTableRow({
+  table,
+  nextSortOrder,
+  onDelete,
+}: {
+  table: SeatingTable
+  nextSortOrder: number
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: table.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2",
+        isDragging && "opacity-50"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label="Réordonner"
+          className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="size-3.5" />
+        </button>
+        <span className="text-sm text-foreground">
+          {table.name} <span className="text-muted-foreground">({table.capacity} places)</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-1">
+        <TableDialog table={table} nextSortOrder={nextSortOrder} />
+        <Button variant="ghost" size="icon-xs" aria-label="Supprimer" onClick={onDelete}>
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function SeatingTablesManager() {
   const { data: tables, isLoading } = useTables()
   const deleteTable = useDeleteTable()
   const updateTable = useUpdateTable()
   const totalCapacity = (tables ?? []).reduce((acc, t) => acc + t.capacity, 0)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
-  function move(index: number, direction: -1 | 1) {
+  function handleDragEnd(event: DragEndEvent) {
     if (!tables) return
-    const current = tables[index]
-    const other = tables[index + direction]
-    if (!current || !other) return
-    updateTable.mutate({ id: current.id, patch: { sortOrder: other.sortOrder } })
-    updateTable.mutate({ id: other.id, patch: { sortOrder: current.sortOrder } })
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = tables.findIndex((t) => t.id === active.id)
+    const newIndex = tables.findIndex((t) => t.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    arrayMove(tables, oldIndex, newIndex).forEach((table, index) => {
+      if (table.sortOrder !== index) updateTable.mutate({ id: table.id, patch: { sortOrder: index } })
+    })
   }
 
   return (
@@ -175,52 +228,27 @@ export function SeatingTablesManager() {
       <CardContent className="space-y-2">
         {isLoading ? (
           <Skeleton className="h-32 rounded-xl" />
-        ) : tables?.length === 0 ? (
+        ) : !tables || tables.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune table configurée pour l'instant.</p>
         ) : (
           <>
             <p className="text-xs text-muted-foreground">
               {tables?.length} table(s) · {totalCapacity} place(s) au total
             </p>
-            {tables?.map((table, index) => (
-              <div
-                key={table.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
-              >
-                <span className="text-sm text-foreground">
-                  {table.name} <span className="text-muted-foreground">({table.capacity} places)</span>
-                </span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label="Monter"
-                    disabled={index === 0}
-                    onClick={() => move(index, -1)}
-                  >
-                    <ArrowUp className="size-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label="Descendre"
-                    disabled={index === tables.length - 1}
-                    onClick={() => move(index, 1)}
-                  >
-                    <ArrowDown className="size-3.5" />
-                  </Button>
-                  <TableDialog table={table} nextSortOrder={tables.length} />
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label="Supprimer"
-                    onClick={() => deleteTable.mutate(table.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={tables.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {tables.map((table) => (
+                    <SortableTableRow
+                      key={table.id}
+                      table={table}
+                      nextSortOrder={tables.length}
+                      onDelete={() => deleteTable.mutate(table.id)}
+                    />
+                  ))}
                 </div>
-              </div>
-            ))}
+              </SortableContext>
+            </DndContext>
           </>
         )}
       </CardContent>
