@@ -1,8 +1,19 @@
-import type { ChecklistOwnerType } from "@/types/domain"
-import { useChecklistsForOwner, useChecklistItems, useToggleChecklistItem } from "@/hooks/queries/use-checklists"
+import type { ChecklistOwnerType, Person } from "@/types/domain"
+import {
+  useChecklistsForOwner,
+  useChecklistItems,
+  useToggleChecklistItem,
+  useUpdateChecklist,
+} from "@/hooks/queries/use-checklists"
+import { usePeople } from "@/hooks/queries/use-people"
+import { useIdentity } from "@/context/IdentityContext"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+const NONE = "__none__"
 
 interface ChecklistWidgetProps {
   ownerType: ChecklistOwnerType
@@ -13,13 +24,21 @@ function SingleChecklist({
   checklistId,
   title,
   showTitle,
+  responsiblePersonId,
+  canAssign,
+  fiances,
 }: {
   checklistId: string
   title: string | null
   showTitle: boolean
+  responsiblePersonId: string | null
+  canAssign: boolean
+  fiances: Person[]
 }) {
   const { data: items, isLoading } = useChecklistItems(checklistId)
   const toggleItem = useToggleChecklistItem()
+  const updateChecklist = useUpdateChecklist()
+  const responsible = fiances.find((f) => f.id === responsiblePersonId)
 
   if (isLoading || !items) return <Skeleton className="h-20 rounded-xl" />
 
@@ -28,9 +47,36 @@ function SingleChecklist({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        {showTitle ? <p className="text-sm font-medium text-foreground">{title}</p> : <span />}
-        <span className="text-xs text-muted-foreground">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {showTitle ? <p className="text-sm font-medium text-foreground">{title}</p> : null}
+          {canAssign ? (
+            <Select
+              value={responsiblePersonId ?? NONE}
+              onValueChange={(value) =>
+                updateChecklist.mutate({
+                  id: checklistId,
+                  patch: { responsiblePersonId: value === NONE ? null : value },
+                })
+              }
+            >
+              <SelectTrigger size="sm" className="h-6 w-32 border-dashed text-xs">
+                <SelectValue placeholder="Assigner..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Non assigné</SelectItem>
+                {fiances.map((fiance) => (
+                  <SelectItem key={fiance.id} value={fiance.id}>
+                    {fiance.fullName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : responsible ? (
+            <Badge className="bg-bordeaux/10 text-bordeaux">{responsible.fullName}</Badge>
+          ) : null}
+        </div>
+        <span className="shrink-0 text-xs text-muted-foreground">
           {doneCount} / {items.length}
         </span>
       </div>
@@ -58,6 +104,8 @@ function SingleChecklist({
 
 export function ChecklistWidget({ ownerType, ownerId }: ChecklistWidgetProps) {
   const { data: checklists, isLoading } = useChecklistsForOwner(ownerType, ownerId)
+  const { data: people } = usePeople()
+  const { person } = useIdentity()
 
   if (isLoading) return <Skeleton className="h-24 rounded-xl" />
   if (!checklists || checklists.length === 0) {
@@ -69,6 +117,11 @@ export function ChecklistWidget({ ownerType, ownerId }: ChecklistWidgetProps) {
   // logistique...) — on ne le réaffiche que s'il y en a plusieurs (ex.
   // Coordinateur général, qui a 3 checklists distinctes pour la même mission).
   const showTitle = checklists.length > 1
+  // Seuls les fiancés peuvent se déléguer une checklist entre eux (voir
+  // 0040_checklists_responsible_person.sql) ; les référents/invités la voient
+  // en lecture seule via le badge ci-dessus.
+  const fiances = (people ?? []).filter((p) => p.role === "fiance")
+  const canAssign = person?.role === "fiance"
 
   return (
     <div className="space-y-4">
@@ -78,6 +131,9 @@ export function ChecklistWidget({ ownerType, ownerId }: ChecklistWidgetProps) {
           checklistId={checklist.id}
           title={checklist.title ?? null}
           showTitle={showTitle}
+          responsiblePersonId={checklist.responsiblePersonId ?? null}
+          canAssign={canAssign}
+          fiances={fiances}
         />
       ))}
     </div>

@@ -17,6 +17,8 @@ import { NourriturePage } from "@/pages/nourriture"
 import { InvitesPage } from "@/pages/invites"
 import { GuestDetailPage } from "@/pages/invites/guest-detail"
 import { PlanTablePage } from "@/pages/plan-table"
+import { EnfantsPage } from "@/pages/enfants"
+import { PersonnesAgeesPage } from "@/pages/personnes-agees"
 import { PrestatairesPage } from "@/pages/prestataires"
 import { DocumentsPage } from "@/pages/documents"
 import { ParametresPage } from "@/pages/parametres"
@@ -126,6 +128,22 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:guests">
                 <PlanTablePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="enfants"
+            element={
+              <RoleGuard capability="view:guests">
+                <EnfantsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="personnes-agees"
+            element={
+              <RoleGuard capability="view:guests">
+                <PersonnesAgeesPage />
               </RoleGuard>
             }
           />

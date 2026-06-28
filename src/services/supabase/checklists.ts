@@ -9,12 +9,14 @@ function toChecklist(row: {
   owner_type: Checklist["ownerType"]
   owner_id: string | null
   title: string | null
+  responsible_person_id: string | null
 }): Checklist {
   return {
     id: row.id,
     ownerType: row.owner_type,
     ownerId: row.owner_id,
     title: row.title,
+    responsiblePersonId: row.responsible_person_id,
   }
 }
 
@@ -78,6 +80,7 @@ type ChecklistRowPatch = Partial<{
   owner_type: Checklist["ownerType"]
   owner_id: string | null
   title: string | null
+  responsible_person_id: string | null
 }>
 
 function toChecklistRow(input: Partial<Checklist>): ChecklistRowPatch {
@@ -85,6 +88,7 @@ function toChecklistRow(input: Partial<Checklist>): ChecklistRowPatch {
   if (input.ownerType !== undefined) row.owner_type = input.ownerType
   if (input.ownerId !== undefined) row.owner_id = input.ownerId ?? null
   if (input.title !== undefined) row.title = input.title ?? null
+  if (input.responsiblePersonId !== undefined) row.responsible_person_id = input.responsiblePersonId ?? null
   return row
 }
 

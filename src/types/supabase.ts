@@ -109,6 +109,7 @@ type ChecklistRow = {
   owner_type: "mission" | "logistique_item" | "domaine"
   owner_id: string | null
   title: string | null
+  responsible_person_id: string | null
   created_at: string
 }
 
@@ -342,7 +343,10 @@ export interface Database {
         MissionAcceptanceRow,
         "id" | "status" | "responded_at" | "created_at"
       >
-      _20260725_checklists: TableDef<ChecklistRow, "id" | "owner_id" | "title" | "created_at">
+      _20260725_checklists: TableDef<
+        ChecklistRow,
+        "id" | "owner_id" | "title" | "responsible_person_id" | "created_at"
+      >
       _20260725_checklist_items: TableDef<
         ChecklistItemRow,
         | "id"

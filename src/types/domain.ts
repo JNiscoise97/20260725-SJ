@@ -95,6 +95,8 @@ export interface Checklist {
   ownerType: ChecklistOwnerType
   ownerId?: string | null
   title?: string | null
+  /** Délégation fiancé à fiancé d'une checklist entière — voir 0040_checklists_responsible_person.sql. */
+  responsiblePersonId?: string | null
 }
 
 export interface ChecklistItem {
