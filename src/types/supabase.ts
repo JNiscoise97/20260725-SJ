@@ -179,6 +179,7 @@ type GuestGroupRow = {
   id: string
   family_name: string
   notes: string | null
+  sort_order: number
 }
 
 type GuestRow = {
@@ -223,6 +224,8 @@ type GuestRow = {
   introduction_seen: boolean
   assignable: boolean
   paired_with_id: string | null
+  checked_in_at: string | null
+  is_unexpected: boolean
   created_at: string
 }
 
@@ -406,7 +409,7 @@ export interface Database {
         LogistiqueItemRow,
         "id" | "domaine_id" | "responsable_id" | "quantity" | "unit" | "notes" | "created_at"
       >
-      _20260725_guest_groups: TableDef<GuestGroupRow, "id" | "notes">
+      _20260725_guest_groups: TableDef<GuestGroupRow, "id" | "notes" | "sort_order">
       _20260725_guests: TableDef<
         GuestRow,
         | "id"
@@ -448,6 +451,8 @@ export interface Database {
         | "introduction_seen"
         | "assignable"
         | "paired_with_id"
+        | "checked_in_at"
+        | "is_unexpected"
         | "created_at"
       >
       _20260725_photo_groups: TableDef<

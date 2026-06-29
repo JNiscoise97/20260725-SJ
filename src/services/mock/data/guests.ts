@@ -1,9 +1,9 @@
 import type { Guest, GuestGroup } from "@/types/domain"
 
 export const guestGroupsSeed: GuestGroup[] = [
-  { id: "gg-bluker", familyName: "Famille Bluker" },
-  { id: "gg-martin", familyName: "Famille Martin" },
-  { id: "gg-amis", familyName: "Amis" },
+  { id: "gg-bluker", familyName: "Famille Bluker", sortOrder: 0 },
+  { id: "gg-martin", familyName: "Famille Martin", sortOrder: 1 },
+  { id: "gg-amis", familyName: "Amis", sortOrder: 2 },
 ]
 
 export const guestDefaults = {
@@ -23,6 +23,7 @@ export const guestDefaults = {
   hasCeremonialRole: false,
   likelyTraditionalAttire: false,
   assignable: false,
+  isUnexpected: false,
 }
 
 function guest(

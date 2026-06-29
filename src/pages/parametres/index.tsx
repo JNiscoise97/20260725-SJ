@@ -7,8 +7,10 @@ import { EventConfigForm } from "@/components/parametres/EventConfigForm"
 import { ParametresTree } from "@/components/parametres/ParametresTree"
 import { SeatingTablesManager } from "@/components/parametres/SeatingTablesManager"
 import { PhotoGroupsManager } from "@/components/parametres/PhotoGroupsManager"
+import { GuestGroupsManager } from "@/components/parametres/GuestGroupsManager"
 import { PersonManager } from "@/components/parametres/PersonManager"
 import { ResetIntroductionSeenButton } from "@/components/parametres/ResetIntroductionSeenButton"
+import { ResetCheckInsButton } from "@/components/parametres/ResetCheckInsButton"
 
 export function ParametresPage() {
   return (
@@ -19,6 +21,7 @@ export function ParametresPage() {
         actions={
           <div className="flex items-center gap-2">
             <ResetIntroductionSeenButton />
+            <ResetCheckInsButton />
             <Button variant="outline" size="sm" asChild>
               <Link to="/parametres/revue-contenu">
                 <ClipboardCheck className="size-4" />
@@ -32,6 +35,7 @@ export function ParametresPage() {
       <EventConfigForm />
       <ParametresTree />
       <PhotoGroupsManager />
+      <GuestGroupsManager />
       <SeatingTablesManager />
       <PersonManager />
     </div>

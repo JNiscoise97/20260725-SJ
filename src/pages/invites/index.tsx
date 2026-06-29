@@ -56,7 +56,8 @@ export function InvitesPage() {
 
   const sortedGuests = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1
-    const familyNameOf = (g: Guest) => (g.groupId ? groupsById.get(g.groupId)?.familyName ?? "" : "")
+    const familySortOrderOf = (g: Guest) =>
+      g.groupId ? groupsById.get(g.groupId)?.sortOrder ?? Number.POSITIVE_INFINITY : Number.POSITIVE_INFINITY
 
     return [...filteredGuests].sort((a, b) => {
       let cmp: number
@@ -65,7 +66,7 @@ export function InvitesPage() {
           cmp = a.fullName.localeCompare(b.fullName)
           break
         case "family":
-          cmp = familyNameOf(a).localeCompare(familyNameOf(b)) || a.fullName.localeCompare(b.fullName)
+          cmp = familySortOrderOf(a) - familySortOrderOf(b) || a.fullName.localeCompare(b.fullName)
           break
         case "rsvp":
           cmp = RSVP_ORDER[a.rsvpStatus] - RSVP_ORDER[b.rsvpStatus] || a.fullName.localeCompare(b.fullName)

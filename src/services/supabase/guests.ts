@@ -4,8 +4,8 @@ import { supabase } from "@/supabase/client"
 
 const db = supabase!
 
-function toGuestGroup(row: { id: string; family_name: string; notes: string | null }): GuestGroup {
-  return { id: row.id, familyName: row.family_name, notes: row.notes }
+function toGuestGroup(row: { id: string; family_name: string; notes: string | null; sort_order: number }): GuestGroup {
+  return { id: row.id, familyName: row.family_name, notes: row.notes, sortOrder: row.sort_order }
 }
 
 function toGuest(row: {
@@ -49,6 +49,8 @@ function toGuest(row: {
   introduction_seen: boolean
   assignable: boolean
   paired_with_id: string | null
+  checked_in_at: string | null
+  is_unexpected: boolean
 }): Guest {
   return {
     id: row.id,
@@ -95,6 +97,8 @@ function toGuest(row: {
     introductionSeen: row.introduction_seen,
     assignable: row.assignable,
     pairedWithId: row.paired_with_id,
+    checkedInAt: row.checked_in_at,
+    isUnexpected: row.is_unexpected,
   }
 }
 
@@ -103,6 +107,30 @@ export const guestsSupabaseService: GuestsService = {
     const { data, error } = await db.from("_20260725_guest_groups").select("*")
     if (error) throw error
     return (data ?? []).map(toGuestGroup)
+  },
+  async createGroup({ familyName, notes, sortOrder }) {
+    const { data, error } = await db
+      .from("_20260725_guest_groups")
+      .insert({ family_name: familyName, notes: notes ?? null, sort_order: sortOrder })
+      .select("*")
+      .single()
+    if (error) throw error
+    return toGuestGroup(data)
+  },
+  async updateGroup(id, patch) {
+    const row: Partial<{ family_name: string; notes: string | null; sort_order: number }> = {}
+    if (patch.familyName !== undefined) row.family_name = patch.familyName
+    if (patch.notes !== undefined) row.notes = patch.notes
+    if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder
+    const { data, error } = await db.from("_20260725_guest_groups").update(row).eq("id", id).select("*").single()
+    if (error) throw error
+    return toGuestGroup(data)
+  },
+  async deleteGroup(id) {
+    // FK group_id -> guest_groups est "on delete set null" (voir 0006_guests_tables.sql) :
+    // les invités du groupe sont simplement détachés, pas supprimés.
+    const { error } = await db.from("_20260725_guest_groups").delete().eq("id", id)
+    if (error) throw error
   },
   async listGuests() {
     const { data, error } = await db.from("_20260725_guests").select("*")
@@ -159,6 +187,8 @@ export const guestsSupabaseService: GuestsService = {
       introduction_seen: boolean
       assignable: boolean
       paired_with_id: string | null
+      checked_in_at: string | null
+      is_unexpected: boolean
     }> = {}
     if (patch.groupId !== undefined) row.group_id = patch.groupId
     if (patch.firstName !== undefined) row.first_name = patch.firstName
@@ -199,6 +229,8 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.introductionSeen !== undefined) row.introduction_seen = patch.introductionSeen
     if (patch.assignable !== undefined) row.assignable = patch.assignable
     if (patch.pairedWithId !== undefined) row.paired_with_id = patch.pairedWithId
+    if (patch.checkedInAt !== undefined) row.checked_in_at = patch.checkedInAt
+    if (patch.isUnexpected !== undefined) row.is_unexpected = patch.isUnexpected
     if (Object.keys(row).length > 0) {
       const { error } = await db.from("_20260725_guests").update(row).eq("id", id)
       if (error) throw error
@@ -234,6 +266,10 @@ export const guestsSupabaseService: GuestsService = {
       .from("_20260725_guests")
       .update({ introduction_seen: false })
       .not("id", "is", null)
+    if (error) throw error
+  },
+  async resetCheckInsForAll() {
+    const { error } = await db.from("_20260725_guests").update({ checked_in_at: null }).not("id", "is", null)
     if (error) throw error
   },
 }

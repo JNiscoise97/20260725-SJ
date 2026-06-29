@@ -14,6 +14,7 @@ import { ReferentsPage } from "@/pages/referents"
 import { PlanningPage } from "@/pages/planning"
 import { DeroulePage } from "@/pages/deroule"
 import { PhotosGroupePage } from "@/pages/photos-groupe"
+import { AccueilPage } from "@/pages/accueil"
 import { LogistiquePage } from "@/pages/logistique"
 import { NourriturePage } from "@/pages/nourriture"
 import { InvitesPage } from "@/pages/invites"
@@ -106,6 +107,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:photos-groupe">
                 <PhotosGroupePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="accueil"
+            element={
+              <RoleGuard capability="view:accueil">
+                <AccueilPage />
               </RoleGuard>
             }
           />

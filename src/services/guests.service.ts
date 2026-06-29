@@ -10,8 +10,18 @@ export interface CreateGuestInput {
   groupId?: string | null
 }
 
+export interface CreateGuestGroupInput {
+  familyName: string
+  notes?: string | null
+  sortOrder: number
+}
+
 export interface GuestsService {
   listGroups(): Promise<GuestGroup[]>
+  createGroup(input: CreateGuestGroupInput): Promise<GuestGroup>
+  updateGroup(id: string, patch: Partial<GuestGroup>): Promise<GuestGroup>
+  /** Les invités de ce groupe ne sont pas supprimés, juste détachés (groupId -> null). */
+  deleteGroup(id: string): Promise<void>
   listGuests(): Promise<Guest[]>
   createGuest(input: CreateGuestInput): Promise<Guest>
   updateGuest(id: string, patch: Partial<Guest>): Promise<Guest>
@@ -21,6 +31,8 @@ export interface GuestsService {
   getById(id: string): Promise<Guest | null>
   /** Repasse `introductionSeen` à false pour tous les invités — voir ParametresPage. */
   resetIntroductionSeenForAll(): Promise<void>
+  /** Repasse `checkedInAt` à null pour tous les invités — voir ParametresPage. */
+  resetCheckInsForAll(): Promise<void>
 }
 
 const guestGroupsTable = createMockTable<GuestGroup>("sj-guest-groups", guestGroupsSeed)
@@ -29,6 +41,19 @@ const guestsTable = createMockTable<Guest>("sj-guests", guestsSeed)
 const guestsMockService: GuestsService = {
   async listGroups() {
     return guestGroupsTable.getAll()
+  },
+  async createGroup({ familyName, notes, sortOrder }) {
+    return guestGroupsTable.insert({ id: crypto.randomUUID(), familyName, notes: notes ?? null, sortOrder })
+  },
+  async updateGroup(id, patch) {
+    return guestGroupsTable.update(id, patch)
+  },
+  async deleteGroup(id) {
+    const guests = await guestsTable.getAll()
+    await Promise.all(
+      guests.filter((g) => g.groupId === id).map((g) => guestsTable.update(g.id, { groupId: null }))
+    )
+    await guestGroupsTable.remove(id)
   },
   async listGuests() {
     return guestsTable.getAll()
@@ -64,6 +89,10 @@ const guestsMockService: GuestsService = {
   async resetIntroductionSeenForAll() {
     const guests = await guestsTable.getAll()
     await Promise.all(guests.map((g) => guestsTable.update(g.id, { introductionSeen: false })))
+  },
+  async resetCheckInsForAll() {
+    const guests = await guestsTable.getAll()
+    await Promise.all(guests.map((g) => guestsTable.update(g.id, { checkedInAt: null })))
   },
 }
 

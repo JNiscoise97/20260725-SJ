@@ -164,6 +164,7 @@ export interface GuestGroup {
   id: string
   familyName: string
   notes?: string | null
+  sortOrder: number
 }
 
 export interface Guest {
@@ -214,6 +215,10 @@ export interface Guest {
   assignable: boolean
   /** Lien symétrique vers l'autre invité d'une paire "inséparable" (ex. couple) — voir 0045_guests_paired_with.sql. Toujours mis à jour des deux côtés ensemble. */
   pairedWithId?: string | null
+  /** Horodatage de pointage à l'accueil le jour J, null si pas encore arrivé — voir 0047_guests_checked_in_at.sql. */
+  checkedInAt?: string | null
+  /** Invité ajouté sur place à l'accueil, absent de la liste prévue — voir 0048_guests_unexpected.sql. */
+  isUnexpected?: boolean
 }
 
 export type PhotoGroupStatus = "pending" | "done" | "skipped"
