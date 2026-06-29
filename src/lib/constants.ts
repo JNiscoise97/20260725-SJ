@@ -17,6 +17,7 @@ import {
   FolderOpen,
   Briefcase,
   Settings,
+  Camera,
   type LucideIcon,
 } from "lucide-react"
 
@@ -44,6 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Référents", path: "/referents", icon: Users, capability: "view:referents" },
   { label: "Planning", path: "/planning", icon: CalendarRange, capability: "view:planning" },
   { label: "Déroulé", path: "/deroule", icon: PartyPopper, capability: "view:deroule" },
+  { label: "Photos de groupe", path: "/photos-groupe", icon: Camera, capability: "view:photos-groupe" },
   { label: "Logistique", path: "/logistique", icon: Truck, capability: "view:logistique" },
   { label: "Nourriture", path: "/nourriture", icon: Utensils, capability: "view:nourriture" },
   { label: "Invités", path: "/invites", icon: Armchair, capability: "view:guests" },

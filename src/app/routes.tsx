@@ -13,6 +13,7 @@ import { AssignationsPage } from "@/pages/assignations"
 import { ReferentsPage } from "@/pages/referents"
 import { PlanningPage } from "@/pages/planning"
 import { DeroulePage } from "@/pages/deroule"
+import { PhotosGroupePage } from "@/pages/photos-groupe"
 import { LogistiquePage } from "@/pages/logistique"
 import { NourriturePage } from "@/pages/nourriture"
 import { InvitesPage } from "@/pages/invites"
@@ -97,6 +98,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:deroule">
                 <DeroulePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="photos-groupe"
+            element={
+              <RoleGuard capability="view:photos-groupe">
+                <PhotosGroupePage />
               </RoleGuard>
             }
           />

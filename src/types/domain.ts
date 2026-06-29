@@ -216,6 +216,26 @@ export interface Guest {
   pairedWithId?: string | null
 }
 
+export type PhotoGroupStatus = "pending" | "done" | "skipped"
+
+/** Un groupe de photo de mariage : les fiancés sont implicitement sur chaque photo, `label` décrit le reste du groupe (ex. "Famille proche de Sarah") — voir 0046_photo_groups.sql. */
+export interface PhotoGroup {
+  id: string
+  label: string
+  sortOrder: number
+  isPriority: boolean
+  status: PhotoGroupStatus
+  notes?: string | null
+}
+
+/** Invité attendu sur un groupe de photo — `isPresent` est coché en direct le jour J, indépendamment du statut (faite/passée) du groupe. */
+export interface PhotoGroupMember {
+  id: string
+  photoGroupId: string
+  guestId: string
+  isPresent: boolean
+}
+
 export interface Prestataire {
   id: string
   name: string

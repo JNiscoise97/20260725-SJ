@@ -25,6 +25,7 @@ export type NotificationStatusRow = "pending" | "sent" | "failed"
 export type MealChoiceRow = "poulet" | "poisson" | "enfant"
 export type GuestSideRow = "sarah" | "jordan"
 export type DomainePhaseRow = "avant" | "installation" | "jour_j" | "desinstallation" | "apres"
+export type PhotoGroupStatusRow = "pending" | "done" | "skipped"
 
 type PoleRow = {
   id: string
@@ -223,6 +224,23 @@ type GuestRow = {
   assignable: boolean
   paired_with_id: string | null
   created_at: string
+}
+
+type PhotoGroupRow = {
+  id: string
+  label: string
+  sort_order: number
+  is_priority: boolean
+  status: PhotoGroupStatusRow
+  notes: string | null
+  created_at: string
+}
+
+type PhotoGroupMemberRow = {
+  id: string
+  photo_group_id: string
+  guest_id: string
+  is_present: boolean
 }
 
 type PrestataireRow = {
@@ -432,6 +450,11 @@ export interface Database {
         | "paired_with_id"
         | "created_at"
       >
+      _20260725_photo_groups: TableDef<
+        PhotoGroupRow,
+        "id" | "sort_order" | "is_priority" | "status" | "notes" | "created_at"
+      >
+      _20260725_photo_group_members: TableDef<PhotoGroupMemberRow, "id" | "is_present">
       _20260725_prestataires: TableDef<
         PrestataireRow,
         "id" | "company" | "role" | "needs_meal" | "meal_choice" | "dietary_constraints" | "allergies" | "notes" | "created_at"

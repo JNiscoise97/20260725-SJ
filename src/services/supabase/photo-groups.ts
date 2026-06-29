@@ -1,0 +1,113 @@
+import type { PhotoGroup, PhotoGroupMember } from "@/types/domain"
+import type { PhotoGroupsService } from "@/services/photo-groups.service"
+import { supabase } from "@/supabase/client"
+
+const db = supabase!
+
+function toPhotoGroup(row: {
+  id: string
+  label: string
+  sort_order: number
+  is_priority: boolean
+  status: PhotoGroup["status"]
+  notes: string | null
+}): PhotoGroup {
+  return {
+    id: row.id,
+    label: row.label,
+    sortOrder: row.sort_order,
+    isPriority: row.is_priority,
+    status: row.status,
+    notes: row.notes,
+  }
+}
+
+function toPhotoGroupMember(row: {
+  id: string
+  photo_group_id: string
+  guest_id: string
+  is_present: boolean
+}): PhotoGroupMember {
+  return {
+    id: row.id,
+    photoGroupId: row.photo_group_id,
+    guestId: row.guest_id,
+    isPresent: row.is_present,
+  }
+}
+
+type PhotoGroupRowPatch = Partial<{
+  label: string
+  sort_order: number
+  is_priority: boolean
+  status: PhotoGroup["status"]
+  notes: string | null
+}>
+
+function toPhotoGroupRow(input: Partial<PhotoGroup>): PhotoGroupRowPatch {
+  const row: PhotoGroupRowPatch = {}
+  if (input.label !== undefined) row.label = input.label
+  if (input.sortOrder !== undefined) row.sort_order = input.sortOrder
+  if (input.isPriority !== undefined) row.is_priority = input.isPriority
+  if (input.status !== undefined) row.status = input.status
+  if (input.notes !== undefined) row.notes = input.notes ?? null
+  return row
+}
+
+export const photoGroupsSupabaseService: PhotoGroupsService = {
+  async listGroups() {
+    const { data, error } = await db.from("_20260725_photo_groups").select("*")
+    if (error) throw error
+    return (data ?? []).map(toPhotoGroup)
+  },
+  async createGroup(input) {
+    const row = toPhotoGroupRow(input) as PhotoGroupRowPatch & { label: string }
+    const { data, error } = await db.from("_20260725_photo_groups").insert(row).select("*").single()
+    if (error) throw error
+    return toPhotoGroup(data)
+  },
+  async updateGroup(id, patch) {
+    const { data, error } = await db
+      .from("_20260725_photo_groups")
+      .update(toPhotoGroupRow(patch))
+      .eq("id", id)
+      .select("*")
+      .single()
+    if (error) throw error
+    return toPhotoGroup(data)
+  },
+  async removeGroup(id) {
+    const { error } = await db.from("_20260725_photo_groups").delete().eq("id", id)
+    if (error) throw error
+  },
+  async listAllMembers() {
+    const { data, error } = await db.from("_20260725_photo_group_members").select("*")
+    if (error) throw error
+    return (data ?? []).map(toPhotoGroupMember)
+  },
+  async addMember(photoGroupId, guestId) {
+    const { data, error } = await db
+      .from("_20260725_photo_group_members")
+      .insert({ photo_group_id: photoGroupId, guest_id: guestId })
+      .select("*")
+      .single()
+    if (error) throw error
+    return toPhotoGroupMember(data)
+  },
+  async removeMember(id) {
+    const { error } = await db.from("_20260725_photo_group_members").delete().eq("id", id)
+    if (error) throw error
+  },
+  async updateMember(id, patch) {
+    const row: Partial<{ is_present: boolean }> = {}
+    if (patch.isPresent !== undefined) row.is_present = patch.isPresent
+    const { data, error } = await db
+      .from("_20260725_photo_group_members")
+      .update(row)
+      .eq("id", id)
+      .select("*")
+      .single()
+    if (error) throw error
+    return toPhotoGroupMember(data)
+  },
+}

@@ -24,6 +24,7 @@ export type Capability =
   | "view:prestataires"
   | "manage:prestataires"
   | "manage:settings"
+  | "view:photos-groupe"
 
 const FIANCE_CAPABILITIES: Capability[] = [
   "view:dashboard",
@@ -47,6 +48,7 @@ const FIANCE_CAPABILITIES: Capability[] = [
   "view:prestataires",
   "manage:prestataires",
   "manage:settings",
+  "view:photos-groupe",
 ]
 
 const REFERENT_CAPABILITIES: Capability[] = [
@@ -61,6 +63,7 @@ const REFERENT_CAPABILITIES: Capability[] = [
   "view:logistique",
   "view:documents",
   "view:prestataires",
+  "view:photos-groupe",
 ]
 
 const INVITE_CAPABILITIES: Capability[] = ["view:introduction"]

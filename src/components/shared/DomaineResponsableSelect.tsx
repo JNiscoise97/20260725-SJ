@@ -24,7 +24,7 @@ export function DomaineResponsableSelect({ domaine, className }: { domaine: Doma
   const current = domaineResponsables.find((r) => r.rank === "principal") ?? domaineResponsables[0]
   const currentValue = current ? `${current.personId ? "person" : "guest"}:${current.personId ?? current.guestId}` : NONE
   const fiances = people ?? []
-  const referents = (guests ?? []).filter((g) => g.assignable)
+  const referents = (guests ?? []).filter((g) => g.assignable).sort((a, b) => a.fullName.localeCompare(b.fullName))
 
   async function handleChange(value: string) {
     await Promise.all(domaineResponsables.map((r) => deleteResponsable.mutateAsync(r.id)))

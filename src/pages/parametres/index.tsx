@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { EventConfigForm } from "@/components/parametres/EventConfigForm"
 import { ParametresTree } from "@/components/parametres/ParametresTree"
 import { SeatingTablesManager } from "@/components/parametres/SeatingTablesManager"
+import { PhotoGroupsManager } from "@/components/parametres/PhotoGroupsManager"
 import { PersonManager } from "@/components/parametres/PersonManager"
 import { ResetIntroductionSeenButton } from "@/components/parametres/ResetIntroductionSeenButton"
 
@@ -30,6 +31,7 @@ export function ParametresPage() {
 
       <EventConfigForm />
       <ParametresTree />
+      <PhotoGroupsManager />
       <SeatingTablesManager />
       <PersonManager />
     </div>
