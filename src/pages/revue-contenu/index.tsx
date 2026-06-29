@@ -375,7 +375,7 @@ export function RevueContenuPage() {
         }
         await persistChecklistItems(d.dod, "domaine", d.id)
 
-        for (const m of d.missions) {
+        for (const [missionIndex, m] of d.missions.entries()) {
           if (m.removed && !m.isNew) {
             await deleteMission.mutateAsync(m.id)
             continue
@@ -387,6 +387,7 @@ export function RevueContenuPage() {
               description: m.description || null,
               prerequisites: m.prerequisites || null,
               status: "todo",
+              sortOrder: missionIndex,
             })
             await persistChecklistItems(m.checklist, "mission", created.id)
             continue

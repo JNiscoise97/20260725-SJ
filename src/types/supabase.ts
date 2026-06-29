@@ -90,6 +90,7 @@ type MissionRow = {
   description: string | null
   prerequisites: string | null
   status: ProgressStatusRow
+  sort_order: number
   created_at: string
   updated_at: string
 }
@@ -340,7 +341,7 @@ export interface Database {
       _20260725_app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
       _20260725_missions: TableDef<
         MissionRow,
-        "id" | "domaine_id" | "description" | "prerequisites" | "status" | "created_at" | "updated_at"
+        "id" | "domaine_id" | "description" | "prerequisites" | "status" | "sort_order" | "created_at" | "updated_at"
       >
       _20260725_mission_acceptances: TableDef<
         MissionAcceptanceRow,

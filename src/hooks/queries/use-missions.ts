@@ -25,6 +25,28 @@ export function useUpdateMission() {
   })
 }
 
+/** Réordonnement par drag-and-drop : met à jour le cache immédiatement (sinon la liste "rebondit" le temps de l'aller-retour réseau), puis persiste en arrière-plan — voir useReorderPoles/useReorderDomaines, même pattern. */
+export function useReorderMissions() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (missions: Mission[]) =>
+      Promise.all(missions.map((m) => missionsService.update(m.id, { sortOrder: m.sortOrder }))),
+    onMutate: async (missions) => {
+      await queryClient.cancelQueries({ queryKey: MISSIONS_KEY })
+      const previous = queryClient.getQueryData<Mission[]>(MISSIONS_KEY)
+      const byId = new Map(missions.map((m) => [m.id, m]))
+      queryClient.setQueryData<Mission[]>(MISSIONS_KEY, (current) =>
+        (current ?? []).map((m) => byId.get(m.id) ?? m)
+      )
+      return { previous }
+    },
+    onError: (_err, _missions, context) => {
+      if (context?.previous) queryClient.setQueryData(MISSIONS_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: MISSIONS_KEY }),
+  })
+}
+
 export function useDeleteMission() {
   const queryClient = useQueryClient()
   return useMutation({

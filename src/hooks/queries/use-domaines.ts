@@ -25,6 +25,28 @@ export function useUpdateDomaine() {
   })
 }
 
+/** Réordonnement par drag-and-drop : met à jour le cache immédiatement (sinon la liste "rebondit" le temps de l'aller-retour réseau), puis persiste en arrière-plan — voir useReorderPoles, même pattern. */
+export function useReorderDomaines() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (domaines: Domaine[]) =>
+      Promise.all(domaines.map((d) => domainesService.update(d.id, { sortOrder: d.sortOrder }))),
+    onMutate: async (domaines) => {
+      await queryClient.cancelQueries({ queryKey: DOMAINES_KEY })
+      const previous = queryClient.getQueryData<Domaine[]>(DOMAINES_KEY)
+      const byId = new Map(domaines.map((d) => [d.id, d]))
+      queryClient.setQueryData<Domaine[]>(DOMAINES_KEY, (current) =>
+        (current ?? []).map((d) => byId.get(d.id) ?? d)
+      )
+      return { previous }
+    },
+    onError: (_err, _domaines, context) => {
+      if (context?.previous) queryClient.setQueryData(DOMAINES_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: DOMAINES_KEY }),
+  })
+}
+
 export function useDeleteDomaine() {
   const queryClient = useQueryClient()
   return useMutation({

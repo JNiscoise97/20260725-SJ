@@ -7,6 +7,7 @@ export const missionsSeed: Mission[] = [
     title: "Décoration de la salle",
     description: "Nappes, centres de table, arche florale",
     status: "in_progress",
+    sortOrder: 0,
   },
   {
     id: "m-boissons",
@@ -14,6 +15,7 @@ export const missionsSeed: Mission[] = [
     title: "Bar et boissons",
     description: "Commande, glace, verres, stock",
     status: "todo",
+    sortOrder: 0,
   },
   {
     id: "m-dj",
@@ -21,5 +23,6 @@ export const missionsSeed: Mission[] = [
     title: "Playlist et sonorisation",
     description: "Playlist, matériel son, micro pour les discours",
     status: "todo",
+    sortOrder: 0,
   },
 ]

@@ -11,6 +11,7 @@ function toMission(row: {
   description: string | null
   prerequisites: string | null
   status: Mission["status"]
+  sort_order: number
 }): Mission {
   return {
     id: row.id,
@@ -19,6 +20,7 @@ function toMission(row: {
     description: row.description,
     prerequisites: row.prerequisites,
     status: row.status,
+    sortOrder: row.sort_order,
   }
 }
 
@@ -43,6 +45,7 @@ export const missionsSupabaseService: MissionsService = {
         description: mission.description ?? null,
         prerequisites: mission.prerequisites ?? null,
         status: mission.status,
+        sort_order: mission.sortOrder,
       })
       .select("*")
       .single()
@@ -60,12 +63,14 @@ export const missionsSupabaseService: MissionsService = {
       description: string | null
       prerequisites: string | null
       status: Mission["status"]
+      sort_order: number
     }> = {}
     if (patch.domaineId !== undefined) row.domaine_id = patch.domaineId
     if (patch.title !== undefined) row.title = patch.title
     if (patch.description !== undefined) row.description = patch.description
     if (patch.prerequisites !== undefined) row.prerequisites = patch.prerequisites
     if (patch.status !== undefined) row.status = patch.status
+    if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder
     const { data, error } = await db.from("_20260725_missions").update(row).eq("id", id).select("*").single()
     if (error) throw error
     return toMission(data)

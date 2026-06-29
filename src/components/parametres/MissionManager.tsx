@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
-import { useCreateMission, useUpdateMission } from "@/hooks/queries/use-missions"
+import { useCreateMission, useMissions, useUpdateMission } from "@/hooks/queries/use-missions"
 import { useDomaines } from "@/hooks/queries/use-domaines"
 import type { Mission, ProgressStatus } from "@/types/domain"
 import { Button } from "@/components/ui/button"
@@ -38,23 +38,26 @@ export function MissionDialog({ mission, initialDomaineId }: { mission?: Mission
   const [domaineId, setDomaineId] = useState(mission?.domaineId ?? initialDomaineId ?? NONE)
 
   const { data: domaines } = useDomaines()
+  const { data: missions } = useMissions()
   const createMission = useCreateMission()
   const updateMission = useUpdateMission()
 
   async function handleSubmit() {
     if (!title.trim()) return
+    const resolvedDomaineId = domaineId === NONE ? null : domaineId
     const payload = {
       title,
       description: description.trim() || null,
       prerequisites: prerequisites.trim() || null,
       status,
-      domaineId: domaineId === NONE ? null : domaineId,
+      domaineId: resolvedDomaineId,
     }
     if (mission) {
       await updateMission.mutateAsync({ id: mission.id, patch: payload })
       toast.success("Mission mise à jour.")
     } else {
-      await createMission.mutateAsync(payload)
+      const siblingCount = (missions ?? []).filter((m) => m.domaineId === resolvedDomaineId).length
+      await createMission.mutateAsync({ ...payload, sortOrder: siblingCount })
       toast.success("Mission créée.")
     }
     setOpen(false)

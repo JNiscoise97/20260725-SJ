@@ -79,6 +79,7 @@ export interface Mission {
   description?: string | null
   prerequisites?: string | null
   status: ProgressStatus
+  sortOrder: number
 }
 
 export type MissionAcceptanceStatus = "pending" | "accepted" | "declined"

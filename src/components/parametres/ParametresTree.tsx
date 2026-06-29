@@ -6,8 +6,8 @@ import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, GripVertical
 import { toast } from "sonner"
 
 import { usePoles, useDeletePole, useUpdatePole, useReorderPoles } from "@/hooks/queries/use-poles"
-import { useDomaines, useDeleteDomaine } from "@/hooks/queries/use-domaines"
-import { useMissions, useDeleteMission } from "@/hooks/queries/use-missions"
+import { useDomaines, useDeleteDomaine, useReorderDomaines } from "@/hooks/queries/use-domaines"
+import { useMissions, useDeleteMission, useReorderMissions } from "@/hooks/queries/use-missions"
 import {
   useCreateDomaineResponsable,
   useDeleteDomaineResponsable,
@@ -21,6 +21,7 @@ import {
   useCreateChecklist,
   useDeleteChecklist,
   useDeleteChecklistItem,
+  useReorderChecklistItems,
 } from "@/hooks/queries/use-checklists"
 import type { Checklist, ChecklistItem, Domaine, DomaineResponsable, DomainePhase, Mission, Pole } from "@/types/domain"
 import { DOMAINE_PHASE_LABELS, DOMAINE_PHASE_ORDER } from "@/lib/constants"
@@ -202,8 +203,16 @@ function DomaineResponsableSelect({ domaine }: { domaine: Domaine }) {
   )
 }
 
-function SortablePoleRow({ poleId, children }: { poleId: string; children: (dragHandle: React.ReactNode) => React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: poleId })
+function SortableRow({
+  id,
+  label,
+  children,
+}: {
+  id: string
+  label: string
+  children: (dragHandle: React.ReactNode) => React.ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
@@ -211,7 +220,7 @@ function SortablePoleRow({ poleId, children }: { poleId: string; children: (drag
       {children(
         <button
           type="button"
-          aria-label="Réordonner le pôle"
+          aria-label={label}
           className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
           {...attributes}
           {...listeners}
@@ -271,11 +280,14 @@ export function ParametresTree() {
 
   const deletePole = useDeletePole()
   const reorderPoles = useReorderPoles()
+  const reorderDomaines = useReorderDomaines()
   const deleteDomaine = useDeleteDomaine()
   const deleteMission = useDeleteMission()
+  const reorderMissions = useReorderMissions()
   const createChecklist = useCreateChecklist()
   const deleteChecklist = useDeleteChecklist()
   const deleteItem = useDeleteChecklistItem()
+  const reorderItems = useReorderChecklistItems()
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
@@ -355,6 +367,7 @@ export function ParametresTree() {
       list.push(m)
       map.set(m.domaineId, list)
     }
+    for (const list of map.values()) list.sort((a, b) => a.sortOrder - b.sortOrder)
     return map
   }, [missions])
 
@@ -427,7 +440,7 @@ export function ParametresTree() {
           expandable
           expanded={isOpen}
           onToggle={() => toggle(checklist.id)}
-          label={checklist.title ?? <span className="italic text-muted-foreground">Sans titre</span>}
+          label={checklist.title ?? null}
           meta={<span className="text-xs text-muted-foreground">{checklistItems.length} item(s)</span>}
           actions={
             <>
@@ -441,61 +454,94 @@ export function ParametresTree() {
             </>
           }
         />
-        {isOpen
-          ? checklistItems.map((item) => (
-              <TreeRow
-                key={item.id}
-                depth={depth + 1}
-                level="item"
-                label={item.label}
-                meta={
-                  <span className="flex items-center gap-1">
-                    <StatusBadge status={item.status} />
-                    <PriorityBadge priority={item.priority} />
-                  </span>
-                }
-                actions={
-                  <>
-                    <ChecklistItemDialog item={item} checklistId={checklist.id} />
-                    <ConfirmDeleteButton
-                      label="Supprimer l'item"
-                      description="Cette action est définitive."
-                      onConfirm={() => deleteItem.mutate(item.id)}
-                    />
-                  </>
-                }
-              />
-            ))
-          : null}
+        {isOpen ? (
+          hasActiveFilter ? (
+            checklistItems.map((item) => renderItemRow(item, checklist.id, depth + 1))
+          ) : (
+            <DndContext
+              sensors={dragSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleItemDragEnd(checklist.id)}
+            >
+              <SortableContext items={checklistItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                {checklistItems.map((item) => renderItemRow(item, checklist.id, depth + 1))}
+              </SortableContext>
+            </DndContext>
+          )
+        ) : null}
       </div>
+    )
+  }
+
+  function renderItemRow(item: ChecklistItem, checklistId: string, depth: number) {
+    const treeRow = (dragHandle?: React.ReactNode) => (
+      <TreeRow
+        depth={depth}
+        level="item"
+        label={item.label}
+        dragHandle={dragHandle}
+        meta={
+          <span className="flex items-center gap-1">
+            <StatusBadge status={item.status} />
+            <PriorityBadge priority={item.priority} />
+          </span>
+        }
+        actions={
+          <>
+            <ChecklistItemDialog item={item} checklistId={checklistId} />
+            <ConfirmDeleteButton
+              label="Supprimer l'item"
+              description="Cette action est définitive."
+              onConfirm={() => deleteItem.mutate(item.id)}
+            />
+          </>
+        }
+      />
+    )
+    return hasActiveFilter ? (
+      <div key={item.id}>{treeRow()}</div>
+    ) : (
+      <SortableRow key={item.id} id={item.id} label="Réordonner l'item">
+        {(dragHandle) => treeRow(dragHandle)}
+      </SortableRow>
     )
   }
 
   function renderMissionNode(mission: Mission, depth: number) {
     const missionChecklists = (checklistsByOwner.get(`mission:${mission.id}`) ?? []).filter(checklistMatches)
     const isOpen = effectiveOpen(mission.id, false) || hasActiveFilter
+    const treeRow = (dragHandle?: React.ReactNode) => (
+      <TreeRow
+        depth={depth}
+        level="mission"
+        expandable
+        expanded={isOpen}
+        onToggle={() => toggle(mission.id)}
+        label={mission.title}
+        dragHandle={dragHandle}
+        meta={<StatusBadge status={mission.status} />}
+        actions={
+          <>
+            <ChecklistDialog ownerType="mission" ownerId={mission.id} />
+            <MissionDialog mission={mission} />
+            <ConfirmDeleteButton
+              label="Supprimer la mission"
+              description="Cette action supprimera aussi les checklists de cette mission. Elle est définitive."
+              onConfirm={() => deleteMission.mutate(mission.id)}
+            />
+          </>
+        }
+      />
+    )
     return (
       <div key={mission.id} className="space-y-1">
-        <TreeRow
-          depth={depth}
-          level="mission"
-          expandable
-          expanded={isOpen}
-          onToggle={() => toggle(mission.id)}
-          label={mission.title}
-          meta={<StatusBadge status={mission.status} />}
-          actions={
-            <>
-              <ChecklistDialog ownerType="mission" ownerId={mission.id} />
-              <MissionDialog mission={mission} />
-              <ConfirmDeleteButton
-                label="Supprimer la mission"
-                description="Cette action supprimera aussi les checklists de cette mission. Elle est définitive."
-                onConfirm={() => deleteMission.mutate(mission.id)}
-              />
-            </>
-          }
-        />
+        {!hasActiveFilter ? (
+          <SortableRow id={mission.id} label="Réordonner la mission">
+            {(dragHandle) => treeRow(dragHandle)}
+          </SortableRow>
+        ) : (
+          treeRow()
+        )}
         {isOpen ? missionChecklists.map((c) => renderChecklistNode(c, depth + 1)) : null}
       </div>
     )
@@ -513,46 +559,69 @@ export function ParametresTree() {
       toast.success("Checklist Definition of Done créée.")
     }
 
+    const treeRow = (dragHandle?: React.ReactNode) => (
+      <TreeRow
+        depth={depth}
+        level="domaine"
+        expandable
+        expanded={isOpen}
+        onToggle={() => toggle(domaine.id)}
+        label={domaine.name}
+        dragHandle={dragHandle}
+        meta={
+          domaine.phase ? (
+            <Badge className="bg-muted text-muted-foreground">{DOMAINE_PHASE_LABELS[domaine.phase]}</Badge>
+          ) : null
+        }
+        actions={
+          <>
+            <DomaineResponsableSelect domaine={domaine} />
+            {!hasDodChecklist ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-xs" aria-label="Créer la checklist Definition of Done" onClick={handleCreateDod}>
+                    <ListChecks className="size-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Créer la checklist Definition of Done</TooltipContent>
+              </Tooltip>
+            ) : null}
+            <MissionDialog initialDomaineId={domaine.id} />
+            <DomaineDialog domaine={domaine} />
+            <ConfirmDeleteButton
+              label="Supprimer le domaine"
+              description="Cette action supprimera aussi ses missions et checklists. Elle est définitive."
+              onConfirm={() => deleteDomaine.mutate(domaine.id)}
+            />
+          </>
+        }
+      />
+    )
     return (
       <div key={domaine.id} className="space-y-1">
-        <TreeRow
-          depth={depth}
-          level="domaine"
-          expandable
-          expanded={isOpen}
-          onToggle={() => toggle(domaine.id)}
-          label={domaine.name}
-          meta={
-            domaine.phase ? (
-              <Badge className="bg-muted text-muted-foreground">{DOMAINE_PHASE_LABELS[domaine.phase]}</Badge>
-            ) : null
-          }
-          actions={
-            <>
-              <DomaineResponsableSelect domaine={domaine} />
-              {!hasDodChecklist ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon-xs" aria-label="Créer la checklist Definition of Done" onClick={handleCreateDod}>
-                      <ListChecks className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Créer la checklist Definition of Done</TooltipContent>
-                </Tooltip>
-              ) : null}
-              <MissionDialog initialDomaineId={domaine.id} />
-              <DomaineDialog domaine={domaine} />
-              <ConfirmDeleteButton
-                label="Supprimer le domaine"
-                description="Cette action supprimera aussi ses missions et checklists. Elle est définitive."
-                onConfirm={() => deleteDomaine.mutate(domaine.id)}
-              />
-            </>
-          }
-        />
+        {!hasActiveFilter ? (
+          <SortableRow id={domaine.id} label="Réordonner le domaine">
+            {(dragHandle) => treeRow(dragHandle)}
+          </SortableRow>
+        ) : (
+          treeRow()
+        )}
         {isOpen ? (
           <>
-            {domaineMissions.map((m) => renderMissionNode(m, depth + 1))}
+            {hasActiveFilter ? (
+              domaineMissions.map((m) => renderMissionNode(m, depth + 1))
+            ) : (
+              <DndContext
+                sensors={dragSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleMissionDragEnd(domaine.id)}
+              >
+                <SortableContext items={domaineMissions.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+                  {domaineMissions.map((m) => renderMissionNode(m, depth + 1))}
+                </SortableContext>
+              </DndContext>
+            )}
+            {/* La DoD n'est jamais réordonnable : toujours après les missions, position fixe. */}
             {domaineChecklists.map((c) => renderChecklistNode(c, depth + 1))}
           </>
         ) : null}
@@ -595,18 +664,34 @@ export function ParametresTree() {
     return (
       <div key={pole.id} className="space-y-1">
         {isRealPole && !hasActiveFilter ? (
-          <SortablePoleRow poleId={pole.id}>{(dragHandle) => treeRow(dragHandle)}</SortablePoleRow>
+          <SortableRow id={pole.id} label="Réordonner le pôle">
+            {(dragHandle) => treeRow(dragHandle)}
+          </SortableRow>
         ) : (
           treeRow()
         )}
-        {isOpen ? poleDomaines.map((d) => renderDomaineNode(d, depth + 1)) : null}
+        {isOpen ? (
+          hasActiveFilter ? (
+            poleDomaines.map((d) => renderDomaineNode(d, depth + 1))
+          ) : (
+            <DndContext
+              sensors={dragSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDomaineDragEnd(pole.id)}
+            >
+              <SortableContext items={poleDomaines.map((d) => d.id)} strategy={verticalListSortingStrategy}>
+                {poleDomaines.map((d) => renderDomaineNode(d, depth + 1))}
+              </SortableContext>
+            </DndContext>
+          )
+        ) : null}
       </div>
     )
   }
 
   const sortedPoles = [...(poles ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).filter(poleMatches)
   const hasUnassignedDomaines = (domainesByPoleId.get(NO_POLE) ?? []).filter(domaineMatches).length > 0
-  const poleDragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   function handlePoleDragEnd(event: DragEndEvent) {
     if (!poles) return
@@ -618,6 +703,45 @@ export function ParametresTree() {
     if (oldIndex === -1 || newIndex === -1) return
     const reordered = arrayMove(ordered, oldIndex, newIndex).map((pole, index) => ({ ...pole, sortOrder: index }))
     reorderPoles.mutate(reordered)
+  }
+
+  function handleDomaineDragEnd(poleId: string) {
+    return (event: DragEndEvent) => {
+      const list = domainesByPoleId.get(poleId) ?? []
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const oldIndex = list.findIndex((d) => d.id === active.id)
+      const newIndex = list.findIndex((d) => d.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+      const reordered = arrayMove(list, oldIndex, newIndex).map((domaine, index) => ({ ...domaine, sortOrder: index }))
+      reorderDomaines.mutate(reordered)
+    }
+  }
+
+  function handleItemDragEnd(checklistId: string) {
+    return (event: DragEndEvent) => {
+      const list = itemsByChecklistId.get(checklistId) ?? []
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const oldIndex = list.findIndex((i) => i.id === active.id)
+      const newIndex = list.findIndex((i) => i.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+      const reordered = arrayMove(list, oldIndex, newIndex).map((item, index) => ({ ...item, sortOrder: index }))
+      reorderItems.mutate(reordered)
+    }
+  }
+
+  function handleMissionDragEnd(domaineId: string) {
+    return (event: DragEndEvent) => {
+      const list = missionsByDomaineId.get(domaineId) ?? []
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const oldIndex = list.findIndex((m) => m.id === active.id)
+      const newIndex = list.findIndex((m) => m.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+      const reordered = arrayMove(list, oldIndex, newIndex).map((mission, index) => ({ ...mission, sortOrder: index }))
+      reorderMissions.mutate(reordered)
+    }
   }
 
   return (
@@ -684,7 +808,7 @@ export function ParametresTree() {
               {hasUnassignedDomaines ? renderPoleNode({ id: NO_POLE, name: "Sans pôle" }, 0) : null}
             </>
           ) : (
-            <DndContext sensors={poleDragSensors} collisionDetection={closestCenter} onDragEnd={handlePoleDragEnd}>
+            <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={handlePoleDragEnd}>
               <SortableContext items={sortedPoles.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                 {sortedPoles.map((pole) => renderPoleNode(pole, 0))}
               </SortableContext>

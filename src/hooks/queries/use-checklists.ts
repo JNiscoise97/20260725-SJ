@@ -49,8 +49,32 @@ export function useChecklistItems(checklistId: string | undefined) {
   })
 }
 
+const ALL_ITEMS_KEY = ["checklist-items", "all"] as const
+
 export function useAllChecklistItems() {
-  return useQuery({ queryKey: ["checklist-items", "all"], queryFn: () => checklistsService.listAllItems() })
+  return useQuery({ queryKey: ALL_ITEMS_KEY, queryFn: () => checklistsService.listAllItems() })
+}
+
+/** Réordonnement par drag-and-drop : met à jour le cache immédiatement (sinon la liste "rebondit" le temps de l'aller-retour réseau), puis persiste en arrière-plan — voir useReorderPoles/useReorderDomaines, même pattern. */
+export function useReorderChecklistItems() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (items: ChecklistItem[]) =>
+      Promise.all(items.map((i) => checklistsService.updateItem(i.id, { sortOrder: i.sortOrder }))),
+    onMutate: async (items) => {
+      await queryClient.cancelQueries({ queryKey: ALL_ITEMS_KEY })
+      const previous = queryClient.getQueryData<ChecklistItem[]>(ALL_ITEMS_KEY)
+      const byId = new Map(items.map((i) => [i.id, i]))
+      queryClient.setQueryData<ChecklistItem[]>(ALL_ITEMS_KEY, (current) =>
+        (current ?? []).map((i) => byId.get(i.id) ?? i)
+      )
+      return { previous }
+    },
+    onError: (_err, _items, context) => {
+      if (context?.previous) queryClient.setQueryData(ALL_ITEMS_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["checklist-items"] }),
+  })
 }
 
 export function useAllChecklists() {

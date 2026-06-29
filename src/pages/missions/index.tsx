@@ -106,7 +106,7 @@ export function MissionsPage() {
           })
           .map((domaine) => ({
             domaine,
-            missions: visibleMissions.filter((m) => m.domaineId === domaine.id).sort((a, b) => a.title.localeCompare(b.title)),
+            missions: visibleMissions.filter((m) => m.domaineId === domaine.id).sort((a, b) => a.sortOrder - b.sortOrder),
           }))
           .filter((group) => group.missions.length > 0)
 

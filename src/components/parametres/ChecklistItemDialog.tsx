@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { useCreateChecklistItem, useUpdateChecklistItem } from "@/hooks/queries/use-checklists"
 import type { ChecklistItem, Priority, ProgressStatus } from "@/types/domain"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -93,7 +93,7 @@ export function ChecklistItemDialog({ item, checklistId }: ChecklistItemDialogPr
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="item-label">Libellé</FieldLabel>
-            <Input id="item-label" value={label} onChange={(e) => setLabel(e.target.value)} />
+            <Textarea id="item-label" rows={3} value={label} onChange={(e) => setLabel(e.target.value)} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field>
