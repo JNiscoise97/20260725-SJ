@@ -221,6 +221,7 @@ type GuestRow = {
   is_active: boolean
   introduction_seen: boolean
   assignable: boolean
+  paired_with_id: string | null
   created_at: string
 }
 
@@ -428,6 +429,7 @@ export interface Database {
         | "is_active"
         | "introduction_seen"
         | "assignable"
+        | "paired_with_id"
         | "created_at"
       >
       _20260725_prestataires: TableDef<

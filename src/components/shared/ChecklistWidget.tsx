@@ -18,6 +18,8 @@ const NONE = "__none__"
 interface ChecklistWidgetProps {
   ownerType: ChecklistOwnerType
   ownerId: string
+  /** Permet à un fiancé de se déléguer la checklist (select Sarah/Jordan) — désactivé sur certaines pages où ça n'a pas sa place (ex. /missions). */
+  allowAssignment?: boolean
 }
 
 function SingleChecklist({
@@ -102,7 +104,7 @@ function SingleChecklist({
   )
 }
 
-export function ChecklistWidget({ ownerType, ownerId }: ChecklistWidgetProps) {
+export function ChecklistWidget({ ownerType, ownerId, allowAssignment = true }: ChecklistWidgetProps) {
   const { data: checklists, isLoading } = useChecklistsForOwner(ownerType, ownerId)
   const { data: people } = usePeople()
   const { person } = useIdentity()
@@ -121,7 +123,7 @@ export function ChecklistWidget({ ownerType, ownerId }: ChecklistWidgetProps) {
   // 0040_checklists_responsible_person.sql) ; les référents/invités la voient
   // en lecture seule via le badge ci-dessus.
   const fiances = (people ?? []).filter((p) => p.role === "fiance")
-  const canAssign = person?.role === "fiance"
+  const canAssign = allowAssignment && person?.role === "fiance"
 
   return (
     <div className="space-y-4">

@@ -8,11 +8,7 @@ import { toast } from "sonner"
 import { usePoles, useDeletePole, useUpdatePole, useReorderPoles } from "@/hooks/queries/use-poles"
 import { useDomaines, useDeleteDomaine, useReorderDomaines } from "@/hooks/queries/use-domaines"
 import { useMissions, useDeleteMission, useReorderMissions } from "@/hooks/queries/use-missions"
-import {
-  useCreateDomaineResponsable,
-  useDeleteDomaineResponsable,
-  useDomaineResponsables,
-} from "@/hooks/queries/use-domaine-responsables"
+import { useDomaineResponsables } from "@/hooks/queries/use-domaine-responsables"
 import { usePeople } from "@/hooks/queries/use-people"
 import { useGuests } from "@/hooks/queries/use-guests"
 import {
@@ -39,7 +35,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { PoleDialog } from "@/components/parametres/PoleManager"
@@ -49,6 +45,7 @@ import { ChecklistDialog } from "@/components/parametres/ChecklistDialog"
 import { ChecklistItemDialog } from "@/components/parametres/ChecklistItemDialog"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { PriorityBadge } from "@/components/shared/PriorityBadge"
+import { DomaineResponsableSelect } from "@/components/shared/DomaineResponsableSelect"
 
 const NO_POLE = "__no_pole__"
 const NONE = "__none__"
@@ -137,67 +134,6 @@ function PoleResponsableSelect({ pole }: { pole: Pole }) {
             {fiance.fullName}
           </SelectItem>
         ))}
-      </SelectContent>
-    </Select>
-  )
-}
-
-/**
- * Source de vérité unique pour le responsable d'un domaine : reflète l'unique
- * responsable actuel (principal) et le remplace au changement — plus de
- * pastilles séparées à maintenir en plus du select.
- */
-function DomaineResponsableSelect({ domaine }: { domaine: Domaine }) {
-  const { data: people } = usePeople()
-  const { data: guests } = useGuests()
-  const { data: responsables } = useDomaineResponsables()
-  const createResponsable = useCreateDomaineResponsable()
-  const deleteResponsable = useDeleteDomaineResponsable()
-  const domaineResponsables = (responsables ?? []).filter((r) => r.domaineId === domaine.id)
-  const current = domaineResponsables.find((r) => r.rank === "principal") ?? domaineResponsables[0]
-  const currentValue = current ? `${current.personId ? "person" : "guest"}:${current.personId ?? current.guestId}` : NONE
-  const fiances = people ?? []
-  const referents = (guests ?? []).filter((g) => g.assignable)
-
-  async function handleChange(value: string) {
-    await Promise.all(domaineResponsables.map((r) => deleteResponsable.mutateAsync(r.id)))
-    if (value === NONE) return
-    const [kind, id] = value.split(":")
-    await createResponsable.mutateAsync({
-      domaineId: domaine.id,
-      rank: "principal",
-      ...(kind === "guest" ? { guestId: id } : { personId: id }),
-    })
-    toast.success("Responsable mis à jour.")
-  }
-
-  return (
-    <Select value={currentValue} onValueChange={handleChange}>
-      <SelectTrigger size="sm" className="h-6 w-44 border-dashed text-xs">
-        <SelectValue placeholder="Assigner..." />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>Non assigné</SelectItem>
-        {fiances.length > 0 ? (
-          <SelectGroup>
-            <SelectLabel>Fiancés</SelectLabel>
-            {fiances.map((person) => (
-              <SelectItem key={person.id} value={`person:${person.id}`}>
-                {person.fullName}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        ) : null}
-        {referents.length > 0 ? (
-          <SelectGroup>
-            <SelectLabel>Référents</SelectLabel>
-            {referents.map((g) => (
-              <SelectItem key={g.id} value={`guest:${g.id}`}>
-                {g.fullName}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        ) : null}
       </SelectContent>
     </Select>
   )
@@ -394,9 +330,15 @@ export function ParametresTree() {
     return map
   }, [items])
 
+  function itemMatches(item: ChecklistItem) {
+    if (!isSearching) return true
+    return item.label.toLowerCase().includes(search)
+  }
+
   function checklistMatches(checklist: Checklist) {
     if (!isSearching) return true
-    return (checklist.title ?? "").toLowerCase().includes(search)
+    if ((checklist.title ?? "").toLowerCase().includes(search)) return true
+    return (itemsByChecklistId.get(checklist.id) ?? []).some(itemMatches)
   }
 
   function missionMatches(mission: Mission) {
@@ -431,7 +373,8 @@ export function ParametresTree() {
 
   function renderChecklistNode(checklist: Checklist, depth: number) {
     const checklistItems = itemsByChecklistId.get(checklist.id) ?? []
-    const isOpen = effectiveOpen(checklist.id, !checklist.title)
+    const visibleItems = checklistItems.filter(itemMatches)
+    const isOpen = effectiveOpen(checklist.id, !checklist.title) || hasActiveFilter
     return (
       <div key={checklist.id} className="space-y-1">
         <TreeRow
@@ -456,7 +399,7 @@ export function ParametresTree() {
         />
         {isOpen ? (
           hasActiveFilter ? (
-            checklistItems.map((item) => renderItemRow(item, checklist.id, depth + 1))
+            visibleItems.map((item) => renderItemRow(item, checklist.id, depth + 1))
           ) : (
             <DndContext
               sensors={dragSensors}
@@ -755,7 +698,7 @@ export function ParametresTree() {
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Rechercher un pôle, un domaine, une mission, une checklist, un responsable..."
+              placeholder="Rechercher un pôle, un domaine, une mission, une checklist, un item, un responsable..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"

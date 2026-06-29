@@ -40,6 +40,38 @@ function contextLabel(mission?: Mission, domaine?: Domaine) {
   return [domaine?.name, mission?.title].filter(Boolean).join(" · ") || undefined
 }
 
+function DomaineMissionsCard({ domaine, missions }: { domaine: Domaine; missions: Mission[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle className="font-heading text-base">{domaine.name}</CardTitle>
+          {domaine.phase ? (
+            <Badge className="bg-muted text-muted-foreground">{DOMAINE_PHASE_LABELS[domaine.phase]}</Badge>
+          ) : null}
+        </div>
+        {domaine.description ? <p className="text-xs text-muted-foreground">{domaine.description}</p> : null}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {missions.map((mission) => (
+          <div key={mission.id} className="space-y-2 rounded-xl bg-muted/50 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium text-foreground">{mission.title}</p>
+              <StatusBadge status={mission.status} />
+            </div>
+            {mission.description ? <p className="text-xs text-muted-foreground">{mission.description}</p> : null}
+            <ChecklistWidget ownerType="mission" ownerId={mission.id} allowAssignment={false} />
+          </div>
+        ))}
+        <div className="space-y-1.5 rounded-xl border border-dashed border-border p-3">
+          <p className="text-xs font-medium text-muted-foreground">Definition of Done du domaine</p>
+          <ChecklistWidget ownerType="domaine" ownerId={domaine.id} allowAssignment={false} />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function MissionsPage() {
   const { data: missions, isLoading: missionsLoading } = useMissions()
   const { data: domaines, isLoading: domainesLoading } = useDomaines()
@@ -84,6 +116,33 @@ export function MissionsPage() {
     }
     return map
   }, [checklists, checklistItems])
+
+  // Vue opérationnelle : domaines (et leurs missions) dont le fiancé connecté
+  // est lui-même responsable — distinct de `myDomaineIds`, qui reste toujours
+  // `null` pour un fiancé puisqu'il voit l'ensemble de l'organisation en
+  // pilotage.
+  const myDomaineGroups = useMemo(() => {
+    if (!missions || !domaines || !person) return []
+    const myResponsableDomaineIds = entries.find((e) => e.identity.id === person.id)?.domaineIds ?? []
+    return domaines
+      .filter((d) => myResponsableDomaineIds.includes(d.id))
+      .sort((a, b) => {
+        const phaseDiff =
+          DOMAINE_PHASE_ORDER.indexOf(a.phase ?? DOMAINE_PHASE_ORDER[0]) -
+          DOMAINE_PHASE_ORDER.indexOf(b.phase ?? DOMAINE_PHASE_ORDER[0])
+        return phaseDiff !== 0 ? phaseDiff : a.sortOrder - b.sortOrder
+      })
+      .map((domaine) => ({
+        domaine,
+        missions: missions.filter((m) => m.domaineId === domaine.id).sort((a, b) => a.sortOrder - b.sortOrder),
+      }))
+  }, [missions, domaines, entries, person])
+
+  const myOperationalStats = useMemo(() => {
+    const myMissions = myDomaineGroups.flatMap((g) => g.missions)
+    const myItems = myMissions.flatMap((m) => itemsByMissionId.get(m.id) ?? [])
+    return { missionCount: myMissions.length, ...itemStats(myItems) }
+  }, [myDomaineGroups, itemsByMissionId])
 
   const poleGroups = useMemo(() => {
     if (!visibleMissions || !domaines || !poles) return []
@@ -174,7 +233,162 @@ export function MissionsPage() {
     updateItem.mutate({ id: item.id, patch: { status, isDone: status === "done" } })
   }
 
+  const isFiance = person?.role === "fiance"
   const [activeTab, setActiveTab] = useState(DASHBOARD_TAB)
+  const [fianceView, setFianceView] = useState<"pilotage" | "operationnelle">("operationnelle")
+
+  function goToPole(poleId: string) {
+    setActiveTab(poleId)
+  }
+
+  const dashboardContent = (
+    <>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          icon={TriangleAlert}
+          label="Urgents"
+          value={dashboard.urgent.length}
+          accentClassName="bg-bordeaux/10 text-bordeaux"
+        />
+        <StatCard
+          icon={Clock}
+          label="En retard"
+          value={dashboard.overdue.length}
+          accentClassName="bg-dore/20 text-brun"
+        />
+        <StatCard
+          icon={Ban}
+          label="Bloqués"
+          value={dashboard.blocked.length}
+          accentClassName="bg-muted text-muted-foreground"
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-heading text-base">Avancement par pôle</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {poleGroups.map(({ pole, stats }) => (
+            <div key={pole.id} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2">
+              <div className="flex-1 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">{pole.name}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {stats.done} / {stats.total} ({stats.percent}%)
+                  </span>
+                </div>
+                <Progress value={stats.percent} />
+                <p className="text-xs text-muted-foreground">
+                  {stats.domaineCount} domaine{stats.domaineCount === 1 ? "" : "s"} ·{" "}
+                  {stats.missionCount} mission{stats.missionCount === 1 ? "" : "s"}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => goToPole(pole.id)}>
+                Voir
+                <ArrowRight className="size-3.5" />
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CardTitle className="font-heading text-base">Urgents</CardTitle>
+            <Badge className="bg-bordeaux/10 text-bordeaux">{dashboard.urgent.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {dashboard.urgent.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Rien d&apos;urgent. 🎉</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {dashboard.urgent.map(({ item, mission, domaine }) => (
+                <ChecklistItemCard
+                  key={item.id}
+                  item={item}
+                  context={contextLabel(mission, domaine)}
+                  onStatusChange={(status) => handleStatusChange(item, status)}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-heading text-base">En retard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dashboard.overdue.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Rien en retard. 🎉</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {dashboard.overdue.map(({ item, mission, domaine }) => (
+                <ChecklistItemCard
+                  key={item.id}
+                  item={item}
+                  context={contextLabel(mission, domaine)}
+                  onStatusChange={(status) => handleStatusChange(item, status)}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-heading text-base">Bloqués</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dashboard.blocked.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun item bloqué.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {dashboard.blocked.map(({ item, mission, domaine }) => (
+                <ChecklistItemCard
+                  key={item.id}
+                  item={item}
+                  context={contextLabel(mission, domaine)}
+                  onStatusChange={(status) => handleStatusChange(item, status)}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  )
+
+  const poleTabsContents = poleGroups.map(({ pole, domaineGroups, stats }) => (
+    <TabsContent key={pole.id} value={pole.id} className="space-y-4">
+      <Card>
+        <CardContent className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>
+              {stats.domaineCount} domaine{stats.domaineCount === 1 ? "" : "s"}
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              {stats.missionCount} mission{stats.missionCount === 1 ? "" : "s"}
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              {stats.done} / {stats.total} items terminés ({stats.percent}%)
+            </span>
+          </div>
+          <Progress value={stats.percent} />
+        </CardContent>
+      </Card>
+      {domaineGroups.map(({ domaine, missions: domaineMissions }) => (
+        <DomaineMissionsCard key={domaine.id} domaine={domaine} missions={domaineMissions} />
+      ))}
+    </TabsContent>
+  ))
 
   return (
     <div className="space-y-6">
@@ -200,227 +414,106 @@ export function MissionsPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon={LayoutGrid}
-              label="Pôles"
-              value={globalStats.poleCount}
-              hint={`${globalStats.domaineCount} domaines`}
-              accentClassName="bg-dore/20 text-brun"
-            />
-            <StatCard
-              icon={FolderTree}
-              label="Missions"
-              value={globalStats.missionCount}
-              accentClassName="bg-bordeaux/10 text-bordeaux"
-            />
-            <StatCard
-              icon={CheckCircle2}
-              label="Items terminés"
-              value={`${globalStats.done} / ${globalStats.total}`}
-              hint={`${globalStats.percent}% complété`}
-              accentClassName="bg-vert-vegetal/15 text-vert-vegetal"
-            />
-            <Card>
-              <CardContent className="space-y-2">
-                <p className="text-sm text-muted-foreground">Avancement global</p>
-                <Progress value={globalStats.percent} />
-                <p className="text-xs text-muted-foreground">{globalStats.percent}%</p>
-              </CardContent>
-            </Card>
-          </div>
+          {isFiance ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={fianceView === "pilotage" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFianceView("pilotage")}
+              >
+                Vue pilotage
+              </Button>
+              <Button
+                variant={fianceView === "operationnelle" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFianceView("operationnelle")}
+              >
+                Vue opérationnelle
+              </Button>
+            </div>
+          ) : null}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
-          <div className="min-w-0 max-w-full overflow-x-auto">
-            <TabsList>
-              <TabsTrigger value={DASHBOARD_TAB} className="flex-none">
-                Dashboard
-              </TabsTrigger>
-              {poleGroups.map(({ pole }) => (
-                <TabsTrigger key={pole.id} value={pole.id} className="flex-none">
-                  {pole.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-
-          <TabsContent value={DASHBOARD_TAB} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {isFiance && fianceView === "operationnelle" ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
-                icon={TriangleAlert}
-                label="Urgents"
-                value={dashboard.urgent.length}
+                icon={FolderTree}
+                label="Missions assignées"
+                value={myOperationalStats.missionCount}
+                hint="Missions des domaines dont vous êtes responsable"
                 accentClassName="bg-bordeaux/10 text-bordeaux"
               />
               <StatCard
-                icon={Clock}
-                label="En retard"
-                value={dashboard.overdue.length}
+                icon={CheckCircle2}
+                label="Items"
+                value={`${myOperationalStats.done} / ${myOperationalStats.total}`}
+                hint={`${myOperationalStats.percent}% complété`}
+                accentClassName="bg-vert-vegetal/15 text-vert-vegetal"
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                icon={LayoutGrid}
+                label="Pôles"
+                value={globalStats.poleCount}
+                hint={`${globalStats.domaineCount} domaines`}
                 accentClassName="bg-dore/20 text-brun"
               />
               <StatCard
-                icon={Ban}
-                label="Bloqués"
-                value={dashboard.blocked.length}
-                accentClassName="bg-muted text-muted-foreground"
+                icon={FolderTree}
+                label="Missions"
+                value={globalStats.missionCount}
+                accentClassName="bg-bordeaux/10 text-bordeaux"
               />
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-base">Avancement par pôle</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {poleGroups.map(({ pole, stats }) => (
-                  <div
-                    key={pole.id}
-                    className="flex items-center gap-3 rounded-xl border border-border px-3 py-2"
-                  >
-                    <div className="flex-1 space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-foreground">{pole.name}</p>
-                        <span className="text-xs text-muted-foreground">
-                          {stats.done} / {stats.total} ({stats.percent}%)
-                        </span>
-                      </div>
-                      <Progress value={stats.percent} />
-                      <p className="text-xs text-muted-foreground">
-                        {stats.domaineCount} domaine{stats.domaineCount === 1 ? "" : "s"} ·{" "}
-                        {stats.missionCount} mission{stats.missionCount === 1 ? "" : "s"}
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setActiveTab(pole.id)}>
-                      Voir
-                      <ArrowRight className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-base">Urgents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dashboard.urgent.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Rien d&apos;urgent. 🎉</p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {dashboard.urgent.map(({ item, mission, domaine }) => (
-                      <ChecklistItemCard
-                        key={item.id}
-                        item={item}
-                        context={contextLabel(mission, domaine)}
-                        onStatusChange={(status) => handleStatusChange(item, status)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-base">En retard</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dashboard.overdue.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Rien en retard. 🎉</p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {dashboard.overdue.map(({ item, mission, domaine }) => (
-                      <ChecklistItemCard
-                        key={item.id}
-                        item={item}
-                        context={contextLabel(mission, domaine)}
-                        onStatusChange={(status) => handleStatusChange(item, status)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-base">Bloqués</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dashboard.blocked.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucun item bloqué.</p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {dashboard.blocked.map(({ item, mission, domaine }) => (
-                      <ChecklistItemCard
-                        key={item.id}
-                        item={item}
-                        context={contextLabel(mission, domaine)}
-                        onStatusChange={(status) => handleStatusChange(item, status)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {poleGroups.map(({ pole, domaineGroups, stats }) => (
-            <TabsContent key={pole.id} value={pole.id} className="space-y-4">
+              <StatCard
+                icon={CheckCircle2}
+                label="Items terminés"
+                value={`${globalStats.done} / ${globalStats.total}`}
+                hint={`${globalStats.percent}% complété`}
+                accentClassName="bg-vert-vegetal/15 text-vert-vegetal"
+              />
               <Card>
                 <CardContent className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <span>
-                      {stats.domaineCount} domaine{stats.domaineCount === 1 ? "" : "s"}
-                    </span>
-                    <span aria-hidden>·</span>
-                    <span>
-                      {stats.missionCount} mission{stats.missionCount === 1 ? "" : "s"}
-                    </span>
-                    <span aria-hidden>·</span>
-                    <span>
-                      {stats.done} / {stats.total} items terminés ({stats.percent}%)
-                    </span>
-                  </div>
-                  <Progress value={stats.percent} />
+                  <p className="text-sm text-muted-foreground">Avancement global</p>
+                  <Progress value={globalStats.percent} />
+                  <p className="text-xs text-muted-foreground">{globalStats.percent}%</p>
                 </CardContent>
               </Card>
-              {domaineGroups.map(({ domaine, missions: domaineMissions }) => (
-                <Card key={domaine.id}>
-                  <CardHeader>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <CardTitle className="font-heading text-base">{domaine.name}</CardTitle>
-                      {domaine.phase ? (
-                        <Badge className="bg-muted text-muted-foreground">{DOMAINE_PHASE_LABELS[domaine.phase]}</Badge>
-                      ) : null}
-                    </div>
-                    {domaine.description ? (
-                      <p className="text-xs text-muted-foreground">{domaine.description}</p>
-                    ) : null}
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {domaineMissions.map((mission) => (
-                      <div key={mission.id} className="space-y-2 rounded-xl bg-muted/50 p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-medium text-foreground">{mission.title}</p>
-                          <StatusBadge status={mission.status} />
-                        </div>
-                        {mission.description ? (
-                          <p className="text-xs text-muted-foreground">{mission.description}</p>
-                        ) : null}
-                        <ChecklistWidget ownerType="mission" ownerId={mission.id} />
-                      </div>
-                    ))}
-                    <div className="space-y-1.5 rounded-xl border border-dashed border-border p-3">
-                      <p className="text-xs font-medium text-muted-foreground">Definition of Done du domaine</p>
-                      <ChecklistWidget ownerType="domaine" ownerId={domaine.id} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-          ))}
-          </Tabs>
+            </div>
+          )}
+
+          {isFiance && fianceView === "operationnelle" ? (
+            myDomaineGroups.length === 0 ? (
+              <EmptyState icon={ListChecks} title="Aucune mission ne vous a été confiée pour le moment" />
+            ) : (
+              <div className="space-y-4">
+                {myDomaineGroups.map(({ domaine, missions: domaineMissions }) => (
+                  <DomaineMissionsCard key={domaine.id} domaine={domaine} missions={domaineMissions} />
+                ))}
+              </div>
+            )
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
+              <div className="min-w-0 max-w-full overflow-x-auto">
+                <TabsList>
+                  <TabsTrigger value={DASHBOARD_TAB} className="flex-none">
+                    Dashboard
+                  </TabsTrigger>
+                  {poleGroups.map(({ pole }) => (
+                    <TabsTrigger key={pole.id} value={pole.id} className="flex-none">
+                      {pole.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+
+              <TabsContent value={DASHBOARD_TAB} className="space-y-4">
+                {dashboardContent}
+              </TabsContent>
+
+              {poleTabsContents}
+            </Tabs>
+          )}
         </>
       )}
     </div>

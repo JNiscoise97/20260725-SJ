@@ -48,6 +48,7 @@ function toGuest(row: {
   is_active: boolean
   introduction_seen: boolean
   assignable: boolean
+  paired_with_id: string | null
 }): Guest {
   return {
     id: row.id,
@@ -93,6 +94,7 @@ function toGuest(row: {
     isActive: row.is_active,
     introductionSeen: row.introduction_seen,
     assignable: row.assignable,
+    pairedWithId: row.paired_with_id,
   }
 }
 
@@ -156,6 +158,7 @@ export const guestsSupabaseService: GuestsService = {
       is_active: boolean
       introduction_seen: boolean
       assignable: boolean
+      paired_with_id: string | null
     }> = {}
     if (patch.groupId !== undefined) row.group_id = patch.groupId
     if (patch.firstName !== undefined) row.first_name = patch.firstName
@@ -195,6 +198,7 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.isActive !== undefined) row.is_active = patch.isActive
     if (patch.introductionSeen !== undefined) row.introduction_seen = patch.introductionSeen
     if (patch.assignable !== undefined) row.assignable = patch.assignable
+    if (patch.pairedWithId !== undefined) row.paired_with_id = patch.pairedWithId
     if (Object.keys(row).length > 0) {
       const { error } = await db.from("_20260725_guests").update(row).eq("id", id)
       if (error) throw error

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { seatingService, type SeatTarget } from "@/services/seating.service"
+import { guestsService } from "@/services/guests.service"
 import type { SeatingTable } from "@/types/domain"
 
 const TABLES_KEY = ["tables"] as const
@@ -41,18 +42,40 @@ export function useTableAssignments() {
   return useQuery({ queryKey: ASSIGNMENTS_KEY, queryFn: () => seatingService.listAssignments() })
 }
 
+/** Place quelqu'un à une table puis, si c'est un invité "inséparable" (voir 0045_guests_paired_with.sql), place aussi son partenaire à la même table. */
 export function useAssignSeat() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ tableId, target }: { tableId: string; target: SeatTarget }) => seatingService.assign(tableId, target),
+    mutationFn: async ({ tableId, target }: { tableId: string; target: SeatTarget }) => {
+      const result = await seatingService.assign(tableId, target)
+      if (target.guestId) {
+        const guest = await guestsService.getById(target.guestId)
+        if (guest?.pairedWithId) {
+          await seatingService.assign(tableId, { guestId: guest.pairedWithId })
+        }
+      }
+      return result
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ASSIGNMENTS_KEY }),
   })
 }
 
+/** Retire quelqu'un d'une table puis, si c'est un invité "inséparable", retire aussi son partenaire — symétrique de useAssignSeat. */
 export function useUnassignSeat() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (assignmentId: string) => seatingService.unassign(assignmentId),
+    mutationFn: async (assignmentId: string) => {
+      const assignments = await seatingService.listAssignments()
+      const assignment = assignments.find((a) => a.id === assignmentId)
+      await seatingService.unassign(assignmentId)
+      if (assignment?.guestId) {
+        const guest = await guestsService.getById(assignment.guestId)
+        const partnerAssignment = guest?.pairedWithId
+          ? assignments.find((a) => a.guestId === guest.pairedWithId)
+          : undefined
+        if (partnerAssignment) await seatingService.unassign(partnerAssignment.id)
+      }
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ASSIGNMENTS_KEY }),
   })
 }

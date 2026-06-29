@@ -3,6 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { missionAcceptancesService } from "@/services/mission-acceptances.service"
 import type { MissionAcceptanceStatus } from "@/types/domain"
 
+export function useAllMissionAcceptances() {
+  return useQuery({
+    queryKey: ["mission-acceptances", "all"],
+    queryFn: () => missionAcceptancesService.list(),
+  })
+}
+
 export function useMissionAcceptancesForGuest(guestId?: string) {
   return useQuery({
     queryKey: ["mission-acceptances", guestId],

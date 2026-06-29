@@ -9,6 +9,7 @@ import { IntroductionPage } from "@/pages/introduction"
 import { DashboardPage } from "@/pages/dashboard"
 import { TasksPage } from "@/pages/tasks"
 import { MissionsPage } from "@/pages/missions"
+import { AssignationsPage } from "@/pages/assignations"
 import { ReferentsPage } from "@/pages/referents"
 import { PlanningPage } from "@/pages/planning"
 import { DeroulePage } from "@/pages/deroule"
@@ -64,6 +65,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:missions">
                 <MissionsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="assignations"
+            element={
+              <RoleGuard capability="view:assignations">
+                <AssignationsPage />
               </RoleGuard>
             }
           />

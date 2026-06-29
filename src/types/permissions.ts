@@ -7,6 +7,7 @@ export type Capability =
   | "view:tasks"
   | "manage:tasks"
   | "view:missions"
+  | "view:assignations"
   | "view:referents"
   | "manage:referents"
   | "view:planning"
@@ -29,6 +30,7 @@ const FIANCE_CAPABILITIES: Capability[] = [
   "view:tasks",
   "manage:tasks",
   "view:missions",
+  "view:assignations",
   "view:referents",
   "manage:referents",
   "view:planning",

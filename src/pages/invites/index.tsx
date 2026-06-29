@@ -1,22 +1,44 @@
 import { useMemo, useState } from "react"
-import { Armchair } from "lucide-react"
+import { Armchair, ArrowUpDown } from "lucide-react"
 
+import type { Guest, RsvpStatus } from "@/types/domain"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useGuestGroups, useGuests } from "@/hooks/queries/use-guests"
 import { GuestTable } from "@/components/invites/GuestTable"
 import { GuestCreateDialog } from "@/components/invites/GuestCreateDialog"
 
 const ALL_GROUPS = "all"
 
+type SortKey = "name" | "family" | "rsvp" | "age"
+
+const SORT_LABELS: Record<SortKey, string> = {
+  name: "Nom",
+  family: "Famille",
+  rsvp: "Présence",
+  age: "Âge",
+}
+
+const RSVP_ORDER: Record<RsvpStatus, number> = { pending: 0, confirmed: 1, declined: 2 }
+
+function guestAgeValue(guest: Guest): number {
+  if (guest.isChild && guest.childAge != null) return guest.childAge
+  const match = guest.ageRange?.match(/\d+/)
+  return match ? Number(match[0]) : Number.POSITIVE_INFINITY
+}
+
 export function InvitesPage() {
   const { data: guests, isLoading: guestsLoading } = useGuests()
   const { data: groups, isLoading: groupsLoading } = useGuestGroups()
   const [search, setSearch] = useState("")
   const [groupFilter, setGroupFilter] = useState(ALL_GROUPS)
+  const [sortBy, setSortBy] = useState<SortKey>("family")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
   const isLoading = guestsLoading || groupsLoading
 
@@ -31,6 +53,30 @@ export function InvitesPage() {
       return true
     })
   }, [guests, search, groupFilter])
+
+  const sortedGuests = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1
+    const familyNameOf = (g: Guest) => (g.groupId ? groupsById.get(g.groupId)?.familyName ?? "" : "")
+
+    return [...filteredGuests].sort((a, b) => {
+      let cmp: number
+      switch (sortBy) {
+        case "name":
+          cmp = a.fullName.localeCompare(b.fullName)
+          break
+        case "family":
+          cmp = familyNameOf(a).localeCompare(familyNameOf(b)) || a.fullName.localeCompare(b.fullName)
+          break
+        case "rsvp":
+          cmp = RSVP_ORDER[a.rsvpStatus] - RSVP_ORDER[b.rsvpStatus] || a.fullName.localeCompare(b.fullName)
+          break
+        case "age":
+          cmp = guestAgeValue(a) - guestAgeValue(b) || a.fullName.localeCompare(b.fullName)
+          break
+      }
+      return dir * cmp
+    })
+  }, [filteredGuests, sortBy, sortDir, groupsById])
 
   const stats = useMemo(() => {
     if (!guests) return null
@@ -78,6 +124,31 @@ export function InvitesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={sortBy} onValueChange={(v: SortKey) => setSortBy(v)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Trier par..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                    <SelectItem key={key} value={key}>
+                      Trier par {SORT_LABELS[key]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label={sortDir === "asc" ? "Ordre croissant" : "Ordre décroissant"}
+                    onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                  >
+                    <ArrowUpDown className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{sortDir === "asc" ? "Ordre croissant" : "Ordre décroissant"}</TooltipContent>
+              </Tooltip>
               <p className="text-xs text-muted-foreground">
                 {filteredGuests.length} invité{filteredGuests.length === 1 ? "" : "s"} affiché{filteredGuests.length === 1 ? "" : "s"}
               </p>
@@ -88,10 +159,10 @@ export function InvitesPage() {
               </p>
             ) : null}
           </div>
-          {filteredGuests.length === 0 ? (
+          {sortedGuests.length === 0 ? (
             <EmptyState icon={Armchair} title="Aucun invité ne correspond à ces filtres" />
           ) : (
-            <GuestTable guests={filteredGuests} groupsById={groupsById} />
+            <GuestTable guests={sortedGuests} groupsById={groupsById} />
           )}
         </div>
       )}

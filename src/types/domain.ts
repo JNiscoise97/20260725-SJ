@@ -212,6 +212,8 @@ export interface Guest {
   introductionSeen?: boolean
   /** Proposé comme candidat responsable de domaine dans Paramètres — voir 0043_guests_assignable.sql. */
   assignable: boolean
+  /** Lien symétrique vers l'autre invité d'une paire "inséparable" (ex. couple) — voir 0045_guests_paired_with.sql. Toujours mis à jour des deux côtés ensemble. */
+  pairedWithId?: string | null
 }
 
 export interface Prestataire {

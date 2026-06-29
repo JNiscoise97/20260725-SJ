@@ -5,6 +5,7 @@ import { missionAcceptancesSupabaseService } from "@/services/supabase/mission-a
 import { USE_SUPABASE } from "@/supabase/client"
 
 export interface MissionAcceptancesService {
+  list(): Promise<MissionAcceptance[]>
   listForGuest(guestId: string): Promise<MissionAcceptance[]>
   respond(missionId: string, guestId: string, status: MissionAcceptanceStatus): Promise<MissionAcceptance>
 }
@@ -12,6 +13,9 @@ export interface MissionAcceptancesService {
 const missionAcceptancesTable = createMockTable<MissionAcceptance>("sj-mission-acceptances", missionAcceptancesSeed)
 
 const missionAcceptancesMockService: MissionAcceptancesService = {
+  async list() {
+    return missionAcceptancesTable.getAll()
+  },
   async listForGuest(guestId) {
     const rows = await missionAcceptancesTable.getAll()
     return rows.filter((r) => r.guestId === guestId)

@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { GripVertical, X } from "lucide-react"
+import { GripVertical, Link2, TriangleAlert, X } from "lucide-react"
 
 import type { Guest, Person, Prestataire, SeatingTable, TableAssignment } from "@/types/domain"
 import type { SeatTarget } from "@/services/seating.service"
@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { RsvpBadge } from "@/components/invites/RsvpBadge"
 
 type SeatableKind = "guest" | "person" | "prestataire"
@@ -29,6 +30,8 @@ interface Seatable {
   id: string
   label: string
   rsvpStatus?: Guest["rsvpStatus"]
+  /** Invité "inséparable" d'un autre — voir 0045_guests_paired_with.sql. `sameTable` vaut faux si le partenaire est ailleurs ou pas encore placé. */
+  pairInfo?: { partnerName: string; sameTable: boolean }
 }
 
 interface DragData {
@@ -77,6 +80,22 @@ function SeatableLabel({
       <span className={cn("truncate text-sm", isOverflow ? "font-medium text-destructive" : "text-foreground")}>
         {seatable.label}
       </span>
+      {seatable.pairInfo ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {seatable.pairInfo.sameTable ? (
+              <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
+            ) : (
+              <TriangleAlert className="size-3.5 shrink-0 text-destructive" />
+            )}
+          </TooltipTrigger>
+          <TooltipContent>
+            {seatable.pairInfo.sameTable
+              ? `Inséparable de ${seatable.pairInfo.partnerName} (même table)`
+              : `Inséparable de ${seatable.pairInfo.partnerName} — pas encore réunis`}
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
       {showRsvpBadge && seatable.kind === "guest" && seatable.rsvpStatus && seatable.rsvpStatus !== "confirmed" ? (
         <RsvpBadge status={seatable.rsvpStatus} />
       ) : null}
@@ -208,13 +227,34 @@ export function SeatingPlanBoard({
   const [activeSeatable, setActiveSeatable] = useState<Seatable | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
+  const assignmentByKey = new Map(assignments.map((a) => [assignmentKey(a), a]))
+  const guestById = new Map(guests.map((g) => [g.id, g]))
+
+  function tableIdForGuest(guestId: string) {
+    return assignmentByKey.get(keyFor({ guestId }))?.tableId
+  }
+
+  function pairInfoFor(guest: Guest): Seatable["pairInfo"] {
+    if (!guest.pairedWithId) return undefined
+    const partner = guestById.get(guest.pairedWithId)
+    if (!partner) return undefined
+    const myTableId = tableIdForGuest(guest.id)
+    const partnerTableId = tableIdForGuest(partner.id)
+    return { partnerName: partner.fullName, sameTable: myTableId !== undefined && myTableId === partnerTableId }
+  }
+
   const seatables: Seatable[] = [
-    ...guests.map((g): Seatable => ({ kind: "guest", id: g.id, label: g.fullName, rsvpStatus: g.rsvpStatus })),
+    ...guests.map((g): Seatable => ({
+      kind: "guest",
+      id: g.id,
+      label: g.fullName,
+      rsvpStatus: g.rsvpStatus,
+      pairInfo: pairInfoFor(g),
+    })),
     ...people.map((p): Seatable => ({ kind: "person", id: p.id, label: p.fullName })),
     ...prestataires.map((p): Seatable => ({ kind: "prestataire", id: p.id, label: p.name })),
   ]
 
-  const assignmentByKey = new Map(assignments.map((a) => [assignmentKey(a), a]))
   const unassigned = seatables.filter((s) => !assignmentByKey.has(keyFor(targetFor(s))))
 
   function handleDragStart(event: DragStartEvent) {
@@ -243,13 +283,13 @@ export function SeatingPlanBoard({
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveSeatable(null)}
     >
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
+      <div className="space-y-4">
         <DropZone id={UNASSIGNED_ZONE}>
           <Card>
             <CardHeader>
               <CardTitle className="font-heading text-base">Non placés</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {unassigned.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Tout le monde est placé. 🎉</p>
               ) : (

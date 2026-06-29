@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { checklistsService } from "@/services/checklists.service"
-import type { Checklist, ChecklistItem, ChecklistOwnerType } from "@/types/domain"
+import { missionsService } from "@/services/missions.service"
+import type { Checklist, ChecklistItem, ChecklistOwnerType, ProgressStatus } from "@/types/domain"
 
 export function useChecklistsForOwner(ownerType: ChecklistOwnerType, ownerId: string) {
   return useQuery({
@@ -81,13 +82,48 @@ export function useAllChecklists() {
   return useQuery({ queryKey: ["checklists", "all"], queryFn: () => checklistsService.listAll() })
 }
 
+/**
+ * Coche/décoche un item, puis recalcule le statut de la mission propriétaire
+ * de sa checklist (todo si aucun item fait, in_progress si certains, done si
+ * tous) — sauf si la mission est "blocked", un état manuel qu'on ne veut pas
+ * écraser silencieusement au prochain item coché.
+ */
+async function syncMissionStatusForItem(item: ChecklistItem) {
+  const checklists = await checklistsService.listAll()
+  const checklist = checklists.find((c) => c.id === item.checklistId)
+  if (!checklist || checklist.ownerType !== "mission" || !checklist.ownerId) return
+
+  const missionId = checklist.ownerId
+  const missionChecklistIds = new Set(
+    checklists.filter((c) => c.ownerType === "mission" && c.ownerId === missionId).map((c) => c.id)
+  )
+  const allItems = await checklistsService.listAllItems()
+  const missionItems = allItems.filter((i) => missionChecklistIds.has(i.checklistId))
+  if (missionItems.length === 0) return
+
+  const missions = await missionsService.list()
+  const mission = missions.find((m) => m.id === missionId)
+  if (!mission || mission.status === "blocked") return
+
+  const allDone = missionItems.every((i) => i.isDone)
+  const someDone = missionItems.some((i) => i.isDone)
+  const newStatus: ProgressStatus = allDone ? "done" : someDone ? "in_progress" : "todo"
+  if (newStatus !== mission.status) {
+    await missionsService.update(missionId, { status: newStatus })
+  }
+}
+
 export function useToggleChecklistItem() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ itemId, isDone }: { itemId: string; isDone: boolean }) =>
-      checklistsService.toggleItem(itemId, isDone),
+    mutationFn: async ({ itemId, isDone }: { itemId: string; isDone: boolean }) => {
+      const item = await checklistsService.toggleItem(itemId, isDone)
+      await syncMissionStatusForItem(item)
+      return item
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checklist-items"] })
+      queryClient.invalidateQueries({ queryKey: ["missions"] })
     },
   })
 }

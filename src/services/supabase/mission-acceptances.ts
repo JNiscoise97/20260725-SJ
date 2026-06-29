@@ -21,6 +21,11 @@ function toMissionAcceptance(row: {
 }
 
 export const missionAcceptancesSupabaseService: MissionAcceptancesService = {
+  async list() {
+    const { data, error } = await db.from("_20260725_mission_acceptances").select("*")
+    if (error) throw error
+    return (data ?? []).map(toMissionAcceptance)
+  },
   async listForGuest(guestId) {
     const { data, error } = await db.from("_20260725_mission_acceptances").select("*").eq("guest_id", guestId)
     if (error) throw error
