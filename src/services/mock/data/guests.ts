@@ -22,9 +22,15 @@ export const guestDefaults = {
   reservationDone: false,
   hasCeremonialRole: false,
   likelyTraditionalAttire: false,
+  assignable: false,
 }
 
-function guest(firstName: string, lastName: string, rest: Omit<Guest, "id" | "firstName" | "lastName" | "fullName" | keyof typeof guestDefaults> & { id: string }): Guest {
+function guest(
+  firstName: string,
+  lastName: string,
+  rest: Omit<Guest, "id" | "firstName" | "lastName" | "fullName" | keyof typeof guestDefaults> &
+    Partial<Pick<Guest, keyof typeof guestDefaults>> & { id: string }
+): Guest {
   return { firstName, lastName, fullName: `${firstName} ${lastName}`, ...guestDefaults, ...rest }
 }
 
@@ -38,8 +44,8 @@ export const guestsSeed: Guest[] = [
   guest("Sofia", "Rossi", { id: "g-sofia", groupId: "gg-amis", rsvpStatus: "confirmed" }),
   guest("Karim", "Haddad", { id: "g-karim", groupId: "gg-amis", rsvpStatus: "pending" }),
   // Invités avec un accès à l'app : Camille/Hugo/Nina sont référents (voir domaine-responsables.ts), Léa a un accès simple.
-  guest("Camille", "Rivière", { id: "g-ref-deco", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "DECO2026", isActive: true }),
-  guest("Hugo", "Lenoir", { id: "g-ref-boissons", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "BOISSON2026", isActive: true }),
-  guest("Nina", "Castel", { id: "g-ref-dj", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "DJ2026", isActive: true }),
+  guest("Camille", "Rivière", { id: "g-ref-deco", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "DECO2026", isActive: true, assignable: true }),
+  guest("Hugo", "Lenoir", { id: "g-ref-boissons", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "BOISSON2026", isActive: true, assignable: true }),
+  guest("Nina", "Castel", { id: "g-ref-dj", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "DJ2026", isActive: true, assignable: true }),
   guest("Léa", "Fontaine", { id: "g-proche-1", groupId: "gg-amis", rsvpStatus: "confirmed", accessCode: "LEA2026", isActive: true }),
 ]

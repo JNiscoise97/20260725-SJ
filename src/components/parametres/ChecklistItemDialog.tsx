@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Basse",
@@ -69,17 +70,22 @@ export function ChecklistItemDialog({ item, checklistId }: ChecklistItemDialogPr
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {item ? (
-          <Button variant="ghost" size="icon-xs" aria-label="Modifier l'item">
-            <Pencil className="size-3.5" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon-xs" aria-label="Ajouter un item">
-            <Plus className="size-3.5" />
-          </Button>
-        )}
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            {item ? (
+              <Button variant="ghost" size="icon-xs" aria-label="Modifier l'item">
+                <Pencil className="size-3.5" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon-xs" aria-label="Ajouter un item">
+                <Plus className="size-3.5" />
+              </Button>
+            )}
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{item ? "Modifier l'item" : "Ajouter un item"}</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-heading">{item ? "Modifier l'item" : "Nouvel item"}</DialogTitle>

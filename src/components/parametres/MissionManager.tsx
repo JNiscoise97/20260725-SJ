@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const NONE = "__none__"
 
@@ -61,18 +62,29 @@ export function MissionDialog({ mission, initialDomaineId }: { mission?: Mission
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {mission ? (
-          <Button variant="ghost" size="icon-xs" aria-label="Modifier">
-            <Pencil className="size-3.5" />
-          </Button>
-        ) : (
-          <Button size="sm">
-            <Plus className="size-4" />
-            Nouvelle mission
-          </Button>
-        )}
-      </DialogTrigger>
+      {mission ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon-xs" aria-label="Modifier">
+                <Pencil className="size-3.5" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Modifier</TooltipContent>
+        </Tooltip>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon-xs" aria-label="Ajouter une mission">
+                <Plus className="size-3.5" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Ajouter une mission</TooltipContent>
+        </Tooltip>
+      )}
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-heading">{mission ? "Modifier la mission" : "Nouvelle mission"}</DialogTitle>

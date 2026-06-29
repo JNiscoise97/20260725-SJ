@@ -4,6 +4,15 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/fraunces";
 
+@font-face {
+    font-family: 'Nickainley';
+    src: url('/fonts/Nickainley/Commercial/WEB/Nickainley-Normal.woff2') format('woff2'),
+         url('/fonts/Nickainley/Commercial/WEB/Nickainley-Normal.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

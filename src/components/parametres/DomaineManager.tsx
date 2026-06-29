@@ -1,23 +1,15 @@
 import { useState } from "react"
-import { Pencil, Plus, User, X } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { useCreateDomaine, useUpdateDomaine } from "@/hooks/queries/use-domaines"
 import { usePoles } from "@/hooks/queries/use-poles"
 import { usePeople } from "@/hooks/queries/use-people"
-import { useGuests } from "@/hooks/queries/use-guests"
-import {
-  useCreateDomaineResponsable,
-  useDeleteDomaineResponsable,
-  useDomaineResponsables,
-} from "@/hooks/queries/use-domaine-responsables"
-import type { Domaine, DomaineResponsable, DomainePhase, PlanningMilestone } from "@/types/domain"
+import type { Domaine, DomainePhase, PlanningMilestone } from "@/types/domain"
 import { MILESTONE_LABELS, MILESTONE_ORDER, DOMAINE_PHASE_LABELS, DOMAINE_PHASE_ORDER } from "@/lib/constants"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -28,7 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ResponsablePicker } from "@/components/parametres/ResponsablePicker"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const NONE = "__none__"
 
@@ -76,17 +68,22 @@ export function DomaineDialog({ domaine, initialPoleId }: { domaine?: Domaine; i
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {domaine ? (
-          <Button variant="ghost" size="icon-xs" aria-label="Modifier">
-            <Pencil className="size-3.5" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon-xs" aria-label="Ajouter un domaine">
-            <Plus className="size-3.5" />
-          </Button>
-        )}
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            {domaine ? (
+              <Button variant="ghost" size="icon-xs" aria-label="Modifier">
+                <Pencil className="size-3.5" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon-xs" aria-label="Ajouter un domaine">
+                <Plus className="size-3.5" />
+              </Button>
+            )}
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{domaine ? "Modifier" : "Ajouter un domaine"}</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-heading">{domaine ? "Modifier le domaine" : "Nouveau domaine"}</DialogTitle>
@@ -182,91 +179,6 @@ export function DomaineDialog({ domaine, initialPoleId }: { domaine?: Domaine; i
           </Button>
           <Button onClick={handleSubmit}>{domaine ? "Enregistrer" : "Créer"}</Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/**
- * Pastilles inline affichées directement sur la ligne du domaine dans
- * ParametresTree : le principal en premier, les secondaires ensuite, chacune
- * avec un bouton x pour retirer cette personne du domaine sans ouvrir de popup.
- */
-export function ResponsablePills({ responsables }: { responsables: DomaineResponsable[] }) {
-  const { data: people } = usePeople()
-  const { data: guests } = useGuests()
-  const deleteResponsable = useDeleteDomaineResponsable()
-
-  function nameFor(r: DomaineResponsable) {
-    if (r.personId) return people?.find((p) => p.id === r.personId)?.fullName ?? "Fiancé(e)"
-    return guests?.find((g) => g.id === r.guestId)?.fullName ?? "Invité"
-  }
-
-  const sorted = [...responsables].sort((a, b) => {
-    if (a.rank === b.rank) return 0
-    return a.rank === "principal" ? -1 : 1
-  })
-
-  if (sorted.length === 0) return null
-
-  return (
-    <div className="flex items-center gap-1">
-      {sorted.map((r) => (
-        <Badge
-          key={r.id}
-          className={cn(
-            "flex items-center gap-1 pr-0.5",
-            r.rank === "principal" ? "bg-dore/30 text-brun" : "bg-muted text-muted-foreground"
-          )}
-        >
-          {nameFor(r)}
-          <button
-            type="button"
-            aria-label={`Retirer ${nameFor(r)}`}
-            onClick={() => deleteResponsable.mutate(r.id)}
-            className="rounded-full p-0.5 hover:bg-black/10"
-          >
-            <X className="size-3" />
-          </button>
-        </Badge>
-      ))}
-    </div>
-  )
-}
-
-export function DomaineResponsablesDialog({ domaine }: { domaine: Domaine }) {
-  const [open, setOpen] = useState(false)
-  const { data: responsables } = useDomaineResponsables()
-  const domaineResponsables = (responsables ?? []).filter((r) => r.domaineId === domaine.id)
-  const createResponsable = useCreateDomaineResponsable()
-
-  async function handleAdd(selection: { personId?: string | null; guestId?: string | null }) {
-    await createResponsable.mutateAsync({
-      domaineId: domaine.id,
-      rank: domaineResponsables.length === 0 ? "principal" : "secondaire",
-      ...selection,
-    })
-    toast.success("Responsable assigné.")
-    setOpen(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon-xs" aria-label="Assigner un responsable">
-          <User className="size-3.5" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="font-heading">Assigner un responsable — {domaine.name}</DialogTitle>
-        </DialogHeader>
-        <ResponsablePicker
-          placeholder="Choisir un responsable..."
-          excludePersonIds={domaineResponsables.map((r) => r.personId).filter((id): id is string => !!id)}
-          excludeGuestIds={domaineResponsables.map((r) => r.guestId).filter((id): id is string => !!id)}
-          onSelect={handleAdd}
-        />
       </DialogContent>
     </Dialog>
   )

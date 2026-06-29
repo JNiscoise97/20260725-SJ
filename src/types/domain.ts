@@ -32,12 +32,16 @@ export interface Identity {
   mealChoice?: MealChoice | null
   dietaryConstraints?: string | null
   allergies?: string | null
+  /** Toujours `undefined` pour un fiancé (Person) — seuls les invités (Guest) ont une page d'introduction à voir. */
+  introductionSeen?: boolean
 }
 
 export interface Pole {
   id: string
   name: string
   sortOrder: number
+  /** Responsable global de tout le pôle — uniquement un fiancé, voir 0042_poles_responsible_person.sql. */
+  responsiblePersonId?: string | null
 }
 
 export type DomainePhase = "avant" | "installation" | "jour_j" | "desinstallation" | "apres"
@@ -205,6 +209,8 @@ export interface Guest {
   isActive?: boolean
   /** A déjà vu la page Introduction (mot de Sarah & Jordan) lors d'une connexion précédente. */
   introductionSeen?: boolean
+  /** Proposé comme candidat responsable de domaine dans Paramètres — voir 0043_guests_assignable.sql. */
+  assignable: boolean
 }
 
 export interface Prestataire {

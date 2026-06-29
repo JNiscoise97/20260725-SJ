@@ -19,6 +19,8 @@ export interface GuestsService {
   /** Pour l'identité composée (voir identity.service.ts) : tout invité actif avec un code valide peut se connecter. */
   resolveByAccessCode(code: string): Promise<Guest | null>
   getById(id: string): Promise<Guest | null>
+  /** Repasse `introductionSeen` à false pour tous les invités — voir ParametresPage. */
+  resetIntroductionSeenForAll(): Promise<void>
 }
 
 const guestGroupsTable = createMockTable<GuestGroup>("sj-guest-groups", guestGroupsSeed)
@@ -58,6 +60,10 @@ const guestsMockService: GuestsService = {
   },
   async getById(id) {
     return guestsTable.getById(id)
+  },
+  async resetIntroductionSeenForAll() {
+    const guests = await guestsTable.getAll()
+    await Promise.all(guests.map((g) => guestsTable.update(g.id, { introductionSeen: false })))
   },
 }
 

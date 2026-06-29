@@ -148,6 +148,7 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
   const [isChild, setIsChild] = useState(guest.isChild)
   const [childAge, setChildAge] = useState(guest.childAge != null ? String(guest.childAge) : "")
   const [isReducedMobility, setIsReducedMobility] = useState(guest.isReducedMobility)
+  const [assignable, setAssignable] = useState(guest.assignable)
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>(guest.rsvpStatus)
   const [rsvpRespondedAt, setRsvpRespondedAt] = useState(guest.rsvpRespondedAt ?? "")
   const [rsvpChannel, setRsvpChannel] = useState(guest.rsvpChannel ?? "")
@@ -191,6 +192,7 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
         isChild,
         childAge: isChild && childAge.trim() ? Number(childAge) : null,
         isReducedMobility,
+        assignable,
         rsvpStatus,
         rsvpRespondedAt: rsvpRespondedAt || null,
         rsvpChannel: rsvpChannel.trim() || null,
@@ -304,6 +306,9 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
           </EditField>
           <EditField label="Mobilité réduite / personne âgée" htmlFor="edit-reduced-mobility">
             <Switch id="edit-reduced-mobility" checked={isReducedMobility} onCheckedChange={setIsReducedMobility} />
+          </EditField>
+          <EditField label="Candidat responsable de domaine" htmlFor="edit-assignable">
+            <Switch id="edit-assignable" checked={assignable} onCheckedChange={setAssignable} />
           </EditField>
         </Section>
 
@@ -540,6 +545,7 @@ export function GuestDetailPage() {
                 label="Mobilité réduite / personne âgée"
                 value={guest.isReducedMobility ? <YesNo value={true} /> : null}
               />
+              <Field label="Candidat responsable de domaine" value={<YesNo value={guest.assignable} />} />
             </Section>
 
             <Section title="RSVP">

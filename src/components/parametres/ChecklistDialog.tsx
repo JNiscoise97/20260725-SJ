@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 const NONE = "__none__"
 
@@ -50,17 +51,22 @@ export function ChecklistDialog({ checklist, ownerType, ownerId }: ChecklistDial
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {checklist ? (
-          <Button variant="ghost" size="icon-xs" aria-label="Modifier la checklist">
-            <Pencil className="size-3.5" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon-xs" aria-label="Ajouter une checklist">
-            <Plus className="size-3.5" />
-          </Button>
-        )}
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            {checklist ? (
+              <Button variant="ghost" size="icon-xs" aria-label="Modifier la checklist">
+                <Pencil className="size-3.5" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon-xs" aria-label="Ajouter une checklist">
+                <Plus className="size-3.5" />
+              </Button>
+            )}
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{checklist ? "Modifier la checklist" : "Ajouter une checklist"}</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-heading">{checklist ? "Modifier la checklist" : "Nouvelle checklist"}</DialogTitle>

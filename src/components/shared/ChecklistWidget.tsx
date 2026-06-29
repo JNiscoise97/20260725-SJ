@@ -60,7 +60,7 @@ function SingleChecklist({
                 })
               }
             >
-              <SelectTrigger size="sm" className="h-6 w-32 border-dashed text-xs">
+              <SelectTrigger size="sm" className="h-6 w-44 border-dashed text-xs">
                 <SelectValue placeholder="Assigner..." />
               </SelectTrigger>
               <SelectContent>

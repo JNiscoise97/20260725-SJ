@@ -13,16 +13,18 @@ const PARAGRAPHS = [
 ]
 
 export function IntroductionPage() {
-  const { person } = useIdentity()
+  const { person, patchPerson } = useIdentity()
   const firstName = person?.fullName.split(" ")[0] ?? ""
   const updateGuest = useUpdateGuest()
 
-  // Cette page n'est accessible qu'aux référents (voir RoleGuard sur la
-  // route), qui sont toujours portés par une ligne _20260725_guests —
-  // person.id y correspond donc directement (voir identity.service.ts).
+  // Accessible aux référents et aux invités simples (voir ProtectedLayout,
+  // qui force ce passage tant que introductionSeen est faux) — jamais aux
+  // fiancés, qui sont toujours portés par une ligne _20260725_guests, donc
+  // person.id y correspond directement (voir identity.service.ts).
   useEffect(() => {
-    if (!person || person.role !== "referent") return
+    if (!person || person.role === "fiance" || person.introductionSeen) return
     updateGuest.mutate({ id: person.id, patch: { introductionSeen: true } })
+    patchPerson({ introductionSeen: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person?.id])
 

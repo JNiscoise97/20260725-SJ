@@ -61,7 +61,7 @@ const REFERENT_CAPABILITIES: Capability[] = [
   "view:prestataires",
 ]
 
-const INVITE_CAPABILITIES: Capability[] = []
+const INVITE_CAPABILITIES: Capability[] = ["view:introduction"]
 
 export const PERMISSIONS: Record<AppRole, ReadonlySet<Capability>> = {
   fiance: new Set(FIANCE_CAPABILITIES),

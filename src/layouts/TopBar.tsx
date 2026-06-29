@@ -19,7 +19,13 @@ export function TopBar() {
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur lg:px-8">
-      <span className="font-heading text-base font-medium text-foreground">{label}</span>
+      <span
+        className="text-2xl font-normal lg:hidden"
+        style={{ fontFamily: "'Nickainley', serif", color: "#7a272c" }}
+      >
+        Sarah &amp; Jordan
+      </span>
+      <span className="hidden font-heading text-base font-medium text-foreground lg:inline">{label}</span>
       <Button variant="ghost" size="sm" onClick={logout} aria-label="Déconnexion">
         <LogOut className="size-4" />
         <span className="hidden sm:inline">Déconnexion</span>

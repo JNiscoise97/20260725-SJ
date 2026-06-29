@@ -34,3 +34,11 @@ export function useDeleteGuest() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["guests"] }),
   })
 }
+
+export function useResetIntroductionSeenForAll() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => guestsService.resetIntroductionSeenForAll(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["guests"] }),
+  })
+}

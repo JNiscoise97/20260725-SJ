@@ -25,6 +25,25 @@ export function useUpdatePole() {
   })
 }
 
+/** Réordonnement par drag-and-drop : met à jour le cache immédiatement (sinon la liste "rebondit" le temps de l'aller-retour réseau), puis persiste en arrière-plan. */
+export function useReorderPoles() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (poles: Pole[]) =>
+      Promise.all(poles.map((p) => polesService.update(p.id, { sortOrder: p.sortOrder }))),
+    onMutate: async (poles) => {
+      await queryClient.cancelQueries({ queryKey: POLES_KEY })
+      const previous = queryClient.getQueryData<Pole[]>(POLES_KEY)
+      queryClient.setQueryData<Pole[]>(POLES_KEY, poles)
+      return { previous }
+    },
+    onError: (_err, _poles, context) => {
+      if (context?.previous) queryClient.setQueryData(POLES_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: POLES_KEY }),
+  })
+}
+
 export function useDeletePole() {
   const queryClient = useQueryClient()
   return useMutation({

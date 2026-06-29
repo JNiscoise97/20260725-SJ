@@ -30,6 +30,7 @@ type PoleRow = {
   id: string
   name: string
   sort_order: number
+  responsible_person_id: string | null
   created_at: string
 }
 
@@ -218,6 +219,7 @@ type GuestRow = {
   access_code: string | null
   is_active: boolean
   introduction_seen: boolean
+  assignable: boolean
   created_at: string
 }
 
@@ -305,7 +307,7 @@ type NotificationLogRow = {
 export interface Database {
   public: {
     Tables: {
-      _20260725_poles: TableDef<PoleRow, "id" | "sort_order" | "created_at">
+      _20260725_poles: TableDef<PoleRow, "id" | "sort_order" | "responsible_person_id" | "created_at">
       _20260725_domaines: TableDef<
         DomaineRow,
         | "id"
@@ -424,6 +426,7 @@ export interface Database {
         | "access_code"
         | "is_active"
         | "introduction_seen"
+        | "assignable"
         | "created_at"
       >
       _20260725_prestataires: TableDef<

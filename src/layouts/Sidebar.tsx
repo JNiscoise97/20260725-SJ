@@ -1,5 +1,4 @@
 import { NavLink } from "react-router-dom"
-import { HeartHandshake } from "lucide-react"
 
 import { NAV_ITEMS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
@@ -12,8 +11,10 @@ export function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
       <div className="flex items-center gap-2 px-6 py-6">
-        <HeartHandshake className="size-6 text-sidebar-primary" />
-        <span className="font-heading text-lg font-semibold text-sidebar-foreground">
+        <span
+          className="text-3xl font-normal"
+          style={{ fontFamily: "'Nickainley', serif", color: "#7a272c" }}
+        >
           Sarah &amp; Jordan
         </span>
       </div>

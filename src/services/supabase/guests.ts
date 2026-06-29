@@ -47,6 +47,7 @@ function toGuest(row: {
   notes: string | null
   is_active: boolean
   introduction_seen: boolean
+  assignable: boolean
 }): Guest {
   return {
     id: row.id,
@@ -91,6 +92,7 @@ function toGuest(row: {
     accessCode: "",
     isActive: row.is_active,
     introductionSeen: row.introduction_seen,
+    assignable: row.assignable,
   }
 }
 
@@ -153,6 +155,7 @@ export const guestsSupabaseService: GuestsService = {
       notes: string | null
       is_active: boolean
       introduction_seen: boolean
+      assignable: boolean
     }> = {}
     if (patch.groupId !== undefined) row.group_id = patch.groupId
     if (patch.firstName !== undefined) row.first_name = patch.firstName
@@ -191,6 +194,7 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.notes !== undefined) row.notes = patch.notes
     if (patch.isActive !== undefined) row.is_active = patch.isActive
     if (patch.introductionSeen !== undefined) row.introduction_seen = patch.introductionSeen
+    if (patch.assignable !== undefined) row.assignable = patch.assignable
     if (Object.keys(row).length > 0) {
       const { error } = await db.from("_20260725_guests").update(row).eq("id", id)
       if (error) throw error
@@ -220,5 +224,12 @@ export const guestsSupabaseService: GuestsService = {
     const { data, error } = await db.from("_20260725_guests").select("*").eq("id", id).maybeSingle()
     if (error) throw error
     return data ? toGuest(data) : null
+  },
+  async resetIntroductionSeenForAll() {
+    const { error } = await db
+      .from("_20260725_guests")
+      .update({ introduction_seen: false })
+      .not("id", "is", null)
+    if (error) throw error
   },
 }

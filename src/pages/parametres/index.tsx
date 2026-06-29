@@ -7,6 +7,7 @@ import { EventConfigForm } from "@/components/parametres/EventConfigForm"
 import { ParametresTree } from "@/components/parametres/ParametresTree"
 import { SeatingTablesManager } from "@/components/parametres/SeatingTablesManager"
 import { PersonManager } from "@/components/parametres/PersonManager"
+import { ResetIntroductionSeenButton } from "@/components/parametres/ResetIntroductionSeenButton"
 
 export function ParametresPage() {
   return (
@@ -15,12 +16,15 @@ export function ParametresPage() {
         title="Paramètres"
         description="Pôles, domaines, missions, personnes et configuration de l'événement."
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/parametres/revue-contenu">
-              <ClipboardCheck className="size-4" />
-              Revue de contenu
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ResetIntroductionSeenButton />
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/parametres/revue-contenu">
+                <ClipboardCheck className="size-4" />
+                Revue de contenu
+              </Link>
+            </Button>
+          </div>
         }
       />
 
