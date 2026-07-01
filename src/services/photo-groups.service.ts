@@ -1,6 +1,7 @@
-import type { PhotoGroup, PhotoGroupMember } from "@/types/domain"
+import type { PhotoGroup, PhotoGroupMember, PhotoSession } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { photoGroupsSeed, photoGroupMembersSeed } from "@/services/mock/data/photo-groups"
+import { photoSessionsSeed } from "@/services/mock/data/photo-sessions"
 import { photoGroupsSupabaseService } from "@/services/supabase/photo-groups"
 import { USE_SUPABASE } from "@/supabase/client"
 
@@ -17,10 +18,22 @@ export interface PhotoGroupsService {
 
 const photoGroupsTable = createMockTable<PhotoGroup>("sj-photo-groups", photoGroupsSeed)
 const photoGroupMembersTable = createMockTable<PhotoGroupMember>("sj-photo-group-members", photoGroupMembersSeed)
+const photoSessionsTable = createMockTable<PhotoSession>("sj-photo-sessions", photoSessionsSeed)
+
+/** Rattrapage local : les groupes créés en localStorage avant l'introduction des séances n'ont pas de sessionId — on les bascule dans une séance par défaut, créée à la volée si besoin. */
+async function ensureGroupsHaveSession(groups: PhotoGroup[]): Promise<PhotoGroup[]> {
+  const orphans = groups.filter((g) => !g.sessionId)
+  if (orphans.length === 0) return groups
+  const sessions = await photoSessionsTable.getAll()
+  const defaultSession =
+    sessions[0] ?? (await photoSessionsTable.insert({ id: crypto.randomUUID(), label: "Séance", sortOrder: 0 }))
+  await Promise.all(orphans.map((g) => photoGroupsTable.update(g.id, { sessionId: defaultSession.id })))
+  return photoGroupsTable.getAll()
+}
 
 const photoGroupsMockService: PhotoGroupsService = {
   async listGroups() {
-    return photoGroupsTable.getAll()
+    return ensureGroupsHaveSession(await photoGroupsTable.getAll())
   },
   async createGroup(input) {
     return photoGroupsTable.insert({ ...input, id: crypto.randomUUID() })
@@ -37,7 +50,7 @@ const photoGroupsMockService: PhotoGroupsService = {
     return photoGroupMembersTable.getAll()
   },
   async addMember(photoGroupId, guestId) {
-    return photoGroupMembersTable.insert({ id: crypto.randomUUID(), photoGroupId, guestId, isPresent: false })
+    return photoGroupMembersTable.insert({ id: crypto.randomUUID(), photoGroupId, guestId, isPresent: true })
   },
   async removeMember(id) {
     await photoGroupMembersTable.remove(id)

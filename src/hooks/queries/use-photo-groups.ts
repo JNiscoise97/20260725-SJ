@@ -38,12 +38,18 @@ export function useDeletePhotoGroup() {
   })
 }
 
-/** Réordonnement par drag-and-drop : optimiste pour un retour visuel immédiat — même pattern que useReorderPoles. */
+/**
+ * Réordonnement par drag-and-drop : optimiste pour un retour visuel immédiat — même pattern que useReorderPoles.
+ * Patche aussi `sessionId` (pas seulement `sortOrder`) pour pouvoir déplacer un groupe d'une séance à l'autre dans
+ * le même geste — un no-op pour les groupes dont la séance n'a pas changé.
+ */
 export function useReorderPhotoGroups() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (groups: PhotoGroup[]) =>
-      Promise.all(groups.map((g) => photoGroupsService.updateGroup(g.id, { sortOrder: g.sortOrder }))),
+      Promise.all(
+        groups.map((g) => photoGroupsService.updateGroup(g.id, { sortOrder: g.sortOrder, sessionId: g.sessionId }))
+      ),
     onMutate: async (groups) => {
       await queryClient.cancelQueries({ queryKey: GROUPS_KEY })
       const previous = queryClient.getQueryData<PhotoGroup[]>(GROUPS_KEY)

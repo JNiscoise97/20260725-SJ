@@ -10,6 +10,8 @@ export interface MealAttendee {
   mealChoice?: MealChoice | null
   dietaryConstraints?: string | null
   allergies?: string | null
+  /** Groupe/famille de l'invité (`null` pour fiancés et prestataires) — utilisé par la vue "Par groupe". */
+  groupId?: string | null
 }
 
 export function guestsToAttendees(guests: Guest[]): MealAttendee[] {
@@ -23,6 +25,7 @@ export function guestsToAttendees(guests: Guest[]): MealAttendee[] {
       mealChoice: g.mealChoice,
       dietaryConstraints: g.dietaryConstraints,
       allergies: g.allergies,
+      groupId: g.groupId,
     }))
 }
 

@@ -2,7 +2,6 @@ import {
   Heart,
   UserCheck,
   Home,
-  CheckSquare,
   ListChecks,
   ListTree,
   Users,
@@ -19,11 +18,13 @@ import {
   Settings,
   Camera,
   DoorOpen,
+  Luggage,
+  Package,
   type LucideIcon,
 } from "lucide-react"
 
 import type { Capability } from "@/types/permissions"
-import type { DomainePhase, PlanningMilestone } from "@/types/domain"
+import type { AppRole, DomainePhase, PlanningMilestone } from "@/types/domain"
 
 export const EVENT_NAME = "Fiançailles de Sarah & Jordan"
 
@@ -34,14 +35,21 @@ export interface NavItem {
   path: string
   icon: LucideIcon
   capability: Capability
+  /** Restreint l'affichage dans la nav à ces rôles, en plus de `capability` — la route reste accessible aux autres rôles (ex. "/" reste la cible de repli de RoleGuard), seul l'onglet est masqué. */
+  visibleToRoles?: AppRole[]
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Introduction", path: "/introduction", icon: Heart, capability: "view:introduction" },
   { label: "Rôle", path: "/ma-mission", icon: UserCheck, capability: "view:role" },
-  { label: "Tableau de bord", path: "/", icon: Home, capability: "view:dashboard" },
-  { label: "Tâches", path: "/taches", icon: CheckSquare, capability: "view:tasks" },
-  { label: "Missions", path: "/missions", icon: ListChecks, capability: "view:missions" },
+  { label: "Tableau de bord", path: "/", icon: Home, capability: "view:dashboard", visibleToRoles: ["fiance"] },
+  {
+    label: "Missions",
+    path: "/missions",
+    icon: ListChecks,
+    capability: "view:missions",
+    visibleToRoles: ["fiance"],
+  },
   { label: "Assignations", path: "/assignations", icon: ListTree, capability: "view:assignations" },
   { label: "Référents", path: "/referents", icon: Users, capability: "view:referents" },
   { label: "Planning", path: "/planning", icon: CalendarRange, capability: "view:planning" },
@@ -50,6 +58,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Accueil", path: "/accueil", icon: DoorOpen, capability: "view:accueil" },
   { label: "Logistique", path: "/logistique", icon: Truck, capability: "view:logistique" },
   { label: "Nourriture", path: "/nourriture", icon: Utensils, capability: "view:nourriture" },
+  { label: "Matériel", path: "/materiel", icon: Package, capability: "view:materiel" },
+  { label: "Séjour", path: "/sejour", icon: Luggage, capability: "view:sejour" },
   { label: "Invités", path: "/invites", icon: Armchair, capability: "view:guests" },
   { label: "Plan de table", path: "/plan-table", icon: LayoutGrid, capability: "view:guests" },
   { label: "Liste des enfants", path: "/enfants", icon: Baby, capability: "view:guests" },

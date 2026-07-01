@@ -11,6 +11,7 @@ import { GuestGroupsManager } from "@/components/parametres/GuestGroupsManager"
 import { PersonManager } from "@/components/parametres/PersonManager"
 import { ResetIntroductionSeenButton } from "@/components/parametres/ResetIntroductionSeenButton"
 import { ResetCheckInsButton } from "@/components/parametres/ResetCheckInsButton"
+import { EquipmentManager } from "@/components/parametres/EquipmentManager"
 
 export function ParametresPage() {
   return (
@@ -36,6 +37,7 @@ export function ParametresPage() {
       <ParametresTree />
       <PhotoGroupsManager />
       <GuestGroupsManager />
+      <EquipmentManager />
       <SeatingTablesManager />
       <PersonManager />
     </div>

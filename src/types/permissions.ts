@@ -4,8 +4,6 @@ export type Capability =
   | "view:introduction"
   | "view:role"
   | "view:dashboard"
-  | "view:tasks"
-  | "manage:tasks"
   | "view:missions"
   | "view:assignations"
   | "view:referents"
@@ -19,6 +17,8 @@ export type Capability =
   | "view:guests"
   | "manage:guests"
   | "view:nourriture"
+  | "view:materiel"
+  | "view:sejour"
   | "view:documents"
   | "manage:documents"
   | "view:prestataires"
@@ -29,8 +29,6 @@ export type Capability =
 
 const FIANCE_CAPABILITIES: Capability[] = [
   "view:dashboard",
-  "view:tasks",
-  "manage:tasks",
   "view:missions",
   "view:assignations",
   "view:referents",
@@ -44,6 +42,8 @@ const FIANCE_CAPABILITIES: Capability[] = [
   "view:guests",
   "manage:guests",
   "view:nourriture",
+  "view:materiel",
+  "view:sejour",
   "view:documents",
   "manage:documents",
   "view:prestataires",
@@ -57,7 +57,6 @@ const REFERENT_CAPABILITIES: Capability[] = [
   "view:introduction",
   "view:role",
   "view:dashboard",
-  "view:tasks",
   "view:missions",
   "view:referents",
   "view:planning",

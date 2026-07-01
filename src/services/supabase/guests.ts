@@ -17,7 +17,12 @@ function toGuest(row: {
   dietary_constraints: string | null
   meal_choice: Guest["mealChoice"] | null
   arrival_info: string | null
+  departure_info: string | null
   accommodation: string | null
+  accommodation_type: Guest["accommodationType"] | null
+  travel_mode: Guest["travelMode"] | null
+  attending_parents_anniversary: boolean
+  attending_montpellier_visit: boolean
   has_vehicle: boolean
   needs_late_transport: boolean
   is_reduced_mobility: boolean
@@ -62,7 +67,12 @@ function toGuest(row: {
     dietaryConstraints: row.dietary_constraints,
     mealChoice: row.meal_choice,
     arrivalInfo: row.arrival_info,
+    departureInfo: row.departure_info,
     accommodation: row.accommodation,
+    accommodationType: row.accommodation_type,
+    travelMode: row.travel_mode,
+    attendingParentsAnniversary: row.attending_parents_anniversary,
+    attendingMontpellierVisit: row.attending_montpellier_visit,
     hasVehicle: row.has_vehicle,
     needsLateTransport: row.needs_late_transport,
     isReducedMobility: row.is_reduced_mobility,
@@ -155,7 +165,12 @@ export const guestsSupabaseService: GuestsService = {
       dietary_constraints: string | null
       meal_choice: Guest["mealChoice"] | null
       arrival_info: string | null
+      departure_info: string | null
       accommodation: string | null
+      accommodation_type: Guest["accommodationType"] | null
+      travel_mode: Guest["travelMode"] | null
+      attending_parents_anniversary: boolean
+      attending_montpellier_visit: boolean
       has_vehicle: boolean
       needs_late_transport: boolean
       is_reduced_mobility: boolean
@@ -197,7 +212,14 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.dietaryConstraints !== undefined) row.dietary_constraints = patch.dietaryConstraints
     if (patch.mealChoice !== undefined) row.meal_choice = patch.mealChoice
     if (patch.arrivalInfo !== undefined) row.arrival_info = patch.arrivalInfo
+    if (patch.departureInfo !== undefined) row.departure_info = patch.departureInfo
     if (patch.accommodation !== undefined) row.accommodation = patch.accommodation
+    if (patch.accommodationType !== undefined) row.accommodation_type = patch.accommodationType
+    if (patch.travelMode !== undefined) row.travel_mode = patch.travelMode
+    if (patch.attendingParentsAnniversary !== undefined)
+      row.attending_parents_anniversary = patch.attendingParentsAnniversary
+    if (patch.attendingMontpellierVisit !== undefined)
+      row.attending_montpellier_visit = patch.attendingMontpellierVisit
     if (patch.hasVehicle !== undefined) row.has_vehicle = patch.hasVehicle
     if (patch.needsLateTransport !== undefined) row.needs_late_transport = patch.needsLateTransport
     if (patch.isReducedMobility !== undefined) row.is_reduced_mobility = patch.isReducedMobility

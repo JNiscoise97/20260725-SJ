@@ -6,19 +6,23 @@ const db = supabase!
 
 function toPhotoGroup(row: {
   id: string
+  session_id: string
   label: string
   sort_order: number
   is_priority: boolean
   status: PhotoGroup["status"]
   notes: string | null
+  required_fiance_ids: string[]
 }): PhotoGroup {
   return {
     id: row.id,
+    sessionId: row.session_id,
     label: row.label,
     sortOrder: row.sort_order,
     isPriority: row.is_priority,
     status: row.status,
     notes: row.notes,
+    requiredFianceIds: row.required_fiance_ids,
   }
 }
 
@@ -37,20 +41,24 @@ function toPhotoGroupMember(row: {
 }
 
 type PhotoGroupRowPatch = Partial<{
+  session_id: string
   label: string
   sort_order: number
   is_priority: boolean
   status: PhotoGroup["status"]
   notes: string | null
+  required_fiance_ids: string[]
 }>
 
 function toPhotoGroupRow(input: Partial<PhotoGroup>): PhotoGroupRowPatch {
   const row: PhotoGroupRowPatch = {}
+  if (input.sessionId !== undefined) row.session_id = input.sessionId
   if (input.label !== undefined) row.label = input.label
   if (input.sortOrder !== undefined) row.sort_order = input.sortOrder
   if (input.isPriority !== undefined) row.is_priority = input.isPriority
   if (input.status !== undefined) row.status = input.status
   if (input.notes !== undefined) row.notes = input.notes ?? null
+  if (input.requiredFianceIds !== undefined) row.required_fiance_ids = input.requiredFianceIds
   return row
 }
 
@@ -61,7 +69,7 @@ export const photoGroupsSupabaseService: PhotoGroupsService = {
     return (data ?? []).map(toPhotoGroup)
   },
   async createGroup(input) {
-    const row = toPhotoGroupRow(input) as PhotoGroupRowPatch & { label: string }
+    const row = toPhotoGroupRow(input) as PhotoGroupRowPatch & { label: string; session_id: string }
     const { data, error } = await db.from("_20260725_photo_groups").insert(row).select("*").single()
     if (error) throw error
     return toPhotoGroup(data)

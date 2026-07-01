@@ -3,6 +3,7 @@ import { toast } from "sonner"
 
 import { useCreatePrestataire, useDeletePrestataire, useUpdatePrestataire } from "@/hooks/queries/use-prestataires"
 import type { MealChoice, Prestataire } from "@/types/domain"
+import { MEAL_CHOICE_LABELS } from "@/lib/meal-choice"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -18,8 +19,6 @@ import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const NONE = "__none__"
-
-const MEAL_LABELS: Record<MealChoice, string> = { poulet: "Poulet", poisson: "Poisson", enfant: "Menu enfant" }
 
 function formFromPrestataire(prestataire?: Prestataire | null) {
   return prestataire
@@ -138,9 +137,9 @@ function PrestataireForm({ prestataire, onClose }: PrestataireFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Non renseigné</SelectItem>
-                  {(Object.keys(MEAL_LABELS) as MealChoice[]).map((value) => (
+                  {(Object.keys(MEAL_CHOICE_LABELS) as MealChoice[]).map((value) => (
                     <SelectItem key={value} value={value}>
-                      {MEAL_LABELS[value]}
+                      {MEAL_CHOICE_LABELS[value]}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -43,15 +43,13 @@ export function ReferentsPage() {
     return map
   }, [checklists])
 
-  // Un référent connecté ne voit que sa propre fiche.
-  const visibleEntries = useMemo(() => {
-    if (person?.role === "referent") {
-      return entries.filter((entry) => entry.identity.id === person.id)
-    }
-    return entries
-  }, [entries, person])
+  // Les fiancés ne sont pas des référents : on les exclut même s'ils sont responsables d'un domaine.
+  // Tout référent connecté voit désormais tous les référents (titre/statut de mission uniquement,
+  // sans description ni checklist — voir showMissionDetails), pas seulement sa propre fiche.
+  const visibleEntries = useMemo(() => entries.filter((entry) => entry.identity.role !== "fiance"), [entries])
 
   const fiances = useMemo(() => (people ?? []).filter((p) => p.role === "fiance"), [people])
+  const showMissionDetails = person?.role === "fiance"
 
   return (
     <div className="space-y-6">
@@ -92,6 +90,7 @@ export function ReferentsPage() {
                 contacts={fiances}
                 documents={entryDocuments}
                 openItemCount={openItemCount}
+                showMissionDetails={showMissionDetails}
               />
             )
           })}

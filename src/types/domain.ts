@@ -156,9 +156,13 @@ export interface LogistiqueItem {
 
 export type RsvpStatus = "pending" | "confirmed" | "declined"
 
-export type MealChoice = "poulet" | "poisson" | "enfant"
+export type MealChoice = "poulet" | "poisson" | "enfant_poulet" | "enfant_poisson"
 
 export type GuestSide = "sarah" | "jordan"
+
+export type AccommodationType = "quartier" | "hotel" | "airbnb"
+
+export type TravelMode = "train" | "avion" | "voiture" | "bus"
 
 export interface GuestGroup {
   id: string
@@ -178,7 +182,17 @@ export interface Guest {
   dietaryConstraints?: string | null
   mealChoice?: MealChoice | null
   arrivalInfo?: string | null
+  /** Jour/heure de départ de Montpellier, en complément de `arrivalInfo` — voir 0053_guests_sejour_fields.sql. */
+  departureInfo?: string | null
   accommodation?: string | null
+  /** Catégorie d'hébergement (le détail reste dans `accommodation`) — voir 0053_guests_sejour_fields.sql. */
+  accommodationType?: AccommodationType | null
+  /** Moyen de transport pour venir à Montpellier (distinct de `hasVehicle`, qui concerne la mobilité sur place) — voir 0053_guests_sejour_fields.sql. */
+  travelMode?: TravelMode | null
+  /** Présence à l'anniversaire de mariage des parents, vendredi soir — voir 0053_guests_sejour_fields.sql. */
+  attendingParentsAnniversary: boolean
+  /** Présence à la visite de Montpellier, vendredi soir — voir 0053_guests_sejour_fields.sql. */
+  attendingMontpellierVisit: boolean
   hasVehicle: boolean
   needsLateTransport: boolean
   isReducedMobility: boolean
@@ -223,14 +237,23 @@ export interface Guest {
 
 export type PhotoGroupStatus = "pending" | "done" | "skipped"
 
-/** Un groupe de photo de mariage : les fiancés sont implicitement sur chaque photo, `label` décrit le reste du groupe (ex. "Famille proche de Sarah") — voir 0046_photo_groups.sql. */
+/** Une séance photo (ex. "Avant cérémonie", "Cocktail") — purement organisationnelle, juste un nom et un ordre, voir 0052_photo_sessions.sql. Chaque groupe de photo appartient à une séance et son `sortOrder` est scopé à celle-ci. */
+export interface PhotoSession {
+  id: string
+  label: string
+  sortOrder: number
+}
+
+/** Un groupe de photo de mariage : `label` décrit le reste du groupe attendu (ex. "Famille proche de Sarah") — voir 0046_photo_groups.sql. `requiredFianceIds` liste les fiancés requis sur la photo ; un tableau vide signifie "tous les fiancés" (comportement historique, voir 0051_photo_groups_required_fiances.sql). `sortOrder` est scopé à `sessionId`, pas global. */
 export interface PhotoGroup {
   id: string
+  sessionId: string
   label: string
   sortOrder: number
   isPriority: boolean
   status: PhotoGroupStatus
   notes?: string | null
+  requiredFianceIds: string[]
 }
 
 /** Invité attendu sur un groupe de photo — `isPresent` est coché en direct le jour J, indépendamment du statut (faite/passée) du groupe. */
@@ -278,4 +301,18 @@ export interface DocumentItem {
   fileName: string
   filePath: string
   visibleToRoles: AppRole[]
+}
+
+export type EquipmentStatus = "fourni_lieu" | "apporte_invite" | "a_louer" | "a_acheter" | "a_fabriquer" | "non_necessaire"
+
+/** Un article de la checklist matériel à louer/prévoir pour l'événement — voir 0055_equipment.sql. */
+export interface EquipmentItem {
+  id: string
+  category: string
+  label: string
+  status?: EquipmentStatus | null
+  /** Renseigné uniquement quand `status === "apporte_invite"`. */
+  guestName?: string | null
+  notes?: string | null
+  sortOrder: number
 }

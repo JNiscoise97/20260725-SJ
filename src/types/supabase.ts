@@ -22,10 +22,13 @@ export type PlanningMilestoneRow = "j_moins_30" | "j_moins_15" | "j_moins_7" | "
 export type RsvpStatusRow = "pending" | "confirmed" | "declined"
 export type NotificationChannelRow = "push" | "email" | "sms" | "whatsapp"
 export type NotificationStatusRow = "pending" | "sent" | "failed"
-export type MealChoiceRow = "poulet" | "poisson" | "enfant"
+export type MealChoiceRow = "poulet" | "poisson" | "enfant_poulet" | "enfant_poisson"
 export type GuestSideRow = "sarah" | "jordan"
+export type AccommodationTypeRow = "quartier" | "hotel" | "airbnb"
+export type TravelModeRow = "train" | "avion" | "voiture" | "bus"
 export type DomainePhaseRow = "avant" | "installation" | "jour_j" | "desinstallation" | "apres"
 export type PhotoGroupStatusRow = "pending" | "done" | "skipped"
+export type EquipmentStatusRow = "fourni_lieu" | "apporte_invite" | "a_louer" | "a_acheter" | "a_fabriquer" | "non_necessaire"
 
 type PoleRow = {
   id: string
@@ -191,7 +194,12 @@ type GuestRow = {
   dietary_constraints: string | null
   meal_choice: MealChoiceRow | null
   arrival_info: string | null
+  departure_info: string | null
   accommodation: string | null
+  accommodation_type: AccommodationTypeRow | null
+  travel_mode: TravelModeRow | null
+  attending_parents_anniversary: boolean
+  attending_montpellier_visit: boolean
   has_vehicle: boolean
   needs_late_transport: boolean
   is_reduced_mobility: boolean
@@ -229,13 +237,22 @@ type GuestRow = {
   created_at: string
 }
 
+type PhotoSessionRow = {
+  id: string
+  label: string
+  sort_order: number
+  created_at: string
+}
+
 type PhotoGroupRow = {
   id: string
+  session_id: string
   label: string
   sort_order: number
   is_priority: boolean
   status: PhotoGroupStatusRow
   notes: string | null
+  required_fiance_ids: string[]
   created_at: string
 }
 
@@ -323,6 +340,17 @@ type NotificationLogRow = {
   attempted_at: string
   result: string
   error_message: string | null
+}
+
+type EquipmentRow = {
+  id: string
+  category: string
+  label: string
+  status: EquipmentStatusRow | null
+  guest_name: string | null
+  notes: string | null
+  sort_order: number
+  created_at: string
 }
 
 // Tables préfixées par _20260725_ : ce schéma cohabite avec d'autres tables
@@ -418,7 +446,12 @@ export interface Database {
         | "dietary_constraints"
         | "meal_choice"
         | "arrival_info"
+        | "departure_info"
         | "accommodation"
+        | "accommodation_type"
+        | "travel_mode"
+        | "attending_parents_anniversary"
+        | "attending_montpellier_visit"
         | "has_vehicle"
         | "needs_late_transport"
         | "is_reduced_mobility"
@@ -455,9 +488,10 @@ export interface Database {
         | "is_unexpected"
         | "created_at"
       >
+      _20260725_photo_sessions: TableDef<PhotoSessionRow, "id" | "sort_order" | "created_at">
       _20260725_photo_groups: TableDef<
         PhotoGroupRow,
-        "id" | "sort_order" | "is_priority" | "status" | "notes" | "created_at"
+        "id" | "sort_order" | "is_priority" | "status" | "notes" | "required_fiance_ids" | "created_at"
       >
       _20260725_photo_group_members: TableDef<PhotoGroupMemberRow, "id" | "is_present">
       _20260725_prestataires: TableDef<
@@ -480,6 +514,10 @@ export interface Database {
         "id" | "recipient_id" | "body" | "related_entity_type" | "related_entity_id" | "status" | "created_at" | "sent_at"
       >
       _20260725_notification_log: TableDef<NotificationLogRow, "id" | "attempted_at" | "error_message">
+      _20260725_equipment: TableDef<
+        EquipmentRow,
+        "id" | "status" | "guest_name" | "notes" | "sort_order" | "created_at"
+      >
     }
     Views: Record<string, never>
     Functions: {

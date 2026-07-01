@@ -3,6 +3,7 @@ import { toast } from "sonner"
 
 import type { MealChoice } from "@/types/domain"
 import type { MealAttendee } from "@/lib/meal-attendees"
+import { MEAL_CHOICES, MEAL_CHOICE_LABELS } from "@/lib/meal-choice"
 import {
   Dialog,
   DialogContent,
@@ -66,9 +67,11 @@ function MealAttendeeForm({ attendee, onSave, onClose }: MealAttendeeFormProps) 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE}>Non renseigné</SelectItem>
-              <SelectItem value="poulet">Poulet</SelectItem>
-              <SelectItem value="poisson">Poisson</SelectItem>
-              <SelectItem value="enfant">Menu enfant</SelectItem>
+              {MEAL_CHOICES.map((choice) => (
+                <SelectItem key={choice} value={choice}>
+                  {MEAL_CHOICE_LABELS[choice]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Field>

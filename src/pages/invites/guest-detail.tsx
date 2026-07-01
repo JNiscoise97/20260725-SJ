@@ -24,11 +24,11 @@ import {
 import { RsvpBadge } from "@/components/invites/RsvpBadge"
 import { GuestAccessSection } from "@/components/invites/GuestAccessSection"
 import { useDeleteGuest, useGuestGroups, useGuests, useUpdateGuest } from "@/hooks/queries/use-guests"
+import { MEAL_CHOICE_LABELS } from "@/lib/meal-choice"
 import type { Guest, GuestGroup, GuestSide, MealChoice, RsvpStatus } from "@/types/domain"
 
 const NONE = "__none__"
 const SIDE_LABEL: Record<string, string> = { sarah: "Sarah", jordan: "Jordan" }
-const MEAL_LABEL: Record<MealChoice, string> = { poulet: "Poulet", poisson: "Poisson", enfant: "Menu enfant" }
 const RSVP_LABEL: Record<RsvpStatus, string> = { pending: "En attente", confirmed: "Confirmé", declined: "Décliné" }
 
 function DeleteGuestButton({ guest }: { guest: Guest }) {
@@ -356,9 +356,9 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>Non renseigné</SelectItem>
-                {(Object.keys(MEAL_LABEL) as MealChoice[]).map((value) => (
+                {(Object.keys(MEAL_CHOICE_LABELS) as MealChoice[]).map((value) => (
                   <SelectItem key={value} value={value}>
-                    {MEAL_LABEL[value]}
+                    {MEAL_CHOICE_LABELS[value]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -556,7 +556,7 @@ export function GuestDetailPage() {
 
             <Section title="Repas">
               <Field label="Message envoyé" value={<YesNo value={guest.mealMessageSent} />} />
-              <Field label="Plat choisi" value={guest.mealChoice ? MEAL_LABEL[guest.mealChoice] : null} />
+              <Field label="Plat choisi" value={guest.mealChoice ? MEAL_CHOICE_LABELS[guest.mealChoice] : null} />
               <Field label="Régime alimentaire" value={guest.dietaryConstraints} />
               <Field label="Allergies" value={guest.allergies} />
               <Field label="Alcool" value={guest.drinksAlcohol == null ? null : <YesNo value={guest.drinksAlcohol} />} />

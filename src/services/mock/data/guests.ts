@@ -8,6 +8,8 @@ export const guestGroupsSeed: GuestGroup[] = [
 
 export const guestDefaults = {
   hasVehicle: false,
+  attendingParentsAnniversary: false,
+  attendingMontpellierVisit: false,
   needsLateTransport: false,
   isReducedMobility: false,
   isChild: false,

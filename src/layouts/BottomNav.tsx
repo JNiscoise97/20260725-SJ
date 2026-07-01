@@ -12,14 +12,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 
-const PRIMARY_PATHS = ["/", "/taches", "/referents", "/deroule"]
+const PRIMARY_PATHS = ["/", "/referents", "/deroule"]
 
 export function BottomNav() {
   const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
-  const { can } = usePermissions()
+  const { can, role } = usePermissions()
 
-  const visibleItems = NAV_ITEMS.filter((item) => can(item.capability))
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => can(item.capability) && (!item.visibleToRoles || (role && item.visibleToRoles.includes(role)))
+  )
   const primaryItems = visibleItems.filter((item) => PRIMARY_PATHS.includes(item.path))
   const moreItems = visibleItems.filter((item) => !PRIMARY_PATHS.includes(item.path))
   const isMoreActive = moreItems.some((item) => location.pathname.startsWith(item.path))

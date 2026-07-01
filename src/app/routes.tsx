@@ -7,7 +7,6 @@ import { LoginPage } from "@/pages/auth"
 import { GuestInfoPage } from "@/pages/guest"
 import { IntroductionPage } from "@/pages/introduction"
 import { DashboardPage } from "@/pages/dashboard"
-import { TasksPage } from "@/pages/tasks"
 import { MissionsPage } from "@/pages/missions"
 import { AssignationsPage } from "@/pages/assignations"
 import { ReferentsPage } from "@/pages/referents"
@@ -17,6 +16,8 @@ import { PhotosGroupePage } from "@/pages/photos-groupe"
 import { AccueilPage } from "@/pages/accueil"
 import { LogistiquePage } from "@/pages/logistique"
 import { NourriturePage } from "@/pages/nourriture"
+import { MaterielPage } from "@/pages/materiel"
+import { SejourPage } from "@/pages/sejour"
 import { InvitesPage } from "@/pages/invites"
 import { GuestDetailPage } from "@/pages/invites/guest-detail"
 import { PlanTablePage } from "@/pages/plan-table"
@@ -51,14 +52,6 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:dashboard">
                 <DashboardPage />
-              </RoleGuard>
-            }
-          />
-          <Route
-            path="taches"
-            element={
-              <RoleGuard capability="view:tasks">
-                <TasksPage />
               </RoleGuard>
             }
           />
@@ -131,6 +124,22 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:nourriture">
                 <NourriturePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="materiel"
+            element={
+              <RoleGuard capability="view:materiel">
+                <MaterielPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="sejour"
+            element={
+              <RoleGuard capability="view:sejour">
+                <SejourPage />
               </RoleGuard>
             }
           />

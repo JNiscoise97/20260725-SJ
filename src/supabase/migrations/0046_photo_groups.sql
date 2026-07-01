@@ -15,13 +15,14 @@ create table _20260725_photo_groups (
   created_at timestamptz not null default now()
 );
 
--- `is_present` est coché en direct le jour J (qui est effectivement là pour
--- cette photo précise), indépendant du statut de la photo elle-même.
+-- `is_present` part coché par défaut (tout le monde est attendu) ; on décoche
+-- le jour J les absents pour cette photo précise, indépendamment du statut
+-- de la photo elle-même.
 create table _20260725_photo_group_members (
   id uuid primary key default gen_random_uuid(),
   photo_group_id uuid not null references _20260725_photo_groups(id) on delete cascade,
   guest_id uuid not null references _20260725_guests(id) on delete cascade,
-  is_present boolean not null default false,
+  is_present boolean not null default true,
   unique (photo_group_id, guest_id)
 );
 

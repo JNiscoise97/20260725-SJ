@@ -15,6 +15,8 @@ interface ReferentCardProps {
   contacts: Person[]
   documents: DocumentItem[]
   openItemCount: number
+  /** Les descriptions de mission et les checklists sont réservées aux fiancés — un référent ne voit que le titre et le statut. */
+  showMissionDetails: boolean
 }
 
 function initials(fullName: string) {
@@ -26,7 +28,15 @@ function initials(fullName: string) {
     .toUpperCase()
 }
 
-export function ReferentCard({ identity, domaines, missions, contacts, documents, openItemCount }: ReferentCardProps) {
+export function ReferentCard({
+  identity,
+  domaines,
+  missions,
+  contacts,
+  documents,
+  openItemCount,
+  showMissionDetails,
+}: ReferentCardProps) {
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-3">
@@ -59,10 +69,10 @@ export function ReferentCard({ identity, domaines, missions, contacts, documents
                   <p className="text-sm font-medium text-foreground">{mission.title}</p>
                   <StatusBadge status={mission.status} />
                 </div>
-                {mission.description ? (
+                {showMissionDetails && mission.description ? (
                   <p className="text-xs text-muted-foreground">{mission.description}</p>
                 ) : null}
-                <ChecklistWidget ownerType="mission" ownerId={mission.id} />
+                {showMissionDetails ? <ChecklistWidget ownerType="mission" ownerId={mission.id} /> : null}
               </div>
             ))}
           </div>

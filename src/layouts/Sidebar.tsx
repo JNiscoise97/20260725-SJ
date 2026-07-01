@@ -5,8 +5,10 @@ import { cn } from "@/lib/utils"
 import { usePermissions } from "@/hooks/use-permissions"
 
 export function Sidebar() {
-  const { can } = usePermissions()
-  const visibleItems = NAV_ITEMS.filter((item) => can(item.capability))
+  const { can, role } = usePermissions()
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => can(item.capability) && (!item.visibleToRoles || (role && item.visibleToRoles.includes(role)))
+  )
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">

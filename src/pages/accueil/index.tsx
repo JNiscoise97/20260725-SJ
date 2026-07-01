@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { CheckCircle2, DoorOpen, Plus, RotateCcw, Search, Sparkles, Users } from "lucide-react"
+import { CheckCircle2, DoorOpen, Link2, Plus, RotateCcw, Search, Sparkles, TriangleAlert, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import type { Guest, GuestGroup } from "@/types/domain"
@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useAddWalkInGuest, useCheckInGuest, useGuestGroups, useGuests } from "@/hooks/queries/use-guests"
 
@@ -37,6 +38,24 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
 }
 
+/** Trie en gardant les invités côte à côte avec leur partenaire inséparable — ils arrivent ensemble. */
+function sortWithPairsAdjacent(guestsList: Guest[]): Guest[] {
+  const byId = new Map(guestsList.map((g) => [g.id, g]))
+  const visited = new Set<string>()
+  const result: Guest[] = []
+  for (const guest of [...guestsList].sort((a, b) => a.fullName.localeCompare(b.fullName))) {
+    if (visited.has(guest.id)) continue
+    visited.add(guest.id)
+    result.push(guest)
+    const partner = guest.pairedWithId ? byId.get(guest.pairedWithId) : undefined
+    if (partner && !visited.has(partner.id)) {
+      visited.add(partner.id)
+      result.push(partner)
+    }
+  }
+  return result
+}
+
 export function AccueilPage() {
   const { data: guests, isLoading: guestsLoading } = useGuests()
   const { data: groups, isLoading: groupsLoading } = useGuestGroups()
@@ -47,6 +66,7 @@ export function AccueilPage() {
   const isLoading = guestsLoading || groupsLoading
 
   const groupsById = useMemo(() => new Map((groups ?? []).map((g) => [g.id, g])), [groups])
+  const guestById = useMemo(() => new Map((guests ?? []).map((g) => [g.id, g])), [guests])
 
   const filteredGuests = useMemo(() => {
     if (!guests) return []
@@ -74,9 +94,16 @@ export function AccueilPage() {
       map.set(key, entry)
     }
     return [...map.values()]
-      .map((entry) => ({ ...entry, guests: [...entry.guests].sort((a, b) => a.fullName.localeCompare(b.fullName)) }))
+      .map((entry) => ({ ...entry, guests: sortWithPairsAdjacent(entry.guests) }))
       .sort((a, b) => (a.group?.sortOrder ?? Number.POSITIVE_INFINITY) - (b.group?.sortOrder ?? Number.POSITIVE_INFINITY))
   }, [filteredGuests, groupsById])
+
+  function pairInfoFor(guest: Guest): { partnerName: string; sameFamily: boolean } | null {
+    if (!guest.pairedWithId) return null
+    const partner = guestById.get(guest.pairedWithId)
+    if (!partner) return null
+    return { partnerName: partner.fullName, sameFamily: partner.groupId === guest.groupId }
+  }
 
   const stats = useMemo(() => {
     if (!guests) return null
@@ -197,41 +224,59 @@ export function AccueilPage() {
                         ) : null}
                       </div>
                       <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                        {family.guests.map((guest) => (
-                          <li key={guest.id}>
-                            <button
-                              type="button"
-                              onClick={() => toggleGuest(guest)}
-                              className={cn(
-                                "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                                guest.checkedInAt
-                                  ? "border-vert-vegetal/40 bg-vert-vegetal/10"
-                                  : "border-border hover:bg-muted/50"
-                              )}
-                            >
-                              <span className="flex min-w-0 items-center gap-2">
-                                <CheckCircle2
-                                  className={cn(
-                                    "size-4 shrink-0",
-                                    guest.checkedInAt ? "text-vert-vegetal" : "text-muted-foreground/40"
-                                  )}
-                                />
-                                <span className="truncate text-sm text-foreground">{guest.fullName}</span>
-                                {guest.isUnexpected ? (
-                                  <Badge className="shrink-0 bg-dore/20 text-xs text-brun">
-                                    <Sparkles className="size-3" />
-                                    Imprévu
-                                  </Badge>
-                                ) : null}
-                              </span>
-                              {guest.checkedInAt ? (
-                                <span className="shrink-0 text-xs text-muted-foreground">
-                                  {formatTime(guest.checkedInAt)}
+                        {family.guests.map((guest) => {
+                          const pairInfo = pairInfoFor(guest)
+                          return (
+                            <li key={guest.id}>
+                              <button
+                                type="button"
+                                onClick={() => toggleGuest(guest)}
+                                className={cn(
+                                  "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                                  guest.checkedInAt
+                                    ? "border-vert-vegetal/40 bg-vert-vegetal/10"
+                                    : "border-border hover:bg-muted/50"
+                                )}
+                              >
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <CheckCircle2
+                                    className={cn(
+                                      "size-4 shrink-0",
+                                      guest.checkedInAt ? "text-vert-vegetal" : "text-muted-foreground/40"
+                                    )}
+                                  />
+                                  <span className="truncate text-sm text-foreground">{guest.fullName}</span>
+                                  {pairInfo ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                        {pairInfo.sameFamily ? (
+                                          <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
+                                        ) : (
+                                          <TriangleAlert className="size-3.5 shrink-0 text-dore" />
+                                        )}
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Inséparable de {pairInfo.partnerName}
+                                        {pairInfo.sameFamily ? "" : " (autre famille)"}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : null}
+                                  {guest.isUnexpected ? (
+                                    <Badge className="shrink-0 bg-dore/20 text-xs text-brun">
+                                      <Sparkles className="size-3" />
+                                      Imprévu
+                                    </Badge>
+                                  ) : null}
                                 </span>
-                              ) : null}
-                            </button>
-                          </li>
-                        ))}
+                                {guest.checkedInAt ? (
+                                  <span className="shrink-0 text-xs text-muted-foreground">
+                                    {formatTime(guest.checkedInAt)}
+                                  </span>
+                                ) : null}
+                              </button>
+                            </li>
+                          )
+                        })}
                       </ul>
                     </CardContent>
                   </Card>
