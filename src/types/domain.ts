@@ -303,7 +303,15 @@ export interface DocumentItem {
   visibleToRoles: AppRole[]
 }
 
-export type EquipmentStatus = "fourni_lieu" | "apporte_invite" | "a_louer" | "a_acheter" | "a_fabriquer" | "non_necessaire"
+export type EquipmentStatus =
+  | "fourni_lieu"
+  | "apporte_invite"
+  | "a_louer"
+  | "a_acheter"
+  | "achete"
+  | "a_fabriquer"
+  | "a_demander_lieu"
+  | "non_necessaire"
 
 /** Un article de la checklist matériel à louer/prévoir pour l'événement — voir 0055_equipment.sql. */
 export interface EquipmentItem {

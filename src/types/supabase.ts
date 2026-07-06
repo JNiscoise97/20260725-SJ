@@ -28,7 +28,15 @@ export type AccommodationTypeRow = "quartier" | "hotel" | "airbnb"
 export type TravelModeRow = "train" | "avion" | "voiture" | "bus"
 export type DomainePhaseRow = "avant" | "installation" | "jour_j" | "desinstallation" | "apres"
 export type PhotoGroupStatusRow = "pending" | "done" | "skipped"
-export type EquipmentStatusRow = "fourni_lieu" | "apporte_invite" | "a_louer" | "a_acheter" | "a_fabriquer" | "non_necessaire"
+export type EquipmentStatusRow =
+  | "fourni_lieu"
+  | "apporte_invite"
+  | "a_louer"
+  | "a_acheter"
+  | "achete"
+  | "a_fabriquer"
+  | "a_demander_lieu"
+  | "non_necessaire"
 
 type PoleRow = {
   id: string

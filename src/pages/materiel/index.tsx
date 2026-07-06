@@ -8,6 +8,9 @@ import { StatCard } from "@/components/shared/StatCard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { MaterielKanban } from "@/components/materiel/MaterielKanban"
+import { GuestNameAutocomplete } from "@/components/shared/GuestNameAutocomplete"
 import { useEquipment, useUpdateEquipmentItem } from "@/hooks/queries/use-equipment"
 
 const STATUS_NONE = "__none__"
@@ -17,7 +20,9 @@ const STATUS_LABELS: Record<EquipmentStatus, string> = {
   apporte_invite: "Apporté par un(e) invité(e)",
   a_louer: "À louer",
   a_acheter: "À acheter",
+  achete: "Acheté",
   a_fabriquer: "À fabriquer",
+  a_demander_lieu: "À demander au lieu",
   non_necessaire: "Non nécessaire",
 }
 
@@ -26,7 +31,9 @@ const STATUS_BADGE: Record<EquipmentStatus, string> = {
   apporte_invite: "text-dore",
   a_louer: "text-bordeaux",
   a_acheter: "text-brun",
+  achete: "text-vert-vegetal",
   a_fabriquer: "text-bordeaux",
+  a_demander_lieu: "text-brun",
   non_necessaire: "text-muted-foreground",
 }
 
@@ -59,11 +66,10 @@ function EquipmentRow({ item, onUpdate }: { item: EquipmentItem; onUpdate: (patc
       </Select>
 
       {item.status === "apporte_invite" ? (
-        <Input
+        <GuestNameAutocomplete
           value={item.guestName ?? ""}
-          onChange={(e) => onUpdate({ guestName: e.target.value || null })}
-          placeholder="Qui ?"
-          className="h-7 w-36 shrink-0 text-xs"
+          onChange={(name) => onUpdate({ guestName: name || null })}
+          className="w-44 shrink-0"
         />
       ) : null}
     </div>
@@ -73,12 +79,13 @@ function EquipmentRow({ item, onUpdate }: { item: EquipmentItem; onUpdate: (patc
 export function MaterielPage() {
   const { data: items, isLoading } = useEquipment()
   const updateItem = useUpdateEquipmentItem()
+  const [view, setView] = useState<"liste" | "kanban">("liste")
   const [search, setSearch] = useState("")
   const [showHidden, setShowHidden] = useState(false)
 
   const summary = useMemo(() => {
     if (!items) return null
-    const byStatus = { fourni_lieu: 0, apporte_invite: 0, a_louer: 0, a_acheter: 0, a_fabriquer: 0, non_necessaire: 0, undefined: 0 }
+    const byStatus = { fourni_lieu: 0, apporte_invite: 0, a_louer: 0, a_acheter: 0, achete: 0, a_fabriquer: 0, a_demander_lieu: 0, non_necessaire: 0, undefined: 0 }
     for (const item of items) {
       if (item.status) byStatus[item.status]++
       else byStatus.undefined++
@@ -109,6 +116,12 @@ export function MaterielPage() {
   function handleUpdate(id: string, patch: Partial<EquipmentItem>) {
     updateItem.mutate({ id, patch })
   }
+
+  // Items filtrés pour le kanban (même filtre "non nécessaire" que la liste)
+  const kanbanItems = useMemo(
+    () => (items ?? []).filter((i) => showHidden || i.status !== "non_necessaire"),
+    [items, showHidden]
+  )
 
   return (
     <div className="space-y-6">
@@ -161,6 +174,34 @@ export function MaterielPage() {
             />
           </div>
 
+          <Tabs value={view} onValueChange={(v) => setView(v as "liste" | "kanban")}>
+            <TabsList>
+              <TabsTrigger value="liste">Liste</TabsTrigger>
+              <TabsTrigger value="kanban">Kanban</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {view === "kanban" ? (
+            <>
+              {summary!.non_necessaire > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowHidden((v) => !v)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {showHidden
+                    ? `Masquer les non nécessaires (${summary!.non_necessaire})`
+                    : `Afficher les non nécessaires (${summary!.non_necessaire})`}
+                </button>
+              ) : null}
+              <MaterielKanban
+                items={kanbanItems}
+                onStatusChange={(id, status) => handleUpdate(id, { status, guestName: status !== "apporte_invite" ? null : undefined })}
+                onGuestNameChange={(id, name) => handleUpdate(id, { guestName: name })}
+              />
+            </>
+          ) : (
+          <>
           <div className="flex flex-wrap items-center gap-3">
             <Input
               value={search}
@@ -208,6 +249,8 @@ export function MaterielPage() {
                 )
               })}
             </div>
+          )}
+          </>
           )}
         </>
       )}
