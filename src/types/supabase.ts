@@ -289,6 +289,8 @@ type TableRow = {
   name: string
   capacity: number
   sort_order: number
+  pos_x: number | null
+  pos_y: number | null
 }
 
 type TableAssignmentRow = {
@@ -359,6 +361,21 @@ type EquipmentRow = {
   notes: string | null
   sort_order: number
   created_at: string
+  // Suivi à demander au lieu
+  demande_au_lieu_faite: boolean | null
+  // Suivi location
+  location_reserve: boolean | null
+  location_fournisseur: string | null
+  location_entree_at: string | null
+  location_entree_lieu: string | null
+  location_sortie_at: string | null
+  location_sortie_lieu: string | null
+  location_caution: string | null
+  location_livraison: boolean | null
+  // Suivi achats
+  achat_receptionne: boolean | null
+  // Suivi fabrication
+  fabrication_statut: string | null
 }
 
 // Tables préfixées par _20260725_ : ce schéma cohabite avec d'autres tables
@@ -506,7 +523,7 @@ export interface Database {
         PrestataireRow,
         "id" | "company" | "role" | "needs_meal" | "meal_choice" | "dietary_constraints" | "allergies" | "notes" | "created_at"
       >
-      _20260725_tables: TableDef<TableRow, "id" | "sort_order">
+      _20260725_tables: TableDef<TableRow, "id" | "sort_order" | "pos_x" | "pos_y">
       _20260725_table_assignments: TableDef<
         TableAssignmentRow,
         "id" | "guest_id" | "person_id" | "prestataire_id" | "seat_number"

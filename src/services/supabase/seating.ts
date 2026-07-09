@@ -4,8 +4,8 @@ import { supabase } from "@/supabase/client"
 
 const db = supabase!
 
-function toTable(row: { id: string; name: string; capacity: number; sort_order: number }): SeatingTable {
-  return { id: row.id, name: row.name, capacity: row.capacity, sortOrder: row.sort_order }
+function toTable(row: { id: string; name: string; capacity: number; sort_order: number; pos_x?: number | null; pos_y?: number | null }): SeatingTable {
+  return { id: row.id, name: row.name, capacity: row.capacity, sortOrder: row.sort_order, posX: row.pos_x, posY: row.pos_y }
 }
 
 function toAssignment(row: {
@@ -42,10 +42,12 @@ export const seatingSupabaseService: SeatingService = {
     return toTable(data)
   },
   async updateTable(id, patch) {
-    const row: Partial<{ name: string; capacity: number; sort_order: number }> = {}
+    const row: Partial<{ name: string; capacity: number; sort_order: number; pos_x: number | null; pos_y: number | null }> = {}
     if (patch.name !== undefined) row.name = patch.name
     if (patch.capacity !== undefined) row.capacity = patch.capacity
     if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder
+    if (patch.posX !== undefined) row.pos_x = patch.posX
+    if (patch.posY !== undefined) row.pos_y = patch.posY
     const { data, error } = await db.from("_20260725_tables").update(row).eq("id", id).select("*").single()
     if (error) throw error
     return toTable(data)

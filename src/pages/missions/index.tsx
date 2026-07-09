@@ -20,6 +20,7 @@ import { usePoles } from "@/hooks/queries/use-poles"
 import { useAllChecklists, useAllChecklistItems, useUpdateChecklistItem } from "@/hooks/queries/use-checklists"
 import { useIdentity } from "@/context/IdentityContext"
 import { useResponsableEntries } from "@/hooks/use-responsable-entries"
+import { MissionEditDialog } from "@/components/missions/MissionEditDialog"
 import { DOMAINE_PHASE_LABELS, DOMAINE_PHASE_ORDER } from "@/lib/constants"
 
 const NO_POLE = "__no_pole__"
@@ -55,9 +56,12 @@ function DomaineMissionsCard({ domaine, missions }: { domaine: Domaine; missions
       <CardContent className="space-y-4">
         {missions.map((mission) => (
           <div key={mission.id} className="space-y-2 rounded-xl bg-muted/50 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-foreground">{mission.title}</p>
-              <StatusBadge status={mission.status} />
+            <div className="flex items-center gap-2">
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-foreground">{mission.title}</p>
+                <StatusBadge status={mission.status} />
+              </div>
+              <MissionEditDialog mission={mission} />
             </div>
             {mission.description ? <p className="text-xs text-muted-foreground">{mission.description}</p> : null}
             <ChecklistWidget ownerType="mission" ownerId={mission.id} allowAssignment={false} />

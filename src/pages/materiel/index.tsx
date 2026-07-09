@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MaterielKanban } from "@/components/materiel/MaterielKanban"
+import { SuiviDemandeAuLieu } from "@/components/materiel/SuiviDemandeAuLieu"
+import { SuiviLocation } from "@/components/materiel/SuiviLocation"
+import { SuiviAchats } from "@/components/materiel/SuiviAchats"
+import { SuiviFabrication } from "@/components/materiel/SuiviFabrication"
 import { GuestNameAutocomplete } from "@/components/shared/GuestNameAutocomplete"
 import { useEquipment, useUpdateEquipmentItem } from "@/hooks/queries/use-equipment"
 
@@ -35,6 +39,15 @@ const STATUS_BADGE: Record<EquipmentStatus, string> = {
   a_fabriquer: "text-bordeaux",
   a_demander_lieu: "text-brun",
   non_necessaire: "text-muted-foreground",
+}
+
+function BadgeCount({ n }: { n: number }) {
+  if (n === 0) return null
+  return (
+    <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-bordeaux/15 px-1 text-[10px] font-semibold text-bordeaux">
+      {n}
+    </span>
+  )
 }
 
 function EquipmentRow({ item, onUpdate }: { item: EquipmentItem; onUpdate: (patch: Partial<EquipmentItem>) => void }) {
@@ -76,21 +89,39 @@ function EquipmentRow({ item, onUpdate }: { item: EquipmentItem; onUpdate: (patc
   )
 }
 
+type MainView = "liste" | "kanban" | "suivi"
+type SuiviTab = "demande_lieu" | "location" | "achats" | "fabrication"
+
 export function MaterielPage() {
   const { data: items, isLoading } = useEquipment()
   const updateItem = useUpdateEquipmentItem()
-  const [view, setView] = useState<"liste" | "kanban">("liste")
+  const [view, setView] = useState<MainView>("liste")
+  const [suiviTab, setSuiviTab] = useState<SuiviTab>("demande_lieu")
   const [search, setSearch] = useState("")
   const [showHidden, setShowHidden] = useState(false)
 
   const summary = useMemo(() => {
     if (!items) return null
-    const byStatus = { fourni_lieu: 0, apporte_invite: 0, a_louer: 0, a_acheter: 0, achete: 0, a_fabriquer: 0, a_demander_lieu: 0, non_necessaire: 0, undefined: 0 }
+    const byStatus = {
+      fourni_lieu: 0, apporte_invite: 0, a_louer: 0, a_acheter: 0,
+      achete: 0, a_fabriquer: 0, a_demander_lieu: 0, non_necessaire: 0, undefined: 0,
+    }
     for (const item of items) {
       if (item.status) byStatus[item.status]++
       else byStatus.undefined++
     }
     return { total: items.length, ...byStatus }
+  }, [items])
+
+  // Nombre d'éléments "à traiter" par sous-onglet Suivi (badge rouge)
+  const suiviCounts = useMemo(() => {
+    if (!items) return { demande_lieu: 0, location: 0, achats: 0, fabrication: 0 }
+    return {
+      demande_lieu: items.filter((i) => i.status === "a_demander_lieu" && !i.demandeAuLieuFaite).length,
+      location: items.filter((i) => i.status === "a_louer" && !i.locationReserve).length,
+      achats: items.filter((i) => (i.status === "a_acheter" || i.status === "achete") && !i.achatReceptionne).length,
+      fabrication: items.filter((i) => i.status === "a_fabriquer" && i.fabricationStatut !== "termine").length,
+    }
   }, [items])
 
   const categories = useMemo(() => {
@@ -106,7 +137,6 @@ export function MaterielPage() {
       list.push(item)
       map.set(item.category, list)
     }
-    // Preserve category order from seed (first occurrence)
     const order = [...new Set(items.map((i) => i.category))]
     return order
       .filter((cat) => map.has(cat))
@@ -117,11 +147,12 @@ export function MaterielPage() {
     updateItem.mutate({ id, patch })
   }
 
-  // Items filtrés pour le kanban (même filtre "non nécessaire" que la liste)
   const kanbanItems = useMemo(
     () => (items ?? []).filter((i) => showHidden || i.status !== "non_necessaire"),
     [items, showHidden]
   )
+
+  const totalPending = suiviCounts.demande_lieu + suiviCounts.location + suiviCounts.achats + suiviCounts.fabrication
 
   return (
     <div className="space-y-6">
@@ -174,13 +205,73 @@ export function MaterielPage() {
             />
           </div>
 
-          <Tabs value={view} onValueChange={(v) => setView(v as "liste" | "kanban")}>
+          {/* Onglets principaux : Liste / Kanban / Suivi */}
+          <Tabs value={view} onValueChange={(v) => setView(v as MainView)}>
             <TabsList>
               <TabsTrigger value="liste">Liste</TabsTrigger>
               <TabsTrigger value="kanban">Kanban</TabsTrigger>
+              <TabsTrigger value="suivi">
+                Suivi
+                <BadgeCount n={totalPending} />
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
+          {/* ── Vue Liste ── */}
+          {view === "liste" ? (
+            <>
+              <div className="flex flex-wrap items-center gap-3">
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Rechercher un article ou une catégorie..."
+                  className="max-w-sm"
+                />
+                {summary!.non_necessaire > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowHidden((v) => !v)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {showHidden
+                      ? `Masquer les non nécessaires (${summary!.non_necessaire})`
+                      : `Afficher les non nécessaires (${summary!.non_necessaire})`}
+                  </button>
+                ) : null}
+              </div>
+
+              {categories.length === 0 ? (
+                <EmptyState icon={Package} title="Aucun article ne correspond à cette recherche" />
+              ) : (
+                <div className="space-y-6">
+                  {categories.map(({ category, items: catItems }) => {
+                    const definedCount = catItems.filter((i) => i.status).length
+                    return (
+                      <div key={category} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h2 className="font-heading text-base font-medium text-foreground">{category}</h2>
+                          <span className="text-xs text-muted-foreground">
+                            {definedCount} / {catItems.length} défini{definedCount === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {catItems.map((item) => (
+                            <EquipmentRow
+                              key={item.id}
+                              item={item}
+                              onUpdate={(patch) => handleUpdate(item.id, patch)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          ) : null}
+
+          {/* ── Vue Kanban ── */}
           {view === "kanban" ? (
             <>
               {summary!.non_necessaire > 0 ? (
@@ -200,58 +291,43 @@ export function MaterielPage() {
                 onGuestNameChange={(id, name) => handleUpdate(id, { guestName: name })}
               />
             </>
-          ) : (
-          <>
-          <div className="flex flex-wrap items-center gap-3">
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un article ou une catégorie..."
-              className="max-w-sm"
-            />
-            {summary!.non_necessaire > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowHidden((v) => !v)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                {showHidden
-                  ? `Masquer les non nécessaires (${summary!.non_necessaire})`
-                  : `Afficher les non nécessaires (${summary!.non_necessaire})`}
-              </button>
-            ) : null}
-          </div>
+          ) : null}
 
-          {categories.length === 0 ? (
-            <EmptyState icon={Package} title="Aucun article ne correspond à cette recherche" />
-          ) : (
-            <div className="space-y-6">
-              {categories.map(({ category, items: catItems }) => {
-                const definedCount = catItems.filter((i) => i.status).length
-                return (
-                  <div key={category} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-heading text-base font-medium text-foreground">{category}</h2>
-                      <span className="text-xs text-muted-foreground">
-                        {definedCount} / {catItems.length} défini{definedCount === 1 ? "" : "s"}
-                      </span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {catItems.map((item) => (
-                        <EquipmentRow
-                          key={item.id}
-                          item={item}
-                          onUpdate={(patch) => handleUpdate(item.id, patch)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
+          {/* ── Vue Suivi ── */}
+          {view === "suivi" ? (
+            <div className="space-y-4">
+              <Tabs value={suiviTab} onValueChange={(v) => setSuiviTab(v as SuiviTab)}>
+                <TabsList>
+                  <TabsTrigger value="demande_lieu">
+                    Demande au lieu
+                    <BadgeCount n={suiviCounts.demande_lieu} />
+                  </TabsTrigger>
+                  <TabsTrigger value="location">
+                    Location
+                    <BadgeCount n={suiviCounts.location} />
+                  </TabsTrigger>
+                  <TabsTrigger value="achats">
+                    Achats
+                    <BadgeCount n={suiviCounts.achats} />
+                  </TabsTrigger>
+                  <TabsTrigger value="fabrication">
+                    Fabrication
+                    <BadgeCount n={suiviCounts.fabrication} />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {suiviTab === "demande_lieu" ? (
+                <SuiviDemandeAuLieu items={items} onUpdate={handleUpdate} />
+              ) : suiviTab === "location" ? (
+                <SuiviLocation items={items} onUpdate={handleUpdate} />
+              ) : suiviTab === "achats" ? (
+                <SuiviAchats items={items} onUpdate={handleUpdate} />
+              ) : (
+                <SuiviFabrication items={items} onUpdate={handleUpdate} />
+              )}
             </div>
-          )}
-          </>
-          )}
+          ) : null}
         </>
       )}
     </div>

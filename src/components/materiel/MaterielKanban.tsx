@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -11,9 +11,11 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
+import { Lock, LockOpen } from "lucide-react"
 
 import type { EquipmentItem, EquipmentStatus } from "@/types/domain"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { GuestNameAutocomplete } from "@/components/shared/GuestNameAutocomplete"
 import { cn } from "@/lib/utils"
 
@@ -30,28 +32,48 @@ const COLUMNS: { id: KanbanStatus; label: string }[] = [
   { id: "a_fabriquer", label: "À fabriquer" },
 ]
 
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`)
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches)
+    mq.addEventListener("change", handler)
+    setMobile(mq.matches)
+    return () => mq.removeEventListener("change", handler)
+  }, [breakpoint])
+  return mobile
+}
+
 function statusOf(item: EquipmentItem): KanbanStatus {
   return item.status ?? "__none__"
 }
 
 function EquipmentCard({
   item,
+  isLocked,
   onGuestNameChange,
 }: {
   item: EquipmentItem
+  isLocked: boolean
   onGuestNameChange: (id: string, name: string | null) => void
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id })
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: item.id,
+    disabled: isLocked,
+  })
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "cursor-grab touch-none rounded-lg border border-border bg-card px-3 py-2 active:cursor-grabbing",
+        "touch-none rounded-lg border border-border bg-card px-3 py-2",
+        isLocked ? "cursor-default" : "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-40"
       )}
       {...attributes}
-      {...listeners}
+      {...(isLocked ? {} : listeners)}
     >
       <p className="text-sm font-medium text-foreground">{item.label}</p>
       <Badge variant="outline" className="mt-1 text-xs font-normal text-muted-foreground">
@@ -73,13 +95,15 @@ function EquipmentCard({
 function KanbanColumn({
   column,
   items,
+  isLocked,
   onGuestNameChange,
 }: {
   column: { id: KanbanStatus; label: string }
   items: EquipmentItem[]
+  isLocked: boolean
   onGuestNameChange: (id: string, name: string | null) => void
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id })
+  const { setNodeRef, isOver } = useDroppable({ id: column.id, disabled: isLocked })
 
   return (
     <div className="flex w-64 shrink-0 flex-col gap-2">
@@ -91,11 +115,16 @@ function KanbanColumn({
         ref={setNodeRef}
         className={cn(
           "flex min-h-24 flex-col gap-1.5 rounded-xl border border-border bg-muted/30 p-2 transition-shadow",
-          isOver && "ring-2 ring-primary"
+          !isLocked && isOver && "ring-2 ring-primary"
         )}
       >
         {items.map((item) => (
-          <EquipmentCard key={item.id} item={item} onGuestNameChange={onGuestNameChange} />
+          <EquipmentCard
+            key={item.id}
+            item={item}
+            isLocked={isLocked}
+            onGuestNameChange={onGuestNameChange}
+          />
         ))}
         {items.length === 0 ? (
           <p className="flex flex-1 items-center justify-center py-4 text-center text-xs text-muted-foreground">
@@ -114,8 +143,15 @@ interface MaterielKanbanProps {
 }
 
 export function MaterielKanban({ items, onStatusChange, onGuestNameChange }: MaterielKanbanProps) {
+  const isMobile = useIsMobile()
+  const [isLocked, setIsLocked] = useState(isMobile)
   const [activeItem, setActiveItem] = useState<EquipmentItem | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+
+  // Verrouiller automatiquement à l'arrivée sur mobile, déverrouiller sur desktop
+  useEffect(() => {
+    setIsLocked(isMobile)
+  }, [isMobile])
 
   const byColumn = new Map<KanbanStatus, EquipmentItem[]>(COLUMNS.map((c) => [c.id, []]))
   for (const item of items) byColumn.get(statusOf(item))?.push(item)
@@ -142,6 +178,28 @@ export function MaterielKanban({ items, onStatusChange, onGuestNameChange }: Mat
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveItem(null)}
     >
+      {/* Bouton cadenas — visible uniquement sur mobile */}
+      <div className="mb-3 flex items-center justify-end md:hidden">
+        <Button
+          variant={isLocked ? "outline" : "secondary"}
+          size="sm"
+          onClick={() => setIsLocked((v) => !v)}
+          className="gap-2"
+        >
+          {isLocked ? (
+            <>
+              <Lock className="size-4" />
+              Déplacements verrouillés
+            </>
+          ) : (
+            <>
+              <LockOpen className="size-4" />
+              Déplacements actifs
+            </>
+          )}
+        </Button>
+      </div>
+
       <div className="overflow-x-auto pb-2">
         <div className="flex gap-4" style={{ minWidth: `${COLUMNS.length * 272}px` }}>
           {COLUMNS.map((col) => (
@@ -149,11 +207,13 @@ export function MaterielKanban({ items, onStatusChange, onGuestNameChange }: Mat
               key={col.id}
               column={col}
               items={byColumn.get(col.id) ?? []}
+              isLocked={isLocked}
               onGuestNameChange={onGuestNameChange}
             />
           ))}
         </div>
       </div>
+
       <DragOverlay>
         {activeItem ? (
           <div className="w-64 rounded-lg border border-border bg-card px-3 py-2 shadow-lg">

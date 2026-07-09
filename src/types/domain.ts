@@ -282,6 +282,8 @@ export interface SeatingTable {
   name: string
   capacity: number
   sortOrder: number
+  posX?: number | null
+  posY?: number | null
 }
 
 /** Le siège est attribué à un invité, un fiancé ou un prestataire — jamais plusieurs à la fois. */
@@ -313,6 +315,8 @@ export type EquipmentStatus =
   | "a_demander_lieu"
   | "non_necessaire"
 
+export type FabricationStatut = "non_commence" | "en_cours" | "termine"
+
 /** Un article de la checklist matériel à louer/prévoir pour l'événement — voir 0055_equipment.sql. */
 export interface EquipmentItem {
   id: string
@@ -323,4 +327,26 @@ export interface EquipmentItem {
   guestName?: string | null
   notes?: string | null
   sortOrder: number
+
+  // --- Suivi "à demander au lieu" ---
+  demandeAuLieuFaite?: boolean | null
+
+  // --- Suivi "à louer" ---
+  locationReserve?: boolean | null
+  locationFournisseur?: string | null
+  /** Datetime-local (YYYY-MM-DDTHH:mm) — prise en charge. */
+  locationEntreeAt?: string | null
+  locationEntreeLieu?: string | null
+  /** Datetime-local (YYYY-MM-DDTHH:mm) — restitution. */
+  locationSortieAt?: string | null
+  locationSortieLieu?: string | null
+  /** Montant de la caution, ex. "200 €". */
+  locationCaution?: string | null
+  locationLivraison?: boolean | null
+
+  // --- Suivi "à acheter / acheté" ---
+  achatReceptionne?: boolean | null
+
+  // --- Suivi "à fabriquer" ---
+  fabricationStatut?: FabricationStatut | null
 }
