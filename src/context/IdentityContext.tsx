@@ -6,21 +6,22 @@ import { identityService } from "@/services/identity.service"
 const STORAGE_KEY = "sj-identity"
 
 interface IdentityContextValue {
+  /** Identité effective : celle de l'invité impersonné s'il y en a un, sinon la vraie. */
   person: Identity | null
+  /** Toujours l'identité réelle du fiancé connecté — n'est jamais écrasée par l'impersonation. */
+  realPerson: Identity | null
+  isImpersonating: boolean
   isLoading: boolean
   login: (code: string) => Promise<Identity | null>
   logout: () => void
-  /** Met à jour l'identité en mémoire sans refaire d'appel réseau (ex. après avoir marqué l'introduction vue). */
+  /** Met à jour l'identité en mémoire sans refaire d'appel réseau. */
   patchPerson: (patch: Partial<Identity>) => void
+  /** Passe en vue "invité" — le fiancé voit l'app à travers les yeux de cet invité. */
+  impersonate: (identity: Identity) => void
+  /** Revient à la vue normale du fiancé connecté. */
+  stopImpersonating: () => void
   /**
-   * Vrai juste après un clic sur "Déconnexion", jusqu'à la connexion
-   * suivante — voir ProtectedLayout, qui s'en sert pour ne pas attacher
-   * `state.from` à son redirect vers /connexion dans ce cas précis. Porté ici
-   * (et pas un simple `navigate()` dans TopBar) parce que ce flag doit être
-   * mis à jour dans le même rendu que `person` : sinon ProtectedLayout peut
-   * re-rendre avec `person` déjà à null mais la route du routeur pas encore
-   * à jour, et émettre son propre redirect avec l'ancienne page avant que la
-   * navigation explicite n'ait eu le temps de s'appliquer.
+   * Vrai juste après un clic sur "Déconnexion" — voir ProtectedLayout.
    */
   justLoggedOut: boolean
 }
@@ -28,9 +29,13 @@ interface IdentityContextValue {
 const IdentityContext = createContext<IdentityContextValue | null>(null)
 
 export function IdentityProvider({ children }: { children: ReactNode }) {
-  const [person, setPerson] = useState<Identity | null>(null)
+  const [realPerson, setRealPerson] = useState<Identity | null>(null)
+  const [impersonated, setImpersonated] = useState<Identity | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [justLoggedOut, setJustLoggedOut] = useState(false)
+
+  const person = impersonated ?? realPerson
+  const isImpersonating = impersonated !== null
 
   useEffect(() => {
     let active = true
@@ -39,21 +44,16 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
 
     lookup
       .catch(() => {
-        // Identifiant invalide ou obsolète (ex. ancien id mock du type "p-sarah"
-        // après bascule sur Supabase, où "id" doit être un uuid) : on l'efface
-        // plutôt que de planter, l'utilisateur se reconnectera avec son code.
         localStorage.removeItem(STORAGE_KEY)
         return null
       })
       .then((found) => {
         if (!active) return
-        setPerson(found && found.isActive ? found : null)
+        setRealPerson(found && found.isActive ? found : null)
         setIsLoading(false)
       })
 
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   async function login(code: string) {
@@ -61,7 +61,8 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
     if (found) {
       localStorage.setItem(STORAGE_KEY, found.id)
       setJustLoggedOut(false)
-      setPerson(found)
+      setRealPerson(found)
+      setImpersonated(null)
     }
     return found
   }
@@ -69,15 +70,30 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
   function logout() {
     localStorage.removeItem(STORAGE_KEY)
     setJustLoggedOut(true)
-    setPerson(null)
+    setRealPerson(null)
+    setImpersonated(null)
   }
 
   function patchPerson(patch: Partial<Identity>) {
-    setPerson((prev) => (prev ? { ...prev, ...patch } : prev))
+    if (impersonated) {
+      setImpersonated((prev) => (prev ? { ...prev, ...patch } : prev))
+    } else {
+      setRealPerson((prev) => (prev ? { ...prev, ...patch } : prev))
+    }
+  }
+
+  function impersonate(identity: Identity) {
+    setImpersonated(identity)
+  }
+
+  function stopImpersonating() {
+    setImpersonated(null)
   }
 
   return (
-    <IdentityContext.Provider value={{ person, isLoading, login, logout, patchPerson, justLoggedOut }}>
+    <IdentityContext.Provider
+      value={{ person, realPerson, isImpersonating, isLoading, login, logout, patchPerson, impersonate, stopImpersonating, justLoggedOut }}
+    >
       {children}
     </IdentityContext.Provider>
   )

@@ -28,6 +28,7 @@ import { DocumentsPage } from "@/pages/documents"
 import { ParametresPage } from "@/pages/parametres"
 import { RevueContenuPage } from "@/pages/revue-contenu"
 import { MaMissionPage } from "@/pages/ma-mission"
+import { TimingPage } from "@/pages/timing"
 import { NotFoundPage } from "@/pages/not-found"
 
 export function AppRoutes() {
@@ -36,9 +37,8 @@ export function AppRoutes() {
       <Route path="/connexion" element={<LoginPage />} />
 
       <Route element={<ProtectedLayout />}>
-        <Route path="/infos-pratiques" element={<GuestInfoPage />} />
-
         <Route element={<AppShell />}>
+          <Route path="/infos-pratiques" element={<GuestInfoPage />} />
           <Route
             path="introduction"
             element={
@@ -92,6 +92,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:deroule">
                 <DeroulePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="timing"
+            element={
+              <RoleGuard capability="view:timing">
+                <TimingPage />
               </RoleGuard>
             }
           />

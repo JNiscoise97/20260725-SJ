@@ -144,6 +144,31 @@ export interface RunOfShowStep {
   responsibleIds: string[]
 }
 
+export type RosRecipientType = "guest" | "fiance" | "both_fiances" | "other"
+
+export interface RosMessage {
+  id: string
+  stepId: string
+  subject: string | null
+  content: string
+  sortOrder: number
+  sentAt: string | null
+  delivererGuestId: string | null
+  recipientType: RosRecipientType | null
+  recipientGuestId: string | null
+  recipientPersonId: string | null
+  recipientLabel: string | null
+  scheduledTime: string | null
+}
+
+export interface RosDelay {
+  id: string
+  stepId: string | null
+  delayMinutes: number
+  reason: string | null
+  loggedAt: string
+}
+
 export interface LogistiqueItem {
   id: string
   domaineId?: string | null

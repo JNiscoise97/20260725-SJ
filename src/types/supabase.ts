@@ -352,6 +352,29 @@ type NotificationLogRow = {
   error_message: string | null
 }
 
+type RosMessageRow = {
+  id: string
+  step_id: string
+  subject: string | null
+  content: string
+  sort_order: number
+  sent_at: string | null
+  deliverer_guest_id: string | null
+  recipient_type: string | null
+  recipient_guest_id: string | null
+  recipient_person_id: string | null
+  recipient_label: string | null
+  scheduled_time: string | null
+}
+
+type RosDelayRow = {
+  id: string
+  step_id: string | null
+  delay_minutes: number
+  reason: string | null
+  logged_at: string
+}
+
 type EquipmentRow = {
   id: string
   category: string
@@ -543,6 +566,8 @@ export interface Database {
         EquipmentRow,
         "id" | "status" | "guest_name" | "notes" | "sort_order" | "created_at"
       >
+      _20260725_ros_messages: TableDef<RosMessageRow, "id" | "sort_order" | "sent_at" | "subject" | "deliverer_guest_id" | "recipient_type" | "recipient_guest_id" | "recipient_person_id" | "recipient_label" | "scheduled_time">
+      _20260725_ros_delays: TableDef<RosDelayRow, "id" | "step_id" | "reason" | "logged_at">
     }
     Views: Record<string, never>
     Functions: {
@@ -572,6 +597,10 @@ export interface Database {
       _20260725_set_guest_access_code: {
         Args: { p_guest_id: string; p_code: string }
         Returns: undefined
+      }
+      _20260725_list_access_codes: {
+        Args: Record<string, never>
+        Returns: { id: string; full_name: string; kind: string; access_code: string; is_active: boolean }[]
       }
     }
     Enums: Record<string, never>

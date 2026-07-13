@@ -20,6 +20,7 @@ import {
   DoorOpen,
   Luggage,
   Package,
+  TimerReset,
   type LucideIcon,
 } from "lucide-react"
 
@@ -54,6 +55,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Référents", path: "/referents", icon: Users, capability: "view:referents" },
   { label: "Planning", path: "/planning", icon: CalendarRange, capability: "view:planning" },
   { label: "Déroulé", path: "/deroule", icon: PartyPopper, capability: "view:deroule" },
+  { label: "Timing", path: "/timing", icon: TimerReset, capability: "view:timing" },
   { label: "Photos de groupe", path: "/photos-groupe", icon: Camera, capability: "view:photos-groupe" },
   { label: "Accueil", path: "/accueil", icon: DoorOpen, capability: "view:accueil" },
   { label: "Logistique", path: "/logistique", icon: Truck, capability: "view:logistique" },
