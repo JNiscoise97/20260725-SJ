@@ -140,6 +140,7 @@ interface GuestEditFormProps {
 function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps) {
   const [firstName, setFirstName] = useState(guest.firstName)
   const [lastName, setLastName] = useState(guest.lastName)
+  const [nickname, setNickname] = useState(guest.nickname ?? "")
   const [groupId, setGroupId] = useState(guest.groupId ?? NONE)
   const [side, setSide] = useState<GuestSide | typeof NONE>(guest.side ?? NONE)
   const [ageRange, setAgeRange] = useState(guest.ageRange ?? "")
@@ -184,6 +185,7 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
       patch: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        nickname: nickname.trim() || null,
         groupId: groupId === NONE ? null : groupId,
         side: side === NONE ? null : side,
         ageRange: ageRange.trim() || null,
@@ -242,6 +244,9 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
           </EditField>
           <EditField label="Nom" htmlFor="edit-last-name">
             <Input id="edit-last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </EditField>
+          <EditField label="Surnom" htmlFor="edit-nickname">
+            <Input id="edit-nickname" placeholder="Optionnel" value={nickname} onChange={(e) => setNickname(e.target.value)} />
           </EditField>
           <EditField label="Groupe">
             <Select value={groupId} onValueChange={setGroupId}>

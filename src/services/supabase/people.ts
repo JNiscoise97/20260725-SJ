@@ -2,6 +2,7 @@ import type { Person } from "@/types/domain"
 import type { AppRoleRow } from "@/types/supabase"
 import type { PeopleService } from "@/services/people.service"
 import { supabase } from "@/supabase/client"
+import { formatDisplayName } from "@/lib/utils"
 
 const db = supabase!
 
@@ -11,6 +12,7 @@ const db = supabase!
 function toPerson(row: {
   id: string
   full_name: string
+  nickname: string | null
   phone: string | null
   role: AppRoleRow
   avatar_url: string | null
@@ -21,7 +23,8 @@ function toPerson(row: {
 }): Person {
   return {
     id: row.id,
-    fullName: row.full_name,
+    fullName: formatDisplayName(row.full_name, row.nickname),
+    nickname: row.nickname,
     phone: row.phone ?? undefined,
     role: row.role as Person["role"],
     // access_code n'est jamais lisible côté client (revoke select, voir 0038) ;
@@ -71,6 +74,7 @@ export const peopleSupabaseService: PeopleService = {
     }
     const fields: Partial<{
       full_name: string
+      nickname: string | null
       phone: string | null
       role: Person["role"]
       avatar_url: string | null | undefined
@@ -80,6 +84,7 @@ export const peopleSupabaseService: PeopleService = {
       allergies: string | null
     }> = {}
     if (patch.fullName !== undefined) fields.full_name = patch.fullName
+    if (patch.nickname !== undefined) fields.nickname = patch.nickname ?? null
     if (patch.phone !== undefined) fields.phone = patch.phone ?? null
     if (patch.role !== undefined) fields.role = patch.role
     if (patch.avatarUrl !== undefined) fields.avatar_url = patch.avatarUrl

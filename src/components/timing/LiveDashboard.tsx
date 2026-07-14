@@ -16,7 +16,8 @@ function offsetStr(ms: number) {
   const s = Math.floor(Math.abs(ms) / 1000)
   const m = Math.floor(s / 60)
   const sec = s % 60
-  return m > 0 ? `${m}min${sec > 0 ? ` ${sec}s` : ""}` : `${sec}s`
+  const secStr = String(sec).padStart(2, "0")
+  return m > 0 ? `${m}min${sec > 0 ? ` ${secStr}s` : ""}` : `${secStr}s`
 }
 
 function countdownStr(ms: number) {

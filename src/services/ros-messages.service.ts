@@ -1,4 +1,4 @@
-import type { RosMessage, RosRecipientType } from "@/types/domain"
+import type { RosDelivererType, RosDeliveryMode, RosMessage, RosRecipientType } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { supabase, USE_SUPABASE } from "@/supabase/client"
 
@@ -6,10 +6,11 @@ const mock = createMockTable<RosMessage>("sj-ros-messages", [])
 
 function rowToMsg(r: {
   id: string; step_id: string; subject: string | null; content: string
-  sort_order: number; sent_at: string | null; deliverer_guest_id: string | null
-  recipient_type: string | null; recipient_guest_id: string | null
-  recipient_person_id: string | null; recipient_label: string | null
-  scheduled_time: string | null
+  sort_order: number; sent_at: string | null; delivery_mode: string | null
+  deliverer_type: string | null; deliverer_guest_id: string | null
+  deliverer_person_id: string | null; recipient_type: string | null
+  recipient_guest_id: string | null; recipient_person_id: string | null
+  recipient_label: string | null; scheduled_time: string | null
 }): RosMessage {
   return {
     id: r.id,
@@ -18,7 +19,10 @@ function rowToMsg(r: {
     content: r.content,
     sortOrder: r.sort_order,
     sentAt: r.sent_at,
+    deliveryMode: r.delivery_mode as RosDeliveryMode | null,
+    delivererType: r.deliverer_type as RosDelivererType | null,
     delivererGuestId: r.deliverer_guest_id,
+    delivererPersonId: r.deliverer_person_id,
     recipientType: r.recipient_type as RosRecipientType | null,
     recipientGuestId: r.recipient_guest_id,
     recipientPersonId: r.recipient_person_id,
@@ -32,7 +36,10 @@ export interface RosMessageInput {
   subject?: string | null
   content: string
   sortOrder?: number
+  deliveryMode?: RosDeliveryMode | null
+  delivererType?: RosDelivererType | null
   delivererGuestId?: string | null
+  delivererPersonId?: string | null
   recipientType?: RosRecipientType | null
   recipientGuestId?: string | null
   recipientPersonId?: string | null
@@ -45,7 +52,10 @@ export interface RosMessagePatch {
   content?: string
   sentAt?: string | null
   sortOrder?: number
+  deliveryMode?: RosDeliveryMode | null
+  delivererType?: RosDelivererType | null
   delivererGuestId?: string | null
+  delivererPersonId?: string | null
   recipientType?: RosRecipientType | null
   recipientGuestId?: string | null
   recipientPersonId?: string | null
@@ -75,7 +85,10 @@ export const rosMessagesService = {
           subject: input.subject ?? null,
           content: input.content,
           sort_order: input.sortOrder ?? 0,
+          delivery_mode: input.deliveryMode ?? null,
+          deliverer_type: input.delivererType ?? null,
           deliverer_guest_id: input.delivererGuestId ?? null,
+          deliverer_person_id: input.delivererPersonId ?? null,
           recipient_type: input.recipientType ?? null,
           recipient_guest_id: input.recipientGuestId ?? null,
           recipient_person_id: input.recipientPersonId ?? null,
@@ -94,7 +107,10 @@ export const rosMessagesService = {
       content: input.content,
       sortOrder: input.sortOrder ?? 0,
       sentAt: null,
+      deliveryMode: input.deliveryMode ?? null,
+      delivererType: input.delivererType ?? null,
       delivererGuestId: input.delivererGuestId ?? null,
+      delivererPersonId: input.delivererPersonId ?? null,
       recipientType: input.recipientType ?? null,
       recipientGuestId: input.recipientGuestId ?? null,
       recipientPersonId: input.recipientPersonId ?? null,
@@ -106,18 +122,28 @@ export const rosMessagesService = {
 
   async update(id: string, patch: RosMessagePatch): Promise<void> {
     if (USE_SUPABASE) {
-      const dbPatch: Record<string, unknown> = {}
-      if ("subject" in patch) dbPatch.subject = patch.subject
-      if (patch.content !== undefined) dbPatch.content = patch.content
-      if ("sentAt" in patch) dbPatch.sent_at = patch.sentAt
-      if (patch.sortOrder !== undefined) dbPatch.sort_order = patch.sortOrder
-      if ("delivererGuestId" in patch) dbPatch.deliverer_guest_id = patch.delivererGuestId
-      if ("recipientType" in patch) dbPatch.recipient_type = patch.recipientType
-      if ("recipientGuestId" in patch) dbPatch.recipient_guest_id = patch.recipientGuestId
-      if ("recipientPersonId" in patch) dbPatch.recipient_person_id = patch.recipientPersonId
-      if ("recipientLabel" in patch) dbPatch.recipient_label = patch.recipientLabel
-      if ("scheduledTime" in patch) dbPatch.scheduled_time = patch.scheduledTime
-      const { error } = await supabase!.from("_20260725_ros_messages").update(dbPatch).eq("id", id)
+      const row: {
+        subject?: string | null; content?: string; sent_at?: string | null
+        sort_order?: number; delivery_mode?: string | null
+        deliverer_type?: string | null; deliverer_guest_id?: string | null
+        deliverer_person_id?: string | null; recipient_type?: string | null
+        recipient_guest_id?: string | null; recipient_person_id?: string | null
+        recipient_label?: string | null; scheduled_time?: string | null
+      } = {}
+      if ("subject" in patch) row.subject = patch.subject
+      if (patch.content !== undefined) row.content = patch.content
+      if ("sentAt" in patch) row.sent_at = patch.sentAt
+      if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder
+      if ("deliveryMode" in patch) row.delivery_mode = patch.deliveryMode
+      if ("delivererType" in patch) row.deliverer_type = patch.delivererType
+      if ("delivererGuestId" in patch) row.deliverer_guest_id = patch.delivererGuestId
+      if ("delivererPersonId" in patch) row.deliverer_person_id = patch.delivererPersonId
+      if ("recipientType" in patch) row.recipient_type = patch.recipientType
+      if ("recipientGuestId" in patch) row.recipient_guest_id = patch.recipientGuestId
+      if ("recipientPersonId" in patch) row.recipient_person_id = patch.recipientPersonId
+      if ("recipientLabel" in patch) row.recipient_label = patch.recipientLabel
+      if ("scheduledTime" in patch) row.scheduled_time = patch.scheduledTime
+      const { error } = await supabase!.from("_20260725_ros_messages").update(row).eq("id", id)
       if (error) throw error
       return
     }
@@ -126,7 +152,10 @@ export const rosMessagesService = {
     if (patch.content !== undefined) mockPatch.content = patch.content
     if ("sentAt" in patch) mockPatch.sentAt = patch.sentAt ?? null
     if (patch.sortOrder !== undefined) mockPatch.sortOrder = patch.sortOrder
+    if ("deliveryMode" in patch) mockPatch.deliveryMode = patch.deliveryMode ?? null
+    if ("delivererType" in patch) mockPatch.delivererType = patch.delivererType ?? null
     if ("delivererGuestId" in patch) mockPatch.delivererGuestId = patch.delivererGuestId ?? null
+    if ("delivererPersonId" in patch) mockPatch.delivererPersonId = patch.delivererPersonId ?? null
     if ("recipientType" in patch) mockPatch.recipientType = patch.recipientType ?? null
     if ("recipientGuestId" in patch) mockPatch.recipientGuestId = patch.recipientGuestId ?? null
     if ("recipientPersonId" in patch) mockPatch.recipientPersonId = patch.recipientPersonId ?? null

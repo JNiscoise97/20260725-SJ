@@ -76,6 +76,7 @@ type DomaineResponsableRow = {
 type PersonRow = {
   id: string
   full_name: string
+  nickname: string | null
   phone: string | null
   role: AppRoleRow
   access_code: string | null
@@ -242,6 +243,7 @@ type GuestRow = {
   paired_with_id: string | null
   checked_in_at: string | null
   is_unexpected: boolean
+  nickname: string | null
   created_at: string
 }
 
@@ -359,7 +361,10 @@ type RosMessageRow = {
   content: string
   sort_order: number
   sent_at: string | null
+  delivery_mode: string | null
+  deliverer_type: string | null
   deliverer_guest_id: string | null
+  deliverer_person_id: string | null
   recipient_type: string | null
   recipient_guest_id: string | null
   recipient_person_id: string | null
@@ -373,6 +378,20 @@ type RosDelayRow = {
   delay_minutes: number
   reason: string | null
   logged_at: string
+}
+
+type RosLaunchRow = {
+  id: string
+  step_id: string
+  mission_id: string | null
+  label: string | null
+  scheduled_time: string | null
+  deliverer_type: string | null
+  deliverer_guest_id: string | null
+  deliverer_person_id: string | null
+  launched_at: string | null
+  sort_order: number
+  created_at: string
 }
 
 type EquipmentRow = {
@@ -427,6 +446,7 @@ export interface Database {
       _20260725_people: TableDef<
         PersonRow,
         | "id"
+        | "nickname"
         | "phone"
         | "access_code"
         | "avatar_url"
@@ -534,6 +554,7 @@ export interface Database {
         | "paired_with_id"
         | "checked_in_at"
         | "is_unexpected"
+        | "nickname"
         | "created_at"
       >
       _20260725_photo_sessions: TableDef<PhotoSessionRow, "id" | "sort_order" | "created_at">
@@ -566,8 +587,9 @@ export interface Database {
         EquipmentRow,
         "id" | "status" | "guest_name" | "notes" | "sort_order" | "created_at"
       >
-      _20260725_ros_messages: TableDef<RosMessageRow, "id" | "sort_order" | "sent_at" | "subject" | "deliverer_guest_id" | "recipient_type" | "recipient_guest_id" | "recipient_person_id" | "recipient_label" | "scheduled_time">
+      _20260725_ros_messages: TableDef<RosMessageRow, "id" | "sort_order" | "sent_at" | "subject" | "delivery_mode" | "deliverer_type" | "deliverer_guest_id" | "deliverer_person_id" | "recipient_type" | "recipient_guest_id" | "recipient_person_id" | "recipient_label" | "scheduled_time">
       _20260725_ros_delays: TableDef<RosDelayRow, "id" | "step_id" | "reason" | "logged_at">
+      _20260725_ros_launches: TableDef<RosLaunchRow, "id" | "mission_id" | "label" | "scheduled_time" | "deliverer_type" | "deliverer_guest_id" | "deliverer_person_id" | "launched_at" | "sort_order" | "created_at">
     }
     Views: Record<string, never>
     Functions: {

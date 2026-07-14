@@ -1,9 +1,10 @@
-import { CheckCheck, Circle, Clock, MessageSquare, Send, User, Users } from "lucide-react"
+import { CheckCheck, Circle, Clock, EarOff, MessageSquare, Mic, Send, User, Users } from "lucide-react"
 
 import type { Guest, Person, RosMessage, RunOfShowStep } from "@/types/domain"
 import { useMarkMessageSent } from "@/hooks/queries/use-ros-messages"
 import { useGuests } from "@/hooks/queries/use-guests"
 import { usePeople } from "@/hooks/queries/use-people"
+import { sortableTime } from "@/lib/run-of-show"
 import { cn } from "@/lib/utils"
 
 function recipientLabel(msg: RosMessage, guests: Guest[], people: Person[]): string | null {
@@ -12,6 +13,7 @@ function recipientLabel(msg: RosMessage, guests: Guest[], people: Person[]): str
     case "guest": return guests.find((x) => x.id === msg.recipientGuestId)?.fullName ?? null
     case "fiance": return people.find((x) => x.id === msg.recipientPersonId)?.fullName ?? null
     case "both_fiances": return "Les deux fiancés"
+    case "all_guests": return "Tous les invités"
     case "other": return msg.recipientLabel ?? null
   }
 }
@@ -20,7 +22,14 @@ function MessageRow({ msg, guests, people }: { msg: RosMessage; guests: Guest[];
   const markSent = useMarkMessageSent()
   const isSent = msg.sentAt !== null
   const recipient = recipientLabel(msg, guests, people)
-  const deliverer = msg.delivererGuestId ? guests.find((g) => g.id === msg.delivererGuestId)?.fullName : null
+  const deliverer = (() => {
+    switch (msg.delivererType) {
+      case "both_fiances": return "Les deux fiancés"
+      case "fiance": return people.find((p) => p.id === msg.delivererPersonId)?.fullName ?? null
+      case "guest": return guests.find((g) => g.id === msg.delivererGuestId)?.fullName ?? null
+      default: return msg.delivererGuestId ? (guests.find((g) => g.id === msg.delivererGuestId)?.fullName ?? null) : null
+    }
+  })()
 
   return (
     <div className={cn(
@@ -42,7 +51,7 @@ function MessageRow({ msg, guests, people }: { msg: RosMessage; guests: Guest[];
         </button>
 
         <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-baseline gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {msg.subject && (
               <span className={cn("font-medium text-sm", isSent ? "line-through text-muted-foreground" : "text-foreground")}>
                 {msg.subject}
@@ -53,6 +62,16 @@ function MessageRow({ msg, guests, people }: { msg: RosMessage; guests: Guest[];
                 <Clock className="size-3" />{msg.scheduledTime}
               </span>
             )}
+            {msg.deliveryMode === "micro" && (
+              <span className="flex items-center gap-1 rounded-full bg-bordeaux/10 px-2 py-0.5 text-[10px] font-semibold text-bordeaux">
+                <Mic className="size-3" />Micro
+              </span>
+            )}
+            {msg.deliveryMode === "discret" && (
+              <span className="flex items-center gap-1 rounded-full bg-lagon/10 px-2 py-0.5 text-[10px] font-semibold text-lagon">
+                <EarOff className="size-3" />Discret
+              </span>
+            )}
             {isSent && msg.sentAt && (
               <span className="text-xs text-vert-vegetal font-medium">
                 Envoyé à {new Date(msg.sentAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
@@ -60,7 +79,7 @@ function MessageRow({ msg, guests, people }: { msg: RosMessage; guests: Guest[];
             )}
           </div>
 
-          <p className={cn("text-sm leading-relaxed", isSent && "text-muted-foreground")}>{msg.content}</p>
+          <p className={cn("text-sm leading-relaxed whitespace-pre-wrap", isSent && "text-muted-foreground")}>{msg.content}</p>
 
           {/* Méta : délivreur + destinataire */}
           {(deliverer || recipient) && (
@@ -73,7 +92,7 @@ function MessageRow({ msg, guests, people }: { msg: RosMessage; guests: Guest[];
               )}
               {recipient && (
                 <span className="flex items-center gap-1">
-                  {msg.recipientType === "both_fiances" ? <Users className="size-3 shrink-0" /> : <User className="size-3 shrink-0" />}
+                  {(msg.recipientType === "both_fiances" || msg.recipientType === "all_guests") ? <Users className="size-3 shrink-0" /> : <User className="size-3 shrink-0" />}
                   <span className="font-medium text-foreground">{recipient}</span>
                 </span>
               )}
@@ -96,7 +115,12 @@ export function StepMessages({ step, messages }: StepMessagesProps) {
 
   const stepMsgs = messages
     .filter((m) => m.stepId === step.id)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .sort((a, b) => {
+      if (a.scheduledTime && b.scheduledTime) return sortableTime(a.scheduledTime) - sortableTime(b.scheduledTime)
+      if (a.scheduledTime) return -1
+      if (b.scheduledTime) return 1
+      return a.sortOrder - b.sortOrder
+    })
 
   if (stepMsgs.length === 0) return null
 

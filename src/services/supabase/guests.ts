@@ -1,6 +1,7 @@
 import type { Guest, GuestGroup } from "@/types/domain"
 import type { GuestsService } from "@/services/guests.service"
 import { supabase } from "@/supabase/client"
+import { formatDisplayName } from "@/lib/utils"
 
 const db = supabase!
 
@@ -56,13 +57,15 @@ function toGuest(row: {
   paired_with_id: string | null
   checked_in_at: string | null
   is_unexpected: boolean
+  nickname: string | null
 }): Guest {
   return {
     id: row.id,
     groupId: row.group_id,
     firstName: row.first_name,
     lastName: row.last_name,
-    fullName: `${row.first_name} ${row.last_name}`.trim(),
+    nickname: row.nickname,
+    fullName: formatDisplayName(`${row.first_name} ${row.last_name}`.trim(), row.nickname),
     rsvpStatus: row.rsvp_status,
     dietaryConstraints: row.dietary_constraints,
     mealChoice: row.meal_choice,
@@ -204,6 +207,7 @@ export const guestsSupabaseService: GuestsService = {
       paired_with_id: string | null
       checked_in_at: string | null
       is_unexpected: boolean
+      nickname: string | null
     }> = {}
     if (patch.groupId !== undefined) row.group_id = patch.groupId
     if (patch.firstName !== undefined) row.first_name = patch.firstName
@@ -253,6 +257,7 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.pairedWithId !== undefined) row.paired_with_id = patch.pairedWithId
     if (patch.checkedInAt !== undefined) row.checked_in_at = patch.checkedInAt
     if (patch.isUnexpected !== undefined) row.is_unexpected = patch.isUnexpected
+    if (patch.nickname !== undefined) row.nickname = patch.nickname ?? null
     if (Object.keys(row).length > 0) {
       const { error } = await db.from("_20260725_guests").update(row).eq("id", id)
       if (error) throw error

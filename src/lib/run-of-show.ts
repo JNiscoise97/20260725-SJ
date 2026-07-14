@@ -107,6 +107,17 @@ export function buildPhaseSegments(steps: RunOfShowStep[]): PhaseSegment[] {
   }))
 }
 
+/**
+ * Convertit "HH:MM" en minutes depuis le pivot de la journée (07:00 par défaut).
+ * Les heures avant le pivot (ex. 01h, 02h = lendemain matin) reçoivent +24h
+ * pour qu'elles sortent après les heures du soir dans un tri croissant.
+ */
+export function sortableTime(hhmm: string, pivotHour = 7): number {
+  const [h, m] = hhmm.split(":").map(Number)
+  const mins = h * 60 + (m ?? 0)
+  return mins < pivotHour * 60 ? mins + 24 * 60 : mins
+}
+
 export function formatProgramWindow(steps: RunOfShowStep[]): string | null {
   const dated = steps.filter((s) => s.startsAt)
   if (dated.length === 0) return null

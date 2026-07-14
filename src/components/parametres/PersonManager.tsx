@@ -20,6 +20,7 @@ import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 
 interface PersonFormState {
   fullName: string
+  nickname: string
   phone: string
   accessCode: string
 }
@@ -32,6 +33,7 @@ function PersonDialog({ person }: { person: Person }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<PersonFormState>({
     fullName: person.fullName,
+    nickname: person.nickname ?? "",
     phone: person.phone ?? "",
     accessCode: person.accessCode,
   })
@@ -42,6 +44,7 @@ function PersonDialog({ person }: { person: Person }) {
 
     const patch: Partial<Person> & { accessCode?: string } = {
       fullName: form.fullName,
+      nickname: form.nickname.trim() || null,
       phone: form.phone || undefined,
     }
     // Code laissé vide en modification = on ne le change pas (le code existant
@@ -70,6 +73,15 @@ function PersonDialog({ person }: { person: Person }) {
               id="person-name"
               value={form.fullName}
               onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="person-nickname">Surnom</FieldLabel>
+            <Input
+              id="person-nickname"
+              placeholder="Optionnel — affiché à la place du nom"
+              value={form.nickname}
+              onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value }))}
             />
           </Field>
           <Field>

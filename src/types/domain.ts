@@ -9,6 +9,7 @@ export type AppRole = "fiance" | "referent" | "invite"
 export interface Person {
   id: string
   fullName: string
+  nickname?: string | null
   phone?: string
   role: "fiance"
   accessCode: string
@@ -24,6 +25,7 @@ export interface Person {
 export interface Identity {
   id: string
   fullName: string
+  nickname?: string | null
   phone?: string | null
   role: AppRole
   accessCode: string
@@ -144,7 +146,11 @@ export interface RunOfShowStep {
   responsibleIds: string[]
 }
 
-export type RosRecipientType = "guest" | "fiance" | "both_fiances" | "other"
+export type RosRecipientType = "guest" | "fiance" | "both_fiances" | "all_guests" | "other"
+
+export type RosDeliveryMode = "micro" | "discret"
+
+export type RosDelivererType = "guest" | "fiance" | "both_fiances"
 
 export interface RosMessage {
   id: string
@@ -153,12 +159,28 @@ export interface RosMessage {
   content: string
   sortOrder: number
   sentAt: string | null
+  deliveryMode: RosDeliveryMode | null
+  delivererType: RosDelivererType | null
   delivererGuestId: string | null
+  delivererPersonId: string | null
   recipientType: RosRecipientType | null
   recipientGuestId: string | null
   recipientPersonId: string | null
   recipientLabel: string | null
   scheduledTime: string | null
+}
+
+export interface RosLaunch {
+  id: string
+  stepId: string
+  missionId: string | null
+  label: string | null
+  scheduledTime: string | null
+  delivererType: RosDelivererType | null
+  delivererGuestId: string | null
+  delivererPersonId: string | null
+  launchedAt: string | null
+  sortOrder: number
 }
 
 export interface RosDelay {
@@ -201,7 +223,8 @@ export interface Guest {
   groupId?: string | null
   firstName: string
   lastName: string
-  /** Dérivé de firstName + lastName, en lecture uniquement. */
+  nickname?: string | null
+  /** Nom d'affichage : surnom (Prénom Nom) si surnom défini, sinon Prénom Nom. */
   fullName: string
   rsvpStatus: RsvpStatus
   dietaryConstraints?: string | null

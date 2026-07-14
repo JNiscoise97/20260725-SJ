@@ -8,24 +8,32 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRunOfShow } from "@/hooks/queries/use-run-of-show"
 import { usePeople } from "@/hooks/queries/use-people"
 import { useRosMessages } from "@/hooks/queries/use-ros-messages"
+import { useRosLaunches } from "@/hooks/queries/use-ros-launches"
 import { useRosDelays } from "@/hooks/queries/use-ros-delays"
 import { useIdentity } from "@/context/IdentityContext"
 import { LiveDashboard } from "@/components/timing/LiveDashboard"
 import { MessagesConfig } from "@/components/timing/MessagesConfig"
 import { DelayJournal } from "@/components/timing/DelayJournal"
+import { MyMessages } from "@/components/timing/MyMessages"
 
-type TabId = "en-direct" | "messages" | "retards"
+type TabId = "en-direct" | "mes-messages" | "messages" | "retards"
 
 export function TimingPage() {
-  const [tab, setTab] = useState<TabId>("en-direct")
+  const { person, realPerson } = useIdentity()
+  const isFiance = realPerson?.role === "fiance"
+  // Référent = invité assignable connecté avec ses propres credentials (ou impersonné par un fiancé)
+  const isReferent = person?.role === "referent"
+
+  const [tab, setTab] = useState<TabId>(isReferent ? "mes-messages" : "en-direct")
+  const showMyMessages = isReferent || isFiance
+
   const { data: steps, isLoading: stepsLoading } = useRunOfShow()
   const { data: people, isLoading: peopleLoading } = usePeople()
   const { data: messages, isLoading: messagesLoading } = useRosMessages()
+  const { data: launches, isLoading: launchesLoading } = useRosLaunches()
   const { data: delays, isLoading: delaysLoading } = useRosDelays()
-  const { realPerson } = useIdentity()
-  const isFiance = realPerson?.role === "fiance"
 
-  const isLoading = stepsLoading || peopleLoading || messagesLoading || delaysLoading
+  const isLoading = stepsLoading || peopleLoading || messagesLoading || launchesLoading || delaysLoading
 
   if (isLoading) {
     return (
@@ -49,6 +57,7 @@ export function TimingPage() {
 
   const peopleList = people ?? []
   const messageList = messages ?? []
+  const launchList = launches ?? []
   const delayList = delays ?? []
 
   return (
@@ -57,6 +66,30 @@ export function TimingPage() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabId)}>
         <TabsList>
+          {showMyMessages && (
+            <TabsTrigger value="mes-messages">
+              Mes messages
+              {(() => {
+                const mine = messageList.filter((m) =>
+                  m.delivererGuestId === person?.id ||
+                  m.delivererPersonId === person?.id ||
+                  (isFiance && m.delivererType === "both_fiances")
+                )
+                const myLaunches = launchList.filter((l) =>
+                  l.delivererGuestId === person?.id ||
+                  l.delivererPersonId === person?.id ||
+                  (isFiance && l.delivererType === "both_fiances")
+                )
+                const pending = mine.filter((m) => m.sentAt === null).length +
+                  myLaunches.filter((l) => l.launchedAt === null).length
+                return pending > 0 ? (
+                  <span className="ml-1.5 rounded-full bg-bordeaux/20 px-1.5 py-0.5 text-[10px] font-bold text-bordeaux tabular-nums">
+                    {pending}
+                  </span>
+                ) : null
+              })()}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="en-direct">En direct</TabsTrigger>
           {isFiance && <TabsTrigger value="messages">Messages</TabsTrigger>}
           <TabsTrigger value="retards">
@@ -70,11 +103,14 @@ export function TimingPage() {
         </TabsList>
       </Tabs>
 
+      {tab === "mes-messages" && showMyMessages && person && (
+        <MyMessages personId={person.id} messages={messageList} launches={launchList} steps={steps} includeBothFiances={isFiance} />
+      )}
       {tab === "en-direct" && (
         <LiveDashboard steps={steps} people={peopleList} messages={messageList} />
       )}
       {tab === "messages" && isFiance && (
-        <MessagesConfig steps={steps} messages={messageList} />
+        <MessagesConfig steps={steps} messages={messageList} launches={launchList} />
       )}
       {tab === "retards" && (
         <DelayJournal delays={delayList} steps={steps} />
