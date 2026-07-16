@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Calendar, ChevronDown, ChevronRight, Clock, EarOff, MessageSquare, Mic, Pencil, Plus, RefreshCw, Rocket, Send, Trash2, User, Users, X } from "lucide-react"
 import { toast } from "sonner"
 
-import type { Domaine, Guest, Mission, MissionAcceptance, MissionSchedulingType, Person, RosDelivererType, RosDeliveryMode, RosLaunch, RosMessage, RosRecipientType, RunOfShowStep } from "@/types/domain"
+import type { Domaine, Guest, Mission, MissionSchedulingType, Person, RosDelivererType, RosDeliveryMode, RosLaunch, RosMessage, RosRecipientType, RunOfShowStep } from "@/types/domain"
 import type { RosMessageInput } from "@/services/ros-messages.service"
 import type { RosLaunchInput } from "@/services/ros-launches.service"
 import { useCreateRosMessage, useDeleteRosMessage, useUpdateRosMessage } from "@/hooks/queries/use-ros-messages"
@@ -418,11 +418,10 @@ interface LaunchDialogProps {
   sortOrder: number
   editing?: RosLaunch
   guests: Guest[]
-  people: Person[]
   missions: Mission[]
 }
 
-function LaunchDialog({ open, onClose, stepId, sortOrder, editing, guests, people, missions }: LaunchDialogProps) {
+function LaunchDialog({ open, onClose, stepId, sortOrder, editing, guests, missions }: LaunchDialogProps) {
   const [form, setForm] = useState<LaunchFormState>(emptyLaunchForm)
   const create = useCreateRosLaunch()
   const update = useUpdateRosLaunch()
@@ -681,7 +680,7 @@ function StepRow({ step, messages, launches, guests, people, missions }: {
 
       <LaunchDialog open={launchDialogOpen} onClose={() => setLaunchDialogOpen(false)}
         stepId={step.id} sortOrder={stepLaunches.length}
-        editing={editingLaunch} guests={guests} people={people} missions={missions} />
+        editing={editingLaunch} guests={guests} missions={missions} />
     </>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { CheckCheck, Circle, EarOff, MessageSquare, Mic, Rocket, User, Users } from "lucide-react"
 
-import type { Guest, Mission, MissionAcceptance, Person, RosLaunch, RosMessage, RunOfShowStep } from "@/types/domain"
+import type { Guest, Mission, Person, RosLaunch, RosMessage, RunOfShowStep } from "@/types/domain"
 import { useMarkMessageSent } from "@/hooks/queries/use-ros-messages"
 import { useMarkLaunchLaunched } from "@/hooks/queries/use-ros-launches"
 import { useGuests } from "@/hooks/queries/use-guests"

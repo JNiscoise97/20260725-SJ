@@ -5,7 +5,6 @@ import type { DomainePhase, Mission } from "@/types/domain"
 import { DOMAINE_PHASE_LABELS, DOMAINE_PHASE_ORDER } from "@/lib/constants"
 import { usePoles } from "@/hooks/queries/use-poles"
 import { useDomaines } from "@/hooks/queries/use-domaines"
-import { useMissions } from "@/hooks/queries/use-missions"
 import { useAllChecklists, useAllChecklistItems } from "@/hooks/queries/use-checklists"
 import { cn } from "@/lib/utils"
 
