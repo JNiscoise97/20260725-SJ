@@ -74,6 +74,8 @@ export interface DomaineResponsable {
 export type ProgressStatus = "todo" | "in_progress" | "done" | "blocked"
 export type Priority = "low" | "normal" | "high" | "urgent"
 
+export type MissionSchedulingType = "planifiee" | "en_continu"
+
 export interface Mission {
   id: string
   domaineId?: string | null
@@ -81,6 +83,7 @@ export interface Mission {
   description?: string | null
   prerequisites?: string | null
   status: ProgressStatus
+  schedulingType?: MissionSchedulingType | null
   sortOrder: number
 }
 
@@ -176,9 +179,6 @@ export interface RosLaunch {
   missionId: string | null
   label: string | null
   scheduledTime: string | null
-  delivererType: RosDelivererType | null
-  delivererGuestId: string | null
-  delivererPersonId: string | null
   launchedAt: string | null
   sortOrder: number
 }

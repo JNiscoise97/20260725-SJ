@@ -10,6 +10,7 @@ import { usePeople } from "@/hooks/queries/use-people"
 import { useRosMessages } from "@/hooks/queries/use-ros-messages"
 import { useRosLaunches } from "@/hooks/queries/use-ros-launches"
 import { useRosDelays } from "@/hooks/queries/use-ros-delays"
+import { useAllMissionAcceptances } from "@/hooks/queries/use-mission-acceptances"
 import { useIdentity } from "@/context/IdentityContext"
 import { LiveDashboard } from "@/components/timing/LiveDashboard"
 import { MessagesConfig } from "@/components/timing/MessagesConfig"
@@ -32,6 +33,7 @@ export function TimingPage() {
   const { data: messages, isLoading: messagesLoading } = useRosMessages()
   const { data: launches, isLoading: launchesLoading } = useRosLaunches()
   const { data: delays, isLoading: delaysLoading } = useRosDelays()
+  const { data: acceptances = [] } = useAllMissionAcceptances()
 
   const isLoading = stepsLoading || peopleLoading || messagesLoading || launchesLoading || delaysLoading
 
@@ -76,9 +78,8 @@ export function TimingPage() {
                   (isFiance && m.delivererType === "both_fiances")
                 )
                 const myLaunches = launchList.filter((l) =>
-                  l.delivererGuestId === person?.id ||
-                  l.delivererPersonId === person?.id ||
-                  (isFiance && l.delivererType === "both_fiances")
+                  l.missionId !== null &&
+                  acceptances.some((a) => a.missionId === l.missionId && a.guestId === person?.id && a.status === "accepted")
                 )
                 const pending = mine.filter((m) => m.sentAt === null).length +
                   myLaunches.filter((l) => l.launchedAt === null).length

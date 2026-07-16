@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { GripVertical, Pencil, Trash2, X } from "lucide-react"
+import { Calendar, GripVertical, Pencil, RefreshCw, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable"
@@ -13,7 +13,8 @@ import {
   useReorderChecklistItems,
 } from "@/hooks/queries/use-checklists"
 import { useUpdateMission, useDeleteMission } from "@/hooks/queries/use-missions"
-import type { Checklist, ChecklistItem, Mission, ProgressStatus } from "@/types/domain"
+import type { Checklist, ChecklistItem, Mission, MissionSchedulingType, ProgressStatus } from "@/types/domain"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -212,12 +213,18 @@ function ChecklistSection({
   )
 }
 
+const SCHEDULING_OPTIONS: { value: MissionSchedulingType; label: string; description: string }[] = [
+  { value: "planifiee", label: "Planifiée", description: "Apparaît dans le timing à un moment précis" },
+  { value: "en_continu", label: "En continu", description: "Se déroule tout au long de l'événement" },
+]
+
 export function MissionEditDialog({ mission }: { mission: Mission }) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState(mission.title)
   const [description, setDescription] = useState(mission.description ?? "")
   const [prerequisites, setPrerequisites] = useState(mission.prerequisites ?? "")
   const [status, setStatus] = useState<ProgressStatus>(mission.status)
+  const [schedulingType, setSchedulingType] = useState<MissionSchedulingType | null>(mission.schedulingType ?? null)
 
   const { data: allChecklists } = useAllChecklists()
   const { data: allItems } = useAllChecklistItems()
@@ -234,6 +241,7 @@ export function MissionEditDialog({ mission }: { mission: Mission }) {
     setDescription(mission.description ?? "")
     setPrerequisites(mission.prerequisites ?? "")
     setStatus(mission.status)
+    setSchedulingType(mission.schedulingType ?? null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -267,6 +275,7 @@ export function MissionEditDialog({ mission }: { mission: Mission }) {
         description: description.trim() || null,
         prerequisites: prerequisites.trim() || null,
         status,
+        schedulingType: schedulingType ?? null,
       },
     })
     toast.success("Mission mise à jour.")
@@ -340,6 +349,32 @@ export function MissionEditDialog({ mission }: { mission: Mission }) {
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+
+            <Field>
+              <FieldLabel>Planification dans le timing</FieldLabel>
+              <div className="flex gap-2">
+                {SCHEDULING_OPTIONS.map((opt) => {
+                  const active = schedulingType === opt.value
+                  const Icon = opt.value === "planifiee" ? Calendar : RefreshCw
+                  return (
+                    <button key={opt.value} type="button"
+                      onClick={() => setSchedulingType(active ? null : opt.value)}
+                      className={cn(
+                        "flex flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors text-left",
+                        active
+                          ? "border-bordeaux/40 bg-bordeaux/10 text-bordeaux font-medium"
+                          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                      )}>
+                      <Icon className="size-3.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold">{opt.label}</p>
+                        <p className="text-[10px] opacity-70">{opt.description}</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </Field>
           </FieldGroup>
 

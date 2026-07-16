@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import { CheckCheck, Circle, EarOff, MessageSquare, Mic, Rocket, User, Users } from "lucide-react"
 
-import type { Guest, Mission, Person, RosLaunch, RosMessage, RunOfShowStep } from "@/types/domain"
+import type { Guest, Mission, MissionAcceptance, Person, RosLaunch, RosMessage, RunOfShowStep } from "@/types/domain"
 import { useMarkMessageSent } from "@/hooks/queries/use-ros-messages"
 import { useMarkLaunchLaunched } from "@/hooks/queries/use-ros-launches"
 import { useGuests } from "@/hooks/queries/use-guests"
 import { usePeople } from "@/hooks/queries/use-people"
 import { useMissions } from "@/hooks/queries/use-missions"
+import { useAllMissionAcceptances } from "@/hooks/queries/use-mission-acceptances"
 import { getPhaseStyle, sortableTime } from "@/lib/run-of-show"
 import { cn } from "@/lib/utils"
 
@@ -195,6 +196,7 @@ export function MyMessages({ personId, messages, launches, steps, includeBothFia
   const { data: guests = [] } = useGuests()
   const { data: people = [] } = usePeople()
   const { data: missions = [] } = useMissions()
+  const { data: acceptances = [] } = useAllMissionAcceptances()
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000)
@@ -216,9 +218,8 @@ export function MyMessages({ personId, messages, launches, steps, includeBothFia
 
   const myLaunches = launches
     .filter((l) =>
-      l.delivererGuestId === personId ||
-      l.delivererPersonId === personId ||
-      (includeBothFiances && l.delivererType === "both_fiances")
+      l.missionId !== null &&
+      acceptances.some((a) => a.missionId === l.missionId && a.guestId === personId && a.status === "accepted")
     )
     .sort((a, b) => {
       if (a.scheduledTime && b.scheduledTime) return sortableTime(a.scheduledTime) - sortableTime(b.scheduledTime)

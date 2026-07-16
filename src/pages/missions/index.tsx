@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react"
-import { ListChecks, LayoutGrid, FolderTree, CheckCircle2, TriangleAlert, Clock, Ban, ArrowRight } from "lucide-react"
+import {
+  ListChecks, LayoutGrid, FolderTree, CheckCircle2, TriangleAlert,
+  Clock, Ban, ArrowRight, Calendar, RefreshCw, UserPlus,
+} from "lucide-react"
 
-import type { ChecklistItem, Domaine, Mission, ProgressStatus } from "@/types/domain"
+import { toast } from "sonner"
+
+import type { ChecklistItem, Domaine, Guest, Mission, MissionAcceptance, ProgressStatus } from "@/types/domain"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { StatCard } from "@/components/shared/StatCard"
@@ -14,10 +19,14 @@ import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Badge } from "@/components/ui/badge"
 import { ChecklistWidget } from "@/components/shared/ChecklistWidget"
 import { ChecklistItemCard } from "@/components/checklist-items/ChecklistItemCard"
-import { useMissions } from "@/hooks/queries/use-missions"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useMissions, useUpdateMission } from "@/hooks/queries/use-missions"
+import { useRosLaunches } from "@/hooks/queries/use-ros-launches"
 import { useDomaines } from "@/hooks/queries/use-domaines"
 import { usePoles } from "@/hooks/queries/use-poles"
 import { useAllChecklists, useAllChecklistItems, useUpdateChecklistItem } from "@/hooks/queries/use-checklists"
+import { useAllMissionAcceptances, useRespondToMission } from "@/hooks/queries/use-mission-acceptances"
+import { useGuests } from "@/hooks/queries/use-guests"
 import { useIdentity } from "@/context/IdentityContext"
 import { useResponsableEntries } from "@/hooks/use-responsable-entries"
 import { MissionEditDialog } from "@/components/missions/MissionEditDialog"
@@ -25,6 +34,11 @@ import { DOMAINE_PHASE_LABELS, DOMAINE_PHASE_ORDER } from "@/lib/constants"
 
 const NO_POLE = "__no_pole__"
 const DASHBOARD_TAB = "__dashboard__"
+
+type MissionWithContext = {
+  mission: Mission
+  context: string | undefined
+}
 
 function itemStats(items: ChecklistItem[]) {
   const total = items.length
@@ -76,21 +90,105 @@ function DomaineMissionsCard({ domaine, missions }: { domaine: Domaine; missions
   )
 }
 
+function QuickScheduleCard({ mission, context }: MissionWithContext) {
+  const updateMission = useUpdateMission()
+
+  async function handleEnContinu() {
+    const { mutate } = updateMission
+    await updateMission.mutateAsync({ id: mission.id, patch: { schedulingType: "en_continu" } })
+    toast.success(`${mission.title} · En continu`, {
+      action: {
+        label: "Annuler",
+        onClick: () => mutate({ id: mission.id, patch: { schedulingType: null } }),
+      },
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground">{mission.title}</p>
+        {context && <p className="text-xs text-muted-foreground">{context}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={handleEnContinu}
+        disabled={updateMission.isPending}
+        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:border-foreground/30 hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+      >
+        <RefreshCw className="size-3 shrink-0" />
+        En continu
+      </button>
+    </div>
+  )
+}
+
+function QuickAssignCard({
+  mission,
+  context,
+  assignableGuests,
+  assignedGuest,
+}: MissionWithContext & { assignableGuests: Guest[]; assignedGuest?: Guest }) {
+  const respondToMission = useRespondToMission()
+
+  // Include assignedGuest in options even if not globally assignable
+  const options = useMemo(() => {
+    if (!assignedGuest || assignableGuests.some((g) => g.id === assignedGuest.id)) return assignableGuests
+    return [...assignableGuests, assignedGuest].sort((a, b) => a.fullName.localeCompare(b.fullName, "fr"))
+  }, [assignableGuests, assignedGuest])
+
+  function handleAssign(guestId: string) {
+    if (assignedGuest && assignedGuest.id !== guestId) {
+      respondToMission.mutate(
+        { missionId: mission.id, guestId: assignedGuest.id, status: "declined" },
+        { onSuccess: () => respondToMission.mutate({ missionId: mission.id, guestId, status: "accepted" }) }
+      )
+    } else {
+      respondToMission.mutate({ missionId: mission.id, guestId, status: "accepted" })
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card px-3 py-2.5 space-y-2">
+      <div>
+        <p className="text-sm font-medium text-foreground">{mission.title}</p>
+        {context && <p className="text-xs text-muted-foreground">{context}</p>}
+      </div>
+      <Select
+        value={assignedGuest?.id ?? ""}
+        onValueChange={handleAssign}
+        disabled={respondToMission.isPending}
+      >
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue placeholder="Assigner un référent…" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((g) => (
+            <SelectItem key={g.id} value={g.id}>{g.fullName}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
 export function MissionsPage() {
   const { data: missions, isLoading: missionsLoading } = useMissions()
   const { data: domaines, isLoading: domainesLoading } = useDomaines()
   const { data: poles, isLoading: polesLoading } = usePoles()
   const { data: checklists, isLoading: checklistsLoading } = useAllChecklists()
   const { data: checklistItems, isLoading: itemsLoading } = useAllChecklistItems()
+  const { data: guests, isLoading: guestsLoading } = useGuests()
+  const { data: acceptances, isLoading: acceptancesLoading } = useAllMissionAcceptances()
+  const { data: rosLaunches = [] } = useRosLaunches()
   const updateItem = useUpdateChecklistItem()
   const { person } = useIdentity()
   const { isLoading: entriesLoading, entries } = useResponsableEntries()
 
   const isLoading =
-    missionsLoading || domainesLoading || polesLoading || checklistsLoading || itemsLoading || entriesLoading
+    missionsLoading || domainesLoading || polesLoading || checklistsLoading ||
+    itemsLoading || entriesLoading || guestsLoading || acceptancesLoading
 
-  // Un fiancé voit l'ensemble des missions (vue d'organisation) ; un
-  // référent ne voit que celles des domaines qui lui sont confiés.
   const myDomaineIds = useMemo(() => {
     if (!person || person.role === "fiance") return null
     return entries.find((e) => e.identity.id === person.id)?.domaineIds ?? []
@@ -121,10 +219,6 @@ export function MissionsPage() {
     return map
   }, [checklists, checklistItems])
 
-  // Vue opérationnelle : domaines (et leurs missions) dont le fiancé connecté
-  // est lui-même responsable — distinct de `myDomaineIds`, qui reste toujours
-  // `null` pour un fiancé puisqu'il voit l'ensemble de l'organisation en
-  // pilotage.
   const myDomaineGroups = useMemo(() => {
     if (!missions || !domaines || !person) return []
     const myResponsableDomaineIds = entries.find((e) => e.identity.id === person.id)?.domaineIds ?? []
@@ -233,6 +327,64 @@ export function MissionsPage() {
     return { urgent, overdue, blocked }
   }, [itemsWithContext])
 
+  const assignableGuests = useMemo(
+    () => (guests ?? []).filter((g) => g.assignable).sort((a, b) => a.fullName.localeCompare(b.fullName, "fr")),
+    [guests]
+  )
+
+  const unscheduledMissions = useMemo<MissionWithContext[]>(() => {
+    if (!visibleMissions || !domaines || !acceptances) return []
+    const domaineById = new Map(domaines.map((d) => [d.id, d]))
+    const poleById = new Map((poles ?? []).map((p) => [p.id, p]))
+    const launchedMissionIds = new Set(rosLaunches.map((l) => l.missionId).filter(Boolean))
+    const phaseIdx = (phase?: string | null) => {
+      const i = DOMAINE_PHASE_ORDER.findIndex((p) => p === phase)
+      return i >= 0 ? i : 99
+    }
+    return visibleMissions
+      .filter((m) => {
+        const d = m.domaineId ? domaineById.get(m.domaineId) : undefined
+        return d?.phase !== "avant"
+          && d?.phase !== "apres"
+          && m.schedulingType !== "en_continu"
+          && !launchedMissionIds.has(m.id)
+      })
+      .sort((a, b) => {
+        const dA = a.domaineId ? domaineById.get(a.domaineId) : undefined
+        const dB = b.domaineId ? domaineById.get(b.domaineId) : undefined
+        const diff = phaseIdx(dA?.phase) - phaseIdx(dB?.phase)
+        return diff !== 0 ? diff : a.title.localeCompare(b.title, "fr")
+      })
+      .map((m) => {
+        const d = m.domaineId ? domaineById.get(m.domaineId) : undefined
+        const p = d?.poleId ? poleById.get(d.poleId) : undefined
+        return { mission: m, context: [p?.name, d?.name].filter(Boolean).join(" · ") || undefined }
+      })
+  }, [visibleMissions, domaines, poles, acceptances, rosLaunches])
+
+  const allMissionsForAssignment = useMemo<(MissionWithContext & { assignedGuest?: Guest })[]>(() => {
+    if (!visibleMissions || !domaines || !acceptances || !guests) return []
+    const domaineById = new Map(domaines.map((d) => [d.id, d]))
+    const poleById = new Map((poles ?? []).map((p) => [p.id, p]))
+    const guestById = new Map((guests ?? []).map((g) => [g.id, g]))
+    return visibleMissions
+      .map((m) => {
+        const d = m.domaineId ? domaineById.get(m.domaineId) : undefined
+        const p = d?.poleId ? poleById.get(d.poleId) : undefined
+        const context = [p?.name, d?.name].filter(Boolean).join(" · ") || undefined
+        const acceptedAcc = acceptances.find((a: MissionAcceptance) => a.missionId === m.id && a.status === "accepted")
+        const assignedGuest = acceptedAcc ? guestById.get(acceptedAcc.guestId) : undefined
+        return { mission: m, context, assignedGuest }
+      })
+      .sort((a, b) => {
+        const ctxA = a.context ?? ""
+        const ctxB = b.context ?? ""
+        return ctxA !== ctxB ? ctxA.localeCompare(ctxB, "fr") : a.mission.title.localeCompare(b.mission.title, "fr")
+      })
+  }, [visibleMissions, domaines, poles, acceptances, guests])
+
+  const unassignedCount = allMissionsForAssignment.filter((m) => !m.assignedGuest).length
+
   function handleStatusChange(item: ChecklistItem, status: ProgressStatus) {
     updateItem.mutate({ id: item.id, patch: { status, isDone: status === "done" } })
   }
@@ -247,6 +399,7 @@ export function MissionsPage() {
 
   const dashboardContent = (
     <>
+      {/* Checklist alerts */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           icon={TriangleAlert}
@@ -267,6 +420,26 @@ export function MissionsPage() {
           accentClassName="bg-muted text-muted-foreground"
         />
       </div>
+
+      {/* Organisation des missions */}
+      {(unscheduledMissions.length > 0 || unassignedCount > 0) && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatCard
+            icon={Calendar}
+            label="Non planifiées"
+            value={unscheduledMissions.length}
+            hint="Missions sans type de planification"
+            accentClassName="bg-lagon/10 text-lagon"
+          />
+          <StatCard
+            icon={UserPlus}
+            label="Non assignées"
+            value={unassignedCount}
+            hint="Missions sans référent accepté"
+            accentClassName="bg-dore/20 text-brun"
+          />
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -296,6 +469,58 @@ export function MissionsPage() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Missions à planifier */}
+      {unscheduledMissions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle className="font-heading text-base">Sans planification</CardTitle>
+              <Badge className="bg-lagon/10 text-lagon">{unscheduledMissions.length}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ni dans le timing ni en continu. Ajoutez-les dans le timing ou marquez-les en continu.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {unscheduledMissions.map(({ mission, context }) => (
+                <QuickScheduleCard key={mission.id} mission={mission} context={context} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Référents des missions */}
+      {allMissionsForAssignment.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle className="font-heading text-base">Référents</CardTitle>
+              {unassignedCount > 0 && (
+                <Badge className="bg-dore/20 text-brun">{unassignedCount} sans référent</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Assignez ou modifiez le référent de chaque mission.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {allMissionsForAssignment.map(({ mission, context, assignedGuest }) => (
+                <QuickAssignCard
+                  key={mission.id}
+                  mission={mission}
+                  context={context}
+                  assignableGuests={assignableGuests}
+                  assignedGuest={assignedGuest}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

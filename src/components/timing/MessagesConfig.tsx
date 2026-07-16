@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react"
-import { ChevronDown, ChevronRight, Clock, EarOff, MessageSquare, Mic, Pencil, Plus, Rocket, Send, Trash2, User, Users, X, Zap } from "lucide-react"
+import { Calendar, ChevronDown, ChevronRight, Clock, EarOff, MessageSquare, Mic, Pencil, Plus, RefreshCw, Rocket, Send, Trash2, User, Users, X } from "lucide-react"
 import { toast } from "sonner"
 
-import type { Guest, Mission, Person, RosDelivererType, RosDeliveryMode, RosLaunch, RosMessage, RosRecipientType, RunOfShowStep } from "@/types/domain"
+import type { Domaine, Guest, Mission, MissionAcceptance, MissionSchedulingType, Person, RosDelivererType, RosDeliveryMode, RosLaunch, RosMessage, RosRecipientType, RunOfShowStep } from "@/types/domain"
 import type { RosMessageInput } from "@/services/ros-messages.service"
 import type { RosLaunchInput } from "@/services/ros-launches.service"
 import { useCreateRosMessage, useDeleteRosMessage, useUpdateRosMessage } from "@/hooks/queries/use-ros-messages"
 import { useCreateRosLaunch, useDeleteRosLaunch, useUpdateRosLaunch } from "@/hooks/queries/use-ros-launches"
-import { useMissions } from "@/hooks/queries/use-missions"
+import { useMissions, useUpdateMission } from "@/hooks/queries/use-missions"
+import { useAllMissionAcceptances, useRespondToMission } from "@/hooks/queries/use-mission-acceptances"
 import { useGuests } from "@/hooks/queries/use-guests"
 import { usePeople } from "@/hooks/queries/use-people"
+import { useDomaines } from "@/hooks/queries/use-domaines"
 import { buildPhaseSegments, sortableTime, splitRunOfShowSteps } from "@/lib/run-of-show"
+import { DOMAINE_PHASE_LABELS, DOMAINE_PHASE_ORDER } from "@/lib/constants"
 import { MissionPicker } from "@/components/timing/MissionPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -394,13 +397,10 @@ interface LaunchFormState {
   missionId: string
   label: string
   scheduledTime: string
-  delivererType: RosDelivererType | ""
-  delivererGuestId: string
-  delivererPersonId: string
 }
 
 function emptyLaunchForm(): LaunchFormState {
-  return { missionId: "", label: "", scheduledTime: "", delivererType: "", delivererGuestId: "", delivererPersonId: "" }
+  return { missionId: "", label: "", scheduledTime: "" }
 }
 
 function launchToForm(launch: RosLaunch): LaunchFormState {
@@ -408,9 +408,6 @@ function launchToForm(launch: RosLaunch): LaunchFormState {
     missionId: launch.missionId ?? "",
     label: launch.label ?? "",
     scheduledTime: launch.scheduledTime ?? "",
-    delivererType: launch.delivererType ?? "",
-    delivererGuestId: launch.delivererGuestId ?? "",
-    delivererPersonId: launch.delivererPersonId ?? "",
   }
 }
 
@@ -429,6 +426,8 @@ function LaunchDialog({ open, onClose, stepId, sortOrder, editing, guests, peopl
   const [form, setForm] = useState<LaunchFormState>(emptyLaunchForm)
   const create = useCreateRosLaunch()
   const update = useUpdateRosLaunch()
+  const respondToMission = useRespondToMission()
+  const { data: acceptances = [] } = useAllMissionAcceptances()
 
   useEffect(() => {
     if (!open) return
@@ -439,13 +438,24 @@ function LaunchDialog({ open, onClose, stepId, sortOrder, editing, guests, peopl
     setForm((prev) => ({ ...prev, [key]: val }))
   }
 
-  function changeDelivererType(v: string) {
-    setForm((prev) => ({ ...prev, delivererType: v as RosDelivererType | "", delivererGuestId: "", delivererPersonId: "" }))
-  }
-
   const assignableGuests = guests.filter((g) => g.assignable)
   const canSubmit = form.missionId !== "" || form.label.trim().length > 0
   const isPending = create.isPending || update.isPending
+
+  const currentAcceptance = acceptances.find(
+    (a) => a.missionId === form.missionId && a.status === "accepted"
+  )
+  const currentAssigneeId = currentAcceptance?.guestId ?? ""
+
+  async function handleAssigneeChange(guestId: string) {
+    if (!form.missionId) return
+    if (currentAcceptance && currentAcceptance.guestId !== guestId) {
+      await respondToMission.mutateAsync({ missionId: form.missionId, guestId: currentAcceptance.guestId, status: "pending" })
+    }
+    if (guestId) {
+      await respondToMission.mutateAsync({ missionId: form.missionId, guestId, status: "accepted" })
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -453,9 +463,6 @@ function LaunchDialog({ open, onClose, stepId, sortOrder, editing, guests, peopl
       missionId: form.missionId || null,
       label: form.label.trim() || null,
       scheduledTime: form.scheduledTime || null,
-      delivererType: (form.delivererType as RosDelivererType) || null,
-      delivererGuestId: form.delivererType === "guest" ? (form.delivererGuestId || null) : null,
-      delivererPersonId: form.delivererType === "fiance" ? (form.delivererPersonId || null) : null,
     }
     if (editing) {
       await update.mutateAsync({ id: editing.id, patch: payload })
@@ -471,7 +478,7 @@ function LaunchDialog({ open, onClose, stepId, sortOrder, editing, guests, peopl
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
       <DialogContent className="flex flex-col sm:max-w-lg max-h-[90svh]">
         <DialogHeader>
-          <DialogTitle className="font-heading">{editing ? "Modifier le lancement" : "Nouveau lancement"}</DialogTitle>
+          <DialogTitle className="font-heading">{editing ? "Modifier le lancement" : "Lancer une mission"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col min-h-0 gap-4">
@@ -492,39 +499,17 @@ function LaunchDialog({ open, onClose, stepId, sortOrder, editing, guests, peopl
               <Input id="launch-time" type="time" value={form.scheduledTime} onChange={(e) => set("scheduledTime", e.target.value)} className="w-36" />
             </Field>
 
-            <Field>
-              <FieldLabel>Qui lance</FieldLabel>
-              <Select value={form.delivererType || "__none__"} onValueChange={(v) => changeDelivererType(v === "__none__" ? "" : v)}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— Non assigné</SelectItem>
-                  <SelectItem value="both_fiances">Les deux fiancés</SelectItem>
-                  <SelectItem value="fiance">Un des fiancés</SelectItem>
-                  <SelectItem value="guest">Invité assignable</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            {form.delivererType === "fiance" && (
+            {form.missionId && (
               <Field>
-                <FieldLabel>Fiancé(e)</FieldLabel>
-                <Select value={form.delivererPersonId || "__none__"} onValueChange={(v) => set("delivererPersonId", v === "__none__" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner…" /></SelectTrigger>
+                <FieldLabel>Assigné à</FieldLabel>
+                <Select
+                  value={currentAssigneeId || "__none__"}
+                  onValueChange={(v) => handleAssigneeChange(v === "__none__" ? "" : v)}
+                  disabled={respondToMission.isPending}
+                >
+                  <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">—</SelectItem>
-                    {people.map((p) => <SelectItem key={p.id} value={p.id}>{p.fullName}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-
-            {form.delivererType === "guest" && (
-              <Field>
-                <FieldLabel>Invité</FieldLabel>
-                <Select value={form.delivererGuestId || "__none__"} onValueChange={(v) => set("delivererGuestId", v === "__none__" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner un bénévole…" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">—</SelectItem>
+                    <SelectItem value="__none__">— Non assigné</SelectItem>
                     {assignableGuests.map((g) => <SelectItem key={g.id} value={g.id}>{g.fullName}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -551,22 +536,17 @@ function launchLabel(launch: RosLaunch, missions: Mission[]): string {
   return "—"
 }
 
-function launchDelivererLabel(launch: RosLaunch, guests: Guest[], people: Person[]): string {
-  switch (launch.delivererType) {
-    case "both_fiances": return "Les deux fiancés"
-    case "fiance": return people.find((x) => x.id === launch.delivererPersonId)?.fullName ?? "Fiancé(e)"
-    case "guest": return guests.find((x) => x.id === launch.delivererGuestId)?.fullName ?? "Inconnu"
-    default: return ""
-  }
-}
-
-function LaunchCard({ launch, guests, people, missions, onEdit }: {
-  launch: RosLaunch; guests: Guest[]; people: Person[]; missions: Mission[]; onEdit: () => void
+function LaunchCard({ launch, guests, missions, onEdit }: {
+  launch: RosLaunch; guests: Guest[]; missions: Mission[]; onEdit: () => void
 }) {
   const [confirming, setConfirming] = useState(false)
   const deleteLaunch = useDeleteRosLaunch()
+  const { data: acceptances = [] } = useAllMissionAcceptances()
   const label = launchLabel(launch, missions)
-  const deliverer = launchDelivererLabel(launch, guests, people)
+  const assigneeGuestId = acceptances.find(
+    (a) => a.missionId === launch.missionId && a.status === "accepted"
+  )?.guestId
+  const assignee = assigneeGuestId ? guests.find((g) => g.id === assigneeGuestId)?.fullName : null
 
   return (
     <div className="group rounded-xl border border-dore/30 bg-dore/5 px-4 py-3 space-y-1.5">
@@ -595,10 +575,10 @@ function LaunchCard({ launch, guests, people, missions, onEdit }: {
           )}
         </div>
       </div>
-      {deliverer && (
+      {assignee && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Zap className="size-3 shrink-0" />
-          <span className="font-medium text-foreground">{deliverer}</span>
+          <User className="size-3 shrink-0" />
+          <span className="font-medium text-foreground">{assignee}</span>
         </div>
       )}
     </div>
@@ -674,7 +654,7 @@ function StepRow({ step, messages, launches, guests, people, missions }: {
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pt-2">Lancements</p>
             )}
             {stepLaunches.map((launch) => (
-              <LaunchCard key={launch.id} launch={launch} guests={guests} people={people} missions={missions}
+              <LaunchCard key={launch.id} launch={launch} guests={guests} missions={missions}
                 onEdit={() => { setEditingLaunch(launch); setLaunchDialogOpen(true) }} />
             ))}
 
@@ -688,7 +668,7 @@ function StepRow({ step, messages, launches, guests, people, missions }: {
               <button type="button"
                 onClick={() => { setEditingLaunch(undefined); setLaunchDialogOpen(true) }}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                <Rocket className="size-3.5" />Ajouter un lancement
+                <Rocket className="size-3.5" />Lancer une mission
               </button>
             </div>
           </div>
@@ -706,6 +686,108 @@ function StepRow({ step, messages, launches, guests, people, missions }: {
   )
 }
 
+// ── Missions sans planification ───────────────────────────────────────────────
+
+const PHASE_BADGE_CLASS: Record<string, string> = {
+  avant:           "bg-lagon/15 text-lagon",
+  installation:    "bg-brun/15 text-brun",
+  jour_j:          "bg-bordeaux/15 text-bordeaux",
+  desinstallation: "bg-corail/15 text-corail",
+  apres:           "bg-muted text-muted-foreground",
+}
+
+function UnscheduledMissionsPanel({ missions, domaines, launches }: { missions: Mission[]; domaines: Domaine[]; launches: RosLaunch[] }) {
+  const updateMission = useUpdateMission()
+  const [expanded, setExpanded] = useState(true)
+
+  const domaineById = new Map(domaines.map((d) => [d.id, d]))
+  const launchedMissionIds = new Set(launches.map((l) => l.missionId).filter(Boolean))
+  const phaseIdx = (phase?: string | null) => {
+    const i = DOMAINE_PHASE_ORDER.findIndex((p) => p === phase)
+    return i >= 0 ? i : 99
+  }
+  const unscheduled = missions
+    .filter((m) => {
+      const d = m.domaineId ? domaineById.get(m.domaineId) : undefined
+      return d?.phase !== "avant"
+        && d?.phase !== "apres"
+        && m.schedulingType !== "en_continu"
+        && !launchedMissionIds.has(m.id)
+    })
+    .sort((a, b) => {
+      const dA = a.domaineId ? domaineById.get(a.domaineId) : undefined
+      const dB = b.domaineId ? domaineById.get(b.domaineId) : undefined
+      const diff = phaseIdx(dA?.phase) - phaseIdx(dB?.phase)
+      return diff !== 0 ? diff : a.title.localeCompare(b.title, "fr")
+    })
+
+  if (unscheduled.length === 0) return null
+
+  function handle(missionId: string, type: MissionSchedulingType) {
+    const { mutate } = updateMission
+    updateMission.mutateAsync({ id: missionId, patch: { schedulingType: type } }).then(() => {
+      const label = type === "planifiee" ? "Planifiée" : "En continu"
+      toast.success(`Mission · ${label}`, {
+        action: {
+          label: "Annuler",
+          onClick: () => mutate({ id: missionId, patch: { schedulingType: null } }),
+        },
+      })
+    })
+  }
+
+  return (
+    <div className="rounded-xl border border-lagon/30 bg-lagon/5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-lagon/10 transition-colors"
+      >
+        <Calendar className="size-4 shrink-0 text-lagon" />
+        <span className="flex-1 text-sm font-medium text-lagon">
+          {unscheduled.length} mission{unscheduled.length > 1 ? "s" : ""} sans planification timing
+        </span>
+        {expanded
+          ? <ChevronDown className="size-4 shrink-0 text-lagon" />
+          : <ChevronRight className="size-4 shrink-0 text-lagon" />}
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-2">
+          {unscheduled.map((m) => {
+            const d = m.domaineId ? domaineById.get(m.domaineId) : undefined
+            return (
+              <div key={m.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{m.title}</p>
+                  {d && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span>{d.name}</span>
+                      {d.phase && (
+                        <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", PHASE_BADGE_CLASS[d.phase])}>
+                          {DOMAINE_PHASE_LABELS[d.phase]}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handle(m.id, "en_continu")}
+                  disabled={updateMission.isPending}
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className="size-3 shrink-0" />En continu
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Composant principal ───────────────────────────────────────────────────────
 
 interface Props {
@@ -718,6 +800,7 @@ export function MessagesConfig({ steps, messages, launches }: Props) {
   const { data: guests = [] } = useGuests()
   const { data: people = [] } = usePeople()
   const { data: missions = [] } = useMissions()
+  const { data: domaines = [] } = useDomaines()
 
   const { prep, program } = splitRunOfShowSteps(steps)
   const allDated = [...prep, ...program]
@@ -748,6 +831,8 @@ export function MessagesConfig({ steps, messages, launches }: Props) {
           <p className="text-2xl font-bold tabular-nums text-lagon">{doneLaunches}</p>
         </div>
       </div>
+
+      <UnscheduledMissionsPanel missions={missions} domaines={domaines} launches={launches} />
 
       {segments.map((seg, gi) => (
         <div key={gi} className="space-y-1">

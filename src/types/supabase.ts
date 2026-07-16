@@ -103,6 +103,7 @@ type MissionRow = {
   description: string | null
   prerequisites: string | null
   status: ProgressStatusRow
+  scheduling_type: string | null
   sort_order: number
   created_at: string
   updated_at: string
@@ -386,9 +387,6 @@ type RosLaunchRow = {
   mission_id: string | null
   label: string | null
   scheduled_time: string | null
-  deliverer_type: string | null
-  deliverer_guest_id: string | null
-  deliverer_person_id: string | null
   launched_at: string | null
   sort_order: number
   created_at: string
@@ -459,7 +457,7 @@ export interface Database {
       _20260725_app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
       _20260725_missions: TableDef<
         MissionRow,
-        "id" | "domaine_id" | "description" | "prerequisites" | "status" | "sort_order" | "created_at" | "updated_at"
+        "id" | "domaine_id" | "description" | "prerequisites" | "status" | "scheduling_type" | "sort_order" | "created_at" | "updated_at"
       >
       _20260725_mission_acceptances: TableDef<
         MissionAcceptanceRow,
@@ -589,7 +587,7 @@ export interface Database {
       >
       _20260725_ros_messages: TableDef<RosMessageRow, "id" | "sort_order" | "sent_at" | "subject" | "delivery_mode" | "deliverer_type" | "deliverer_guest_id" | "deliverer_person_id" | "recipient_type" | "recipient_guest_id" | "recipient_person_id" | "recipient_label" | "scheduled_time">
       _20260725_ros_delays: TableDef<RosDelayRow, "id" | "step_id" | "reason" | "logged_at">
-      _20260725_ros_launches: TableDef<RosLaunchRow, "id" | "mission_id" | "label" | "scheduled_time" | "deliverer_type" | "deliverer_guest_id" | "deliverer_person_id" | "launched_at" | "sort_order" | "created_at">
+      _20260725_ros_launches: TableDef<RosLaunchRow, "id" | "mission_id" | "label" | "scheduled_time" | "launched_at" | "sort_order" | "created_at">
     }
     Views: Record<string, never>
     Functions: {

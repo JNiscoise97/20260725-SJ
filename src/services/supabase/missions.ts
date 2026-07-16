@@ -1,4 +1,4 @@
-import type { Mission } from "@/types/domain"
+import type { Mission, MissionSchedulingType } from "@/types/domain"
 import type { MissionsService } from "@/services/missions.service"
 import { supabase } from "@/supabase/client"
 
@@ -11,6 +11,7 @@ function toMission(row: {
   description: string | null
   prerequisites: string | null
   status: Mission["status"]
+  scheduling_type: string | null
   sort_order: number
 }): Mission {
   return {
@@ -20,6 +21,7 @@ function toMission(row: {
     description: row.description,
     prerequisites: row.prerequisites,
     status: row.status,
+    schedulingType: (row.scheduling_type as MissionSchedulingType) ?? null,
     sortOrder: row.sort_order,
   }
 }
@@ -63,6 +65,7 @@ export const missionsSupabaseService: MissionsService = {
       description: string | null
       prerequisites: string | null
       status: Mission["status"]
+      scheduling_type: string | null
       sort_order: number
     }> = {}
     if (patch.domaineId !== undefined) row.domaine_id = patch.domaineId
@@ -70,6 +73,7 @@ export const missionsSupabaseService: MissionsService = {
     if (patch.description !== undefined) row.description = patch.description
     if (patch.prerequisites !== undefined) row.prerequisites = patch.prerequisites
     if (patch.status !== undefined) row.status = patch.status
+    if (patch.schedulingType !== undefined) row.scheduling_type = patch.schedulingType ?? null
     if (patch.sortOrder !== undefined) row.sort_order = patch.sortOrder
     const { data, error } = await db.from("_20260725_missions").update(row).eq("id", id).select("*").single()
     if (error) throw error

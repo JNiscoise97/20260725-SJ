@@ -55,9 +55,9 @@ function Row({ children, onClick, active, chevron }: {
         "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors hover:bg-muted",
         active && "bg-bordeaux/10 text-bordeaux font-medium"
       )}>
-      <span className="flex items-center gap-2 min-w-0">
+      <span className="flex items-center gap-2">
         {active && <Check className="size-3.5 shrink-0" />}
-        <span className="truncate">{children}</span>
+        <span>{children}</span>
       </span>
       {chevron && <ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
     </button>
@@ -86,16 +86,18 @@ export function MissionPicker({ value, onChange, missions }: Props) {
   function goToMission() { setLevel("mission"); setMissionId(null) }
 
   // ── Données filtrées ──
+  const isPickable = (m: Mission) => m.schedulingType !== "en_continu"
+
   const polesWithDomaines = poles
-    .filter((p) => domaines.some((d) => d.phase !== "avant" && d.poleId === p.id && missions.some((m) => m.domaineId === d.id)))
+    .filter((p) => domaines.some((d) => d.phase !== "avant" && d.poleId === p.id && missions.some((m) => m.domaineId === d.id && isPickable(m))))
     .sort((a, b) => a.sortOrder - b.sortOrder)
 
   const sansPole = domaines.filter(
-    (d) => d.phase !== "avant" && !d.poleId && missions.some((m) => m.domaineId === d.id)
+    (d) => d.phase !== "avant" && !d.poleId && missions.some((m) => m.domaineId === d.id && isPickable(m))
   ).sort((a, b) => a.sortOrder - b.sortOrder)
 
   const domainesForPole = domaines
-    .filter((d) => d.phase !== "avant" && (poleId ? d.poleId === poleId : !d.poleId) && missions.some((m) => m.domaineId === d.id))
+    .filter((d) => d.phase !== "avant" && (poleId ? d.poleId === poleId : !d.poleId) && missions.some((m) => m.domaineId === d.id && isPickable(m)))
     .sort((a, b) => {
       const pi = DOMAINE_PHASE_ORDER.indexOf(a.phase as DomainePhase)
       const qi = DOMAINE_PHASE_ORDER.indexOf(b.phase as DomainePhase)
@@ -105,7 +107,7 @@ export function MissionPicker({ value, onChange, missions }: Props) {
     })
 
   const missionsForDomaine = missions
-    .filter((m) => m.domaineId === domaineId)
+    .filter((m) => m.domaineId === domaineId && m.schedulingType !== "en_continu")
     .sort((a, b) => a.sortOrder - b.sortOrder)
 
   const currentDomaine = domaines.find((d) => d.id === domaineId)
@@ -143,7 +145,7 @@ export function MissionPicker({ value, onChange, missions }: Props) {
         <button key={d.id} type="button"
           onClick={() => { setDomaineId(d.id); setLevel("mission") }}
           className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors hover:bg-muted">
-          <span className="truncate">{d.name}</span>
+          <span>{d.name}</span>
           <div className="flex items-center gap-2 shrink-0">
             <PhaseBadge phase={d.phase} />
             <ChevronRight className="size-4 text-muted-foreground" />
@@ -164,12 +166,12 @@ export function MissionPicker({ value, onChange, missions }: Props) {
             <button type="button"
               onClick={() => onChange({ missionId: m.id, label: "" })}
               className={cn(
-                "flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors hover:bg-muted min-w-0",
+                "flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-left transition-colors hover:bg-muted",
                 isActive && "bg-bordeaux/10 text-bordeaux font-medium"
               )}>
-              <span className="flex items-center gap-2 min-w-0">
+              <span className="flex items-center gap-2">
                 {isActive && <Check className="size-3.5 shrink-0" />}
-                <span className="truncate">{m.title}</span>
+                <span>{m.title}</span>
               </span>
               <PhaseBadge phase={currentDomaine?.phase} />
             </button>
@@ -215,7 +217,7 @@ export function MissionPicker({ value, onChange, missions }: Props) {
       {hasSelection && (
         <div className="flex items-center gap-2 rounded-lg border border-bordeaux/30 bg-bordeaux/5 px-3 py-1.5">
           <Check className="size-3.5 shrink-0 text-bordeaux" />
-          <span className="flex-1 text-sm font-medium text-bordeaux truncate">{selectionText}</span>
+          <span className="flex-1 text-sm font-medium text-bordeaux">{selectionText}</span>
           <button type="button" onClick={() => onChange({ missionId: "", label: "" })}
             className="shrink-0 text-bordeaux/60 hover:text-bordeaux transition-colors">
             <X className="size-3.5" />
