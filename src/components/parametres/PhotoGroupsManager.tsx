@@ -13,7 +13,7 @@ import {
 } from "@dnd-kit/core"
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Camera, Clock, Copy, GripVertical, Pencil, Plus, Star, Trash2, Users } from "lucide-react"
+import { Camera, ChevronDown, ChevronRight, Clock, Copy, GripVertical, Pencil, Plus, Star, Trash2, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import type { Guest, Person, PhotoGroup, PhotoGroupMember, PhotoGroupStatus, PhotoSession } from "@/types/domain"
@@ -443,7 +443,11 @@ function MembersDialog({ group, members, guests }: { group: PhotoGroup; members:
       <Tooltip>
         <TooltipTrigger asChild>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-7 gap-1.5 px-2 text-xs", members.length === 0 && "border-bordeaux/40 text-bordeaux")}
+            >
               <Users className="size-3.5" />
               {members.length}
             </Button>
@@ -651,6 +655,92 @@ function GroupRow({
   )
 }
 
+function SessionPeoplePanel({
+  groups,
+  membersByGroupId,
+  guests,
+  fiances,
+}: {
+  groups: PhotoGroup[]
+  membersByGroupId: Map<string, PhotoGroupMember[]>
+  guests: Guest[]
+  fiances: Person[]
+}) {
+  const [open, setOpen] = useState(true)
+
+  const participants = useMemo(() => {
+    if (groups.length === 0) return []
+    const guestById = new Map(guests.map((g) => [g.id, g]))
+
+    const guestLastIdx = new Map<string, number>()
+    groups.forEach((group, idx) => {
+      for (const m of membersByGroupId.get(group.id) ?? []) {
+        if (idx > (guestLastIdx.get(m.guestId) ?? -1)) guestLastIdx.set(m.guestId, idx)
+      }
+    })
+
+    const fianceLastIdx = new Map<string, number>()
+    groups.forEach((group, idx) => {
+      const reqIds = group.requiredFianceIds.length > 0 ? group.requiredFianceIds : fiances.map((f) => f.id)
+      for (const fianceId of reqIds) {
+        if (idx > (fianceLastIdx.get(fianceId) ?? -1)) fianceLastIdx.set(fianceId, idx)
+      }
+    })
+
+    const result: { name: string; lastGroupIdx: number; isFiance: boolean }[] = []
+    for (const [guestId, lastIdx] of guestLastIdx) {
+      const g = guestById.get(guestId)
+      if (g) result.push({ name: g.fullName, lastGroupIdx: lastIdx, isFiance: false })
+    }
+    for (const [fianceId, lastIdx] of fianceLastIdx) {
+      const f = fiances.find((p) => p.id === fianceId)
+      if (f) result.push({ name: f.fullName, lastGroupIdx: lastIdx, isFiance: true })
+    }
+
+    return result.sort((a, b) => {
+      const d = a.lastGroupIdx - b.lastGroupIdx
+      return d !== 0 ? d : a.name.localeCompare(b.name, "fr")
+    })
+  }, [groups, membersByGroupId, guests, fiances])
+
+  if (participants.length === 0) return null
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-2.5 space-y-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-1.5 text-xs font-medium text-foreground"
+      >
+        {open ? <ChevronDown className="size-3.5 shrink-0" /> : <ChevronRight className="size-3.5 shrink-0" />}
+        <Users className="size-3.5 shrink-0" />
+        <span>{participants.length} personne{participants.length > 1 ? "s" : ""} attendue{participants.length > 1 ? "s" : ""}</span>
+      </button>
+
+      {open && (
+        <div className="space-y-0.5">
+          {participants.map((p, i) => {
+            const lastGroup = groups[p.lastGroupIdx]
+            const isLast = p.lastGroupIdx === groups.length - 1
+            return (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-2 py-1">
+                <span className={cn("truncate text-xs font-medium", p.isFiance ? "text-bordeaux" : "text-foreground")}>
+                  {p.name}
+                </span>
+                {!isLast && (
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    jusqu'à « {lastGroup.label} »
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SessionDialog({ session, nextSortOrder }: { session?: PhotoSession; nextSortOrder?: number }) {
   const [open, setOpen] = useState(false)
   const [label, setLabel] = useState(session?.label ?? "")
@@ -791,6 +881,48 @@ function SessionSection({
     }, 0)
   }, [groups, membersByGroupId, fiances])
 
+  // For each group index: list of people whose last group in this session is that index.
+  // People in the very last group are excluded (session ends for everyone simultaneously).
+  const freedAfterIdx = useMemo(() => {
+    const lastIdx = groups.length - 1
+    const guestById = new Map(guests.map((g) => [g.id, g]))
+
+    const guestLastIdx = new Map<string, number>()
+    groups.forEach((group, idx) => {
+      for (const m of membersByGroupId.get(group.id) ?? []) {
+        if (idx > (guestLastIdx.get(m.guestId) ?? -1)) guestLastIdx.set(m.guestId, idx)
+      }
+    })
+
+    const fianceLastIdx = new Map<string, number>()
+    groups.forEach((group, idx) => {
+      const reqIds = group.requiredFianceIds.length > 0 ? group.requiredFianceIds : fiances.map((f) => f.id)
+      for (const id of reqIds) {
+        if (idx > (fianceLastIdx.get(id) ?? -1)) fianceLastIdx.set(id, idx)
+      }
+    })
+
+    const result = new Map<number, string[]>()
+    for (const [id, idx] of guestLastIdx) {
+      if (idx === lastIdx) continue
+      const g = guestById.get(id)
+      if (!g) continue
+      const list = result.get(idx) ?? []
+      list.push(g.fullName)
+      result.set(idx, list)
+    }
+    for (const [id, idx] of fianceLastIdx) {
+      if (idx === lastIdx) continue
+      const f = fiances.find((p) => p.id === id)
+      if (!f) continue
+      const list = result.get(idx) ?? []
+      list.push(f.fullName)
+      result.set(idx, list)
+    }
+    for (const list of result.values()) list.sort((a, b) => a.localeCompare(b, "fr"))
+    return result
+  }, [groups, membersByGroupId, guests, fiances])
+
   return (
     <div
       ref={setNodeRef}
@@ -822,21 +954,46 @@ function SessionSection({
         </div>
       </div>
 
+      <SessionPeoplePanel
+        groups={groups}
+        membersByGroupId={membersByGroupId}
+        guests={guests}
+        fiances={fiances}
+      />
+
       {groups.length === 0 ? (
         <p className="px-1 text-xs text-muted-foreground">Aucun groupe de photo dans cette séance.</p>
       ) : (
         <SortableContext items={groups.map((g) => g.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
-            {groups.map((group) => (
-              <GroupRow
-                key={group.id}
-                group={group}
-                members={membersByGroupId.get(group.id) ?? []}
-                guests={guests}
-                fiances={fiances}
-                allGroups={groups}
-              />
-            ))}
+            {groups.map((group, idx) => {
+              const freed = freedAfterIdx.get(idx)
+              const label = freed
+                ? freed.length === 1
+                  ? `${freed[0]} est libéré pour cette séance`
+                  : freed.length === 2
+                    ? `${freed[0]} et ${freed[1]} sont libérés pour cette séance`
+                    : `${freed.slice(0, -1).join(", ")} et ${freed[freed.length - 1]} sont libérés pour cette séance`
+                : null
+              return (
+                <div key={group.id}>
+                  <GroupRow
+                    group={group}
+                    members={membersByGroupId.get(group.id) ?? []}
+                    guests={guests}
+                    fiances={fiances}
+                    allGroups={groups}
+                  />
+                  {label && (
+                    <div className="mt-1.5 flex items-center gap-2 px-1">
+                      <div className="h-px flex-1 bg-vert-vegetal/20" />
+                      <span className="text-[10px] font-medium text-vert-vegetal">{label}</span>
+                      <div className="h-px flex-1 bg-vert-vegetal/20" />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </SortableContext>
       )}
