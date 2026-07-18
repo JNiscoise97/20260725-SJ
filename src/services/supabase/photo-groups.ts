@@ -88,6 +88,13 @@ export const photoGroupsSupabaseService: PhotoGroupsService = {
     const { error } = await db.from("_20260725_photo_groups").delete().eq("id", id)
     if (error) throw error
   },
+  async resetGroups() {
+    const { error } = await db
+      .from("_20260725_photo_groups")
+      .update({ status: "pending", notes: null })
+      .not("id", "is", null)
+    if (error) throw error
+  },
   async listAllMembers() {
     const { data, error } = await db.from("_20260725_photo_group_members").select("*")
     if (error) throw error

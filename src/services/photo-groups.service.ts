@@ -10,6 +10,7 @@ export interface PhotoGroupsService {
   createGroup(input: Omit<PhotoGroup, "id">): Promise<PhotoGroup>
   updateGroup(id: string, patch: Partial<PhotoGroup>): Promise<PhotoGroup>
   removeGroup(id: string): Promise<void>
+  resetGroups(): Promise<void>
   listAllMembers(): Promise<PhotoGroupMember[]>
   addMember(photoGroupId: string, guestId: string): Promise<PhotoGroupMember>
   removeMember(id: string): Promise<void>
@@ -45,6 +46,10 @@ const photoGroupsMockService: PhotoGroupsService = {
     const members = await photoGroupMembersTable.getAll()
     await Promise.all(members.filter((m) => m.photoGroupId === id).map((m) => photoGroupMembersTable.remove(m.id)))
     await photoGroupsTable.remove(id)
+  },
+  async resetGroups() {
+    const groups = await photoGroupsTable.getAll()
+    await Promise.all(groups.map((g) => photoGroupsTable.update(g.id, { status: "pending", notes: null })))
   },
   async listAllMembers() {
     return photoGroupMembersTable.getAll()

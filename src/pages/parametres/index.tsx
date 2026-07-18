@@ -13,6 +13,7 @@ import { GuestGroupsManager } from "@/components/parametres/GuestGroupsManager"
 import { PersonManager } from "@/components/parametres/PersonManager"
 import { ResetIntroductionSeenButton } from "@/components/parametres/ResetIntroductionSeenButton"
 import { ResetCheckInsButton } from "@/components/parametres/ResetCheckInsButton"
+import { ResetPhotoGroupsButton } from "@/components/parametres/ResetPhotoGroupsButton"
 import { EquipmentManager } from "@/components/parametres/EquipmentManager"
 import { AccessCodesManager } from "@/components/parametres/AccessCodesManager"
 import { cn } from "@/lib/utils"
@@ -84,6 +85,7 @@ function OutilsSection() {
         <div className="flex flex-wrap gap-3">
           <ResetIntroductionSeenButton />
           <ResetCheckInsButton />
+          <ResetPhotoGroupsButton />
         </div>
       </div>
       <div>

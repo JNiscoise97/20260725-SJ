@@ -27,6 +27,14 @@ export function useUpdatePhotoGroup() {
   })
 }
 
+export function useResetPhotoGroups() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => photoGroupsService.resetGroups(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_KEY }),
+  })
+}
+
 export function useDeletePhotoGroup() {
   const queryClient = useQueryClient()
   return useMutation({
