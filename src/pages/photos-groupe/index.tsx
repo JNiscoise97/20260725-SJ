@@ -309,11 +309,12 @@ function GatheringScreen({ session, groups, members, guests, guestGroups, fiance
 
 // ── ShootingScreen ───────────────────────────────────────────────────────────
 
-function ShootingScreen({ session, groups, members, guests, fiances, onQuit }: {
+function ShootingScreen({ session, groups, members, guests, guestGroups, fiances, onQuit }: {
   session: PhotoSession
   groups: PhotoGroup[]
   members: PhotoGroupMember[]
   guests: Guest[]
+  guestGroups: GuestGroup[]
   fiances: Person[]
   onQuit: () => void
 }) {
@@ -395,6 +396,27 @@ function ShootingScreen({ session, groups, members, guests, fiances, onQuit }: {
     ? (activeGroup.requiredFianceIds.length > 0 ? fiances.filter(f => activeGroup.requiredFianceIds.includes(f.id)) : fiances)
     : []
   const activeMembers = activeGroupId ? (membersByGroupId.get(activeGroupId) ?? []) : []
+
+  // Group active members by guest's GuestGroup
+  const activeMembersByGuestGroup = useMemo(() => {
+    const sortedGG = [...guestGroups].sort((a, b) => a.sortOrder - b.sortOrder)
+    const byKey = new Map<string, PhotoGroupMember[]>()
+    for (const m of activeMembers) {
+      const key = guestById.get(m.guestId)?.groupId ?? "__none__"
+      const list = byKey.get(key) ?? []
+      list.push(m)
+      byKey.set(key, list)
+    }
+    const rows: { label: string | null; key: string; members: PhotoGroupMember[] }[] = []
+    for (const gg of sortedGG) {
+      const ms = byKey.get(gg.id)
+      if (ms?.length) rows.push({ label: gg.familyName, key: gg.id, members: ms })
+    }
+    const ungrouped = byKey.get("__none__") ?? []
+    if (ungrouped.length) rows.push({ label: null, key: "__none__", members: ungrouped })
+    return rows
+  }, [activeMembers, guestById, guestGroups])
+
   const activeEstimatedSeconds = activeGroup
     ? estimatePhotoDurationSeconds(activeMembers.length + reqFiances.length, activeGroup.label)
     : 0
@@ -579,28 +601,35 @@ function ShootingScreen({ session, groups, members, guests, fiances, onQuit }: {
         </div>
 
         {/* Members list */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           {reqFiances.map(f => (
             <div key={f.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
               <div className="size-4 shrink-0 rounded-full border-2 border-bordeaux/40 bg-bordeaux/10" />
               <span className="text-sm font-medium text-bordeaux">{f.fullName}</span>
             </div>
           ))}
-          {activeMembers.map(m => {
-            const g = guestById.get(m.guestId)
-            if (!g) return null
-            return (
-              <label key={m.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-muted/50 cursor-pointer">
-                <Checkbox
-                  checked={m.isPresent}
-                  onCheckedChange={v => updateMember.mutate({ id: m.id, patch: { isPresent: !!v } })}
-                />
-                <span className={cn("text-sm", !m.isPresent && "line-through text-muted-foreground")}>
-                  {g.fullName}
-                </span>
-              </label>
-            )
-          })}
+          {activeMembersByGuestGroup.map(({ label, key, members }) => (
+            <div key={key} className="space-y-0.5">
+              {label && (
+                <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+              )}
+              {members.map(m => {
+                const g = guestById.get(m.guestId)
+                if (!g) return null
+                return (
+                  <label key={m.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-muted/50 cursor-pointer">
+                    <Checkbox
+                      checked={m.isPresent}
+                      onCheckedChange={v => updateMember.mutate({ id: m.id, patch: { isPresent: !!v } })}
+                    />
+                    <span className={cn("text-sm", !m.isPresent && "line-through text-muted-foreground")}>
+                      {g.fullName}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          ))}
         </div>
 
         {/* Per-group chrono */}
@@ -752,6 +781,7 @@ export function PhotosGroupePage() {
       groups={sessionGroups}
       members={sessionMembers}
       guests={guests}
+      guestGroups={guestGroups}
       fiances={fiances}
       onQuit={() => setScreen("sessions")}
     />
