@@ -16,6 +16,7 @@ import { ResetCheckInsButton } from "@/components/parametres/ResetCheckInsButton
 import { ResetPhotoGroupsButton } from "@/components/parametres/ResetPhotoGroupsButton"
 import { EquipmentManager } from "@/components/parametres/EquipmentManager"
 import { AccessCodesManager } from "@/components/parametres/AccessCodesManager"
+import { GuestTabsManager } from "@/components/parametres/GuestTabsManager"
 import { cn } from "@/lib/utils"
 
 // ── Navigation ────────────────────────────────────────────────────────────────
@@ -29,6 +30,7 @@ type Section =
   | "materiel"
   | "acces-fiancies"
   | "acces-comptes"
+  | "acces-onglets"
   | "outils"
 
 interface NavItem { id: Section; label: string }
@@ -60,6 +62,7 @@ const NAV: NavGroup[] = [
     items: [
       { id: "acces-fiancies", label: "Profils fiancés" },
       { id: "acces-comptes", label: "Comptes & codes" },
+      { id: "acces-onglets", label: "Onglets par compte" },
     ],
   },
   {
@@ -111,6 +114,7 @@ function ContentPanel({ section }: { section: Section }) {
     case "materiel":        return <EquipmentManager />
     case "acces-fiancies":  return <PersonManager />
     case "acces-comptes":   return <AccessCodesManager />
+    case "acces-onglets":   return <GuestTabsManager />
     case "outils":          return <OutilsSection />
   }
 }

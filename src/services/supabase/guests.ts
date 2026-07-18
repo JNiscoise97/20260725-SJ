@@ -56,6 +56,7 @@ function toGuest(row: {
   assignable: boolean
   paired_with_id: string | null
   parent_id: string | null
+  allowed_tabs: string[] | null
   checked_in_at: string | null
   is_unexpected: boolean
   nickname: string | null
@@ -112,6 +113,7 @@ function toGuest(row: {
     assignable: row.assignable,
     pairedWithId: row.paired_with_id,
     parentId: row.parent_id,
+    allowedTabs: row.allowed_tabs,
     checkedInAt: row.checked_in_at,
     isUnexpected: row.is_unexpected,
   }
@@ -208,6 +210,7 @@ export const guestsSupabaseService: GuestsService = {
       assignable: boolean
       paired_with_id: string | null
       parent_id: string | null
+      allowed_tabs: string[] | null
       checked_in_at: string | null
       is_unexpected: boolean
       nickname: string | null
@@ -259,6 +262,7 @@ export const guestsSupabaseService: GuestsService = {
     if (patch.assignable !== undefined) row.assignable = patch.assignable
     if (patch.pairedWithId !== undefined) row.paired_with_id = patch.pairedWithId
     if (patch.parentId !== undefined) row.parent_id = patch.parentId ?? null
+    if (patch.allowedTabs !== undefined) row.allowed_tabs = patch.allowedTabs ?? null
     if (patch.checkedInAt !== undefined) row.checked_in_at = patch.checkedInAt
     if (patch.isUnexpected !== undefined) row.is_unexpected = patch.isUnexpected
     if (patch.nickname !== undefined) row.nickname = patch.nickname ?? null

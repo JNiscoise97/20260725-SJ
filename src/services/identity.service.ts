@@ -22,6 +22,7 @@ async function guestToIdentity(guest: Guest): Promise<Identity | null> {
     dietaryConstraints: guest.dietaryConstraints,
     allergies: guest.allergies,
     introductionSeen: guest.introductionSeen,
+    allowedTabs: guest.allowedTabs ?? null,
   }
 }
 

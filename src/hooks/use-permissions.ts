@@ -6,6 +6,9 @@ export function usePermissions() {
 
   function can(capability: Capability): boolean {
     if (!person) return false
+    if (person.allowedTabs != null) {
+      return (person.allowedTabs as Capability[]).includes(capability)
+    }
     return PERMISSIONS[person.role].has(capability)
   }
 

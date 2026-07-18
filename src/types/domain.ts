@@ -36,6 +36,8 @@ export interface Identity {
   allergies?: string | null
   /** Toujours `undefined` pour un fiancé (Person) — seuls les invités (Guest) ont une page d'introduction à voir. */
   introductionSeen?: boolean
+  /** Surcharge des onglets visibles — si défini, remplace les permissions du rôle. `null` = utilise les defaults du rôle. */
+  allowedTabs?: string[] | null
 }
 
 export interface Pole {
@@ -283,6 +285,8 @@ export interface Guest {
   checkedInAt?: string | null
   /** Invité ajouté sur place à l'accueil, absent de la liste prévue — voir 0048_guests_unexpected.sql. */
   isUnexpected?: boolean
+  /** Onglets accessibles dans l'app — surcharge les permissions du rôle si défini. Null = défauts du rôle. Voir 0073_guests_allowed_tabs.sql. */
+  allowedTabs?: string[] | null
 }
 
 export type PhotoGroupStatus = "pending" | "done" | "skipped"

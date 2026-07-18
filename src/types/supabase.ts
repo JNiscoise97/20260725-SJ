@@ -243,6 +243,7 @@ type GuestRow = {
   assignable: boolean
   paired_with_id: string | null
   parent_id: string | null
+  allowed_tabs: string[] | null
   checked_in_at: string | null
   is_unexpected: boolean
   nickname: string | null
@@ -552,6 +553,7 @@ export interface Database {
         | "assignable"
         | "paired_with_id"
         | "parent_id"
+        | "allowed_tabs"
         | "checked_in_at"
         | "is_unexpected"
         | "nickname"
