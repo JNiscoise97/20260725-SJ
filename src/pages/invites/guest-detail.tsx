@@ -133,11 +133,12 @@ function boolFromTri(value: string): boolean | null {
 interface GuestEditFormProps {
   guest: Guest
   groups: GuestGroup[]
+  allGuests: Guest[]
   onCancel: () => void
   onSaved: () => void
 }
 
-function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps) {
+function GuestEditForm({ guest, groups, allGuests, onCancel, onSaved }: GuestEditFormProps) {
   const [firstName, setFirstName] = useState(guest.firstName)
   const [lastName, setLastName] = useState(guest.lastName)
   const [nickname, setNickname] = useState(guest.nickname ?? "")
@@ -146,6 +147,7 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
   const [ageRange, setAgeRange] = useState(guest.ageRange ?? "")
   const [relationCategory, setRelationCategory] = useState(guest.relationCategory ?? "")
   const [city, setCity] = useState(guest.city ?? "")
+  const [parentId, setParentId] = useState(guest.parentId ?? NONE)
   const [isChild, setIsChild] = useState(guest.isChild)
   const [childAge, setChildAge] = useState(guest.childAge != null ? String(guest.childAge) : "")
   const [isReducedMobility, setIsReducedMobility] = useState(guest.isReducedMobility)
@@ -191,6 +193,7 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
         ageRange: ageRange.trim() || null,
         relationCategory: relationCategory.trim() || null,
         city: city.trim() || null,
+        parentId: parentId === NONE ? null : parentId,
         isChild,
         childAge: isChild && childAge.trim() ? Number(childAge) : null,
         isReducedMobility,
@@ -293,6 +296,22 @@ function GuestEditForm({ guest, groups, onCancel, onSaved }: GuestEditFormProps)
           </EditField>
           <EditField label="Ville" htmlFor="edit-city">
             <Input id="edit-city" value={city} onChange={(e) => setCity(e.target.value)} />
+          </EditField>
+          <EditField label="Parent (parmi les invités)" htmlFor="edit-parent-id">
+            <Select value={parentId} onValueChange={setParentId}>
+              <SelectTrigger id="edit-parent-id">
+                <SelectValue placeholder="Aucun parent invité" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Aucun</SelectItem>
+                {allGuests
+                  .filter(g => g.id !== guest.id)
+                  .sort((a, b) => a.fullName.localeCompare(b.fullName, "fr"))
+                  .map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.fullName}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </EditField>
           <EditField label="Enfant" htmlFor="edit-is-child">
             <div className="flex items-center gap-2">
@@ -517,6 +536,7 @@ export function GuestDetailPage() {
           <GuestEditForm
             guest={guest}
             groups={groups ?? []}
+            allGuests={guests ?? []}
             onCancel={() => setIsEditing(false)}
             onSaved={() => setIsEditing(false)}
           />
@@ -542,6 +562,10 @@ export function GuestDetailPage() {
               <Field label="Âge" value={guest.ageRange} />
               <Field label="Relation" value={guest.relationCategory} />
               <Field label="Ville" value={guest.city} />
+              <Field
+                label="Parent (parmi les invités)"
+                value={guest.parentId ? (guests ?? []).find(g => g.id === guest.parentId)?.fullName ?? null : null}
+              />
               <Field label="Enfant" value={guest.isChild ? <YesNo value={true} /> : null} />
               {guest.isChild && guest.childAge != null ? (
                 <Field label="Âge de l'enfant" value={guest.childAge} />

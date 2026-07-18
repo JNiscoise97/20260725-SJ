@@ -6,6 +6,7 @@ import {
 import { toast } from "sonner"
 
 import type { Guest, GuestGroup, Person, PhotoGroup, PhotoGroupMember, PhotoSession } from "@/types/domain"
+import { GuestTreeView } from "@/components/invites/GuestTreeView"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -267,25 +268,27 @@ function GatheringScreen({ session, groups, members, guests, guestGroups, fiance
             </div>
           </div>
         )}
-        {/* Invités groupés par GuestGroup */}
-        {guestsByGuestGroup.map(({ label, guestIds }) => (
-          <div key={label} className="border-t border-border px-3 py-2.5 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-foreground">{label}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {guestIds.map(gid => {
-                const g = guestById.get(gid)
-                if (!g) return null
-                const status = presence.get(gid) ?? "present"
-                return (
-                  <button key={gid} type="button" onClick={() => toggle(gid)}
-                    className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors", PRESENCE_CLASS[status])}>
-                    {g.fullName}
-                  </button>
-                )
-              })}
+        {/* Invités groupés par GuestGroup — tree view parent-enfant */}
+        {guestsByGuestGroup.map(({ label, guestIds }) => {
+          const groupGuests = guestIds.map(id => guestById.get(id)).filter((g): g is Guest => !!g)
+          return (
+            <div key={label} className="border-t border-border px-3 py-2.5 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">{label}</p>
+              <GuestTreeView
+                guests={groupGuests}
+                renderGuest={guest => {
+                  const status = presence.get(guest.id) ?? "present"
+                  return (
+                    <button type="button" onClick={() => toggle(guest.id)}
+                      className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors", PRESENCE_CLASS[status])}>
+                      {guest.fullName}
+                    </button>
+                  )
+                }}
+              />
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {pendingCount > 0 ? (

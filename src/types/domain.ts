@@ -277,6 +277,8 @@ export interface Guest {
   assignable: boolean
   /** Lien symétrique vers l'autre invité d'une paire "inséparable" (ex. couple) — voir 0045_guests_paired_with.sql. Toujours mis à jour des deux côtés ensemble. */
   pairedWithId?: string | null
+  /** Parent parmi les autres invités — pointe vers l'un des deux membres de la paire parentale (l'autre se déduit via pairedWithId). Voir 0072_guests_parent_id.sql. */
+  parentId?: string | null
   /** Horodatage de pointage à l'accueil le jour J, null si pas encore arrivé — voir 0047_guests_checked_in_at.sql. */
   checkedInAt?: string | null
   /** Invité ajouté sur place à l'accueil, absent de la liste prévue — voir 0048_guests_unexpected.sql. */

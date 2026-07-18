@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { CheckCircle2, DoorOpen, Link2, Plus, RotateCcw, Search, Sparkles, TriangleAlert, Users } from "lucide-react"
+import { CheckCircle2, DoorOpen, Plus, RotateCcw, Search, Sparkles, TriangleAlert, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import type { Guest, GuestGroup } from "@/types/domain"
