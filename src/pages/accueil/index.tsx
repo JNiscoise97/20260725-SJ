@@ -23,6 +23,7 @@ import { Field, FieldLabel, FieldGroup } from "@/components/ui/field"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useAddWalkInGuest, useCheckInGuest, useGuestGroups, useGuests } from "@/hooks/queries/use-guests"
+import { GuestTreeView } from "@/components/invites/GuestTreeView"
 
 const NO_FAMILY = "__no_family__"
 
@@ -38,23 +39,6 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
 }
 
-/** Trie en gardant les invités côte à côte avec leur partenaire inséparable — ils arrivent ensemble. */
-function sortWithPairsAdjacent(guestsList: Guest[]): Guest[] {
-  const byId = new Map(guestsList.map((g) => [g.id, g]))
-  const visited = new Set<string>()
-  const result: Guest[] = []
-  for (const guest of [...guestsList].sort((a, b) => a.fullName.localeCompare(b.fullName))) {
-    if (visited.has(guest.id)) continue
-    visited.add(guest.id)
-    result.push(guest)
-    const partner = guest.pairedWithId ? byId.get(guest.pairedWithId) : undefined
-    if (partner && !visited.has(partner.id)) {
-      visited.add(partner.id)
-      result.push(partner)
-    }
-  }
-  return result
-}
 
 export function AccueilPage() {
   const { data: guests, isLoading: guestsLoading } = useGuests()
@@ -94,16 +78,8 @@ export function AccueilPage() {
       map.set(key, entry)
     }
     return [...map.values()]
-      .map((entry) => ({ ...entry, guests: sortWithPairsAdjacent(entry.guests) }))
       .sort((a, b) => (a.group?.sortOrder ?? Number.POSITIVE_INFINITY) - (b.group?.sortOrder ?? Number.POSITIVE_INFINITY))
   }, [filteredGuests, groupsById])
-
-  function pairInfoFor(guest: Guest): { partnerName: string; sameFamily: boolean } | null {
-    if (!guest.pairedWithId) return null
-    const partner = guestById.get(guest.pairedWithId)
-    if (!partner) return null
-    return { partnerName: partner.fullName, sameFamily: partner.groupId === guest.groupId }
-  }
 
   const stats = useMemo(() => {
     if (!guests) return null
@@ -223,41 +199,41 @@ export function AccueilPage() {
                           </Button>
                         ) : null}
                       </div>
-                      <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-                        {family.guests.map((guest) => {
-                          const pairInfo = pairInfoFor(guest)
-                          return (
-                            <li key={guest.id}>
-                              <button
-                                type="button"
-                                onClick={() => toggleGuest(guest)}
-                                className={cn(
-                                  "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                                  guest.checkedInAt
-                                    ? "border-vert-vegetal/40 bg-vert-vegetal/10"
-                                    : "border-border hover:bg-muted/50"
-                                )}
-                              >
-                                <span className="flex min-w-0 items-center gap-2">
+                      {(() => {
+                        const familyGuestIds = new Set(family.guests.map((g) => g.id))
+                        return (
+                          <GuestTreeView
+                            guests={family.guests}
+                            renderGuest={(guest) => {
+                              const crossFamilyPartner =
+                                guest.pairedWithId && !familyGuestIds.has(guest.pairedWithId)
+                                  ? guestById.get(guest.pairedWithId)
+                                  : null
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleGuest(guest)}
+                                  className={cn(
+                                    "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left text-sm transition-colors",
+                                    guest.checkedInAt
+                                      ? "border-vert-vegetal/40 bg-vert-vegetal/10"
+                                      : "border-border hover:bg-muted/50"
+                                  )}
+                                >
                                   <CheckCircle2
                                     className={cn(
-                                      "size-4 shrink-0",
+                                      "size-3.5 shrink-0",
                                       guest.checkedInAt ? "text-vert-vegetal" : "text-muted-foreground/40"
                                     )}
                                   />
-                                  <span className="truncate text-sm text-foreground">{guest.fullName}</span>
-                                  {pairInfo ? (
+                                  <span className="text-foreground">{guest.fullName}</span>
+                                  {crossFamilyPartner ? (
                                     <Tooltip>
                                       <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        {pairInfo.sameFamily ? (
-                                          <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
-                                        ) : (
-                                          <TriangleAlert className="size-3.5 shrink-0 text-dore" />
-                                        )}
+                                        <TriangleAlert className="size-3.5 shrink-0 text-dore" />
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        Inséparable de {pairInfo.partnerName}
-                                        {pairInfo.sameFamily ? "" : " (autre famille)"}
+                                        Inséparable de {crossFamilyPartner.fullName} (autre famille)
                                       </TooltipContent>
                                     </Tooltip>
                                   ) : null}
@@ -267,17 +243,17 @@ export function AccueilPage() {
                                       Imprévu
                                     </Badge>
                                   ) : null}
-                                </span>
-                                {guest.checkedInAt ? (
-                                  <span className="shrink-0 text-xs text-muted-foreground">
-                                    {formatTime(guest.checkedInAt)}
-                                  </span>
-                                ) : null}
-                              </button>
-                            </li>
-                          )
-                        })}
-                      </ul>
+                                  {guest.checkedInAt ? (
+                                    <span className="shrink-0 text-xs text-muted-foreground">
+                                      {formatTime(guest.checkedInAt)}
+                                    </span>
+                                  ) : null}
+                                </button>
+                              )
+                            }}
+                          />
+                        )
+                      })()}
                     </CardContent>
                   </Card>
                 )
