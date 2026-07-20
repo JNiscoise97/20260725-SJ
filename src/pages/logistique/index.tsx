@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Truck } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/PageHeader"
@@ -10,8 +10,12 @@ import { useDomaines } from "@/hooks/queries/use-domaines"
 import { usePeople } from "@/hooks/queries/use-people"
 import { useDocuments } from "@/hooks/queries/use-documents"
 import { LogistiqueItemCard } from "@/components/logistique/LogistiqueItemCard"
+import { NourriturePage } from "@/pages/nourriture"
+import { MaterielPage } from "@/pages/materiel"
+import { SejourPage } from "@/pages/sejour"
+import { PrestatairesPage } from "@/pages/prestataires"
 
-export function LogistiquePage() {
+function LogistiqueTab() {
   const { data: items, isLoading: itemsLoading } = useLogistiqueItems()
   const { data: domaines, isLoading: domainesLoading } = useDomaines()
   const { data: people } = usePeople()
@@ -69,6 +73,32 @@ export function LogistiquePage() {
           ))}
         </Tabs>
       )}
+    </div>
+  )
+}
+
+// ── Page composite ─────────────────────────────────────────────────────────────
+
+type LogistiqueCompositeTab = "logistique" | "nourriture" | "materiel" | "sejour" | "prestataires"
+
+export function LogistiquePage() {
+  const [tab, setTab] = useState<LogistiqueCompositeTab>("logistique")
+  return (
+    <div className="space-y-6">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as LogistiqueCompositeTab)}>
+        <TabsList>
+          <TabsTrigger value="logistique">Logistique</TabsTrigger>
+          <TabsTrigger value="nourriture">Nourriture</TabsTrigger>
+          <TabsTrigger value="materiel">Matériel</TabsTrigger>
+          <TabsTrigger value="sejour">Séjour</TabsTrigger>
+          <TabsTrigger value="prestataires">Prestataires</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {tab === "logistique" && <LogistiqueTab />}
+      {tab === "nourriture" && <NourriturePage />}
+      {tab === "materiel" && <MaterielPage />}
+      {tab === "sejour" && <SejourPage />}
+      {tab === "prestataires" && <PrestatairesPage />}
     </div>
   )
 }

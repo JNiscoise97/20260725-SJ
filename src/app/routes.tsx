@@ -14,12 +14,8 @@ import { DeroulePage } from "@/pages/deroule"
 import { PhotosGroupePage } from "@/pages/photos-groupe"
 import { AccueilPage } from "@/pages/accueil"
 import { LogistiquePage } from "@/pages/logistique"
-import { NourriturePage } from "@/pages/nourriture"
-import { MaterielPage } from "@/pages/materiel"
-import { SejourPage } from "@/pages/sejour"
 import { InvitesPage } from "@/pages/invites"
 import { GuestDetailPage } from "@/pages/invites/guest-detail"
-import { PrestatairesPage } from "@/pages/prestataires"
 import { DocumentsPage } from "@/pages/documents"
 import { ParametresPage } from "@/pages/parametres"
 import { RevueContenuPage } from "@/pages/revue-contenu"
@@ -109,30 +105,9 @@ export function AppRoutes() {
               </RoleGuard>
             }
           />
-          <Route
-            path="nourriture"
-            element={
-              <RoleGuard capability="view:nourriture">
-                <NourriturePage />
-              </RoleGuard>
-            }
-          />
-          <Route
-            path="materiel"
-            element={
-              <RoleGuard capability="view:materiel">
-                <MaterielPage />
-              </RoleGuard>
-            }
-          />
-          <Route
-            path="sejour"
-            element={
-              <RoleGuard capability="view:sejour">
-                <SejourPage />
-              </RoleGuard>
-            }
-          />
+          <Route path="nourriture" element={<Navigate to="/logistique" replace />} />
+          <Route path="materiel" element={<Navigate to="/logistique" replace />} />
+          <Route path="sejour" element={<Navigate to="/logistique" replace />} />
           <Route
             path="invites"
             element={
@@ -152,14 +127,7 @@ export function AppRoutes() {
           <Route path="plan-table" element={<Navigate to="/invites" replace />} />
           <Route path="enfants" element={<Navigate to="/invites" replace />} />
           <Route path="personnes-agees" element={<Navigate to="/invites" replace />} />
-          <Route
-            path="prestataires"
-            element={
-              <RoleGuard capability="view:prestataires">
-                <PrestatairesPage />
-              </RoleGuard>
-            }
-          />
+          <Route path="prestataires" element={<Navigate to="/logistique" replace />} />
           <Route
             path="documents"
             element={
