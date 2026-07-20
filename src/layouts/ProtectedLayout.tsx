@@ -25,7 +25,8 @@ export function ProtectedLayout() {
   // Un invité sans onglets personnalisés n'a accès qu'à la page d'infos pratiques.
   // S'il a des allowedTabs, il peut naviguer librement parmi ses onglets autorisés.
   const isPlainInvite = person.role === "invite" && person.allowedTabs == null
-  if (isPlainInvite && !needsIntroduction && location.pathname !== "/infos-pratiques") {
+  const plainInviteAllowed = ["/infos-pratiques", "/introduction"]
+  if (isPlainInvite && !needsIntroduction && !plainInviteAllowed.includes(location.pathname)) {
     return <Navigate to="/infos-pratiques" replace />
   }
 
