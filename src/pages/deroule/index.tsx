@@ -8,15 +8,20 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRunOfShow } from "@/hooks/queries/use-run-of-show"
 import { usePeople } from "@/hooks/queries/use-people"
+import { useRosMessages } from "@/hooks/queries/use-ros-messages"
+import { useRosDelays } from "@/hooks/queries/use-ros-delays"
+import { useIdentity } from "@/context/IdentityContext"
 import { RunOfShowStepCard } from "@/components/deroule/RunOfShowStepCard"
 import { PhaseTimelineBar } from "@/components/deroule/PhaseTimelineBar"
 import { HighlightsStrip } from "@/components/deroule/HighlightsStrip"
 import { MaitreTempsPrep } from "@/components/deroule/MaitreTempsPrep"
 import { MaitreTempsRun } from "@/components/deroule/MaitreTempsRun"
+import { LiveDashboard } from "@/components/timing/LiveDashboard"
+import { DelayJournal } from "@/components/timing/DelayJournal"
 import { buildPhaseSegments, formatProgramWindow, splitRunOfShowSteps } from "@/lib/run-of-show"
 import type { Person, RunOfShowStep } from "@/types/domain"
 
-type TabId = "programme" | "preparation" | "en-direct"
+type TabId = "programme" | "preparation" | "en-direct" | "retards"
 
 function StepList({ steps, people }: { steps: RunOfShowStep[]; people: Person[] }) {
   return (
@@ -38,11 +43,18 @@ function StepList({ steps, people }: { steps: RunOfShowStep[]; people: Person[] 
 }
 
 export function DeroulePage() {
+  const { realPerson } = useIdentity()
+  const isFiance = realPerson?.role === "fiance"
+
   const { data: steps, isLoading: stepsLoading } = useRunOfShow()
   const { data: people, isLoading: peopleLoading } = usePeople()
+  const { data: messages = [], isLoading: messagesLoading } = useRosMessages()
+  const { data: delays = [], isLoading: delaysLoading } = useRosDelays()
+
   const [tab, setTab] = useState<TabId>("programme")
 
-  const isLoading = stepsLoading || peopleLoading
+  const isLoading =
+    stepsLoading || peopleLoading || delaysLoading || (isFiance && messagesLoading)
 
   if (isLoading) {
     return (
@@ -82,10 +94,18 @@ export function DeroulePage() {
           <TabsTrigger value="programme">Programme</TabsTrigger>
           <TabsTrigger value="preparation">Préparation</TabsTrigger>
           <TabsTrigger value="en-direct">En direct</TabsTrigger>
+          <TabsTrigger value="retards">
+            Retards
+            {delays.length > 0 && (
+              <span className="ml-1.5 rounded-full bg-bordeaux/20 px-1.5 py-0.5 text-[10px] font-bold text-bordeaux tabular-nums">
+                {delays.length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      {tab === "programme" ? (
+      {tab === "programme" && (
         <div className="space-y-6">
           <PhaseTimelineBar segments={segments} windowLabel={windowLabel} />
           <HighlightsStrip steps={highlights} />
@@ -120,10 +140,20 @@ export function DeroulePage() {
             </div>
           ) : null}
         </div>
-      ) : tab === "preparation" ? (
+      )}
+
+      {tab === "preparation" && (
         <MaitreTempsPrep steps={steps} people={peopleList} />
-      ) : (
-        <MaitreTempsRun steps={steps} people={peopleList} />
+      )}
+
+      {tab === "en-direct" && (
+        isFiance
+          ? <LiveDashboard steps={steps} people={peopleList} messages={messages} />
+          : <MaitreTempsRun steps={steps} people={peopleList} />
+      )}
+
+      {tab === "retards" && (
+        <DelayJournal delays={delays} steps={steps} />
       )}
     </div>
   )

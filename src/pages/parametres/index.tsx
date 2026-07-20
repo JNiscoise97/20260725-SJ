@@ -4,6 +4,7 @@ import { ClipboardCheck } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EventConfigForm } from "@/components/parametres/EventConfigForm"
 import { ParametresTree } from "@/components/parametres/ParametresTree"
@@ -17,6 +18,10 @@ import { ResetPhotoGroupsButton } from "@/components/parametres/ResetPhotoGroups
 import { EquipmentManager } from "@/components/parametres/EquipmentManager"
 import { AccessCodesManager } from "@/components/parametres/AccessCodesManager"
 import { GuestTabsManager } from "@/components/parametres/GuestTabsManager"
+import { MessagesConfig } from "@/components/timing/MessagesConfig"
+import { useRunOfShow } from "@/hooks/queries/use-run-of-show"
+import { useRosMessages } from "@/hooks/queries/use-ros-messages"
+import { useRosLaunches } from "@/hooks/queries/use-ros-launches"
 import { cn } from "@/lib/utils"
 
 // ── Navigation ────────────────────────────────────────────────────────────────
@@ -24,6 +29,7 @@ import { cn } from "@/lib/utils"
 type Section =
   | "evenement"
   | "organisation"
+  | "timing-messages"
   | "invites-groupes"
   | "invites-photos"
   | "invites-tables"
@@ -44,6 +50,10 @@ const NAV: NavGroup[] = [
   {
     label: "Organisation",
     items: [{ id: "organisation", label: "Pôles, domaines & missions" }],
+  },
+  {
+    label: "Timing",
+    items: [{ id: "timing-messages", label: "Messages" }],
   },
   {
     label: "Invités",
@@ -80,6 +90,24 @@ function flatLabel(item: NavItem): string {
 
 // ── Panneau de contenu ────────────────────────────────────────────────────────
 
+function TimingMessagesSection() {
+  const { data: steps } = useRunOfShow()
+  const { data: messages } = useRosMessages()
+  const { data: launches } = useRosLaunches()
+
+  if (!steps || !messages || !launches) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 rounded-xl" />
+        ))}
+      </div>
+    )
+  }
+
+  return <MessagesConfig steps={steps} messages={messages} launches={launches} />
+}
+
 function OutilsSection() {
   return (
     <div className="space-y-4">
@@ -106,8 +134,9 @@ function OutilsSection() {
 
 function ContentPanel({ section }: { section: Section }) {
   switch (section) {
-    case "evenement":       return <EventConfigForm />
-    case "organisation":    return <ParametresTree />
+    case "evenement":         return <EventConfigForm />
+    case "organisation":      return <ParametresTree />
+    case "timing-messages":   return <TimingMessagesSection />
     case "invites-groupes": return <GuestGroupsManager />
     case "invites-photos":  return <PhotoGroupsManager />
     case "invites-tables":  return <SeatingTablesManager />

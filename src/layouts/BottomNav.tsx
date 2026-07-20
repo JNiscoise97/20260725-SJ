@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sheet"
 
 const PRIMARY_PATHS = ["/", "/referents", "/deroule"]
+const MAX_DIRECT = 4
 
 export function BottomNav() {
   const [moreOpen, setMoreOpen] = useState(false)
@@ -22,8 +23,16 @@ export function BottomNav() {
   const visibleItems = NAV_ITEMS.filter(
     (item) => can(item.capability) && (!item.visibleToRoles || (role && item.visibleToRoles.includes(role)))
   )
-  const primaryItems = visibleItems.filter((item) => PRIMARY_PATHS.includes(item.path))
-  const moreItems = visibleItems.filter((item) => !PRIMARY_PATHS.includes(item.path))
+
+  // Préférence aux chemins primaires ; si l'utilisateur n'en a aucun (ex. invité avec onglets personnalisés)
+  // on affiche directement les premiers items visibles jusqu'à MAX_DIRECT.
+  const naturalPrimary = visibleItems.filter((item) => PRIMARY_PATHS.includes(item.path))
+  const hasPrimary = naturalPrimary.length > 0
+  const primaryItems = hasPrimary ? naturalPrimary : visibleItems.slice(0, MAX_DIRECT)
+  const moreItems = hasPrimary
+    ? visibleItems.filter((item) => !PRIMARY_PATHS.includes(item.path))
+    : visibleItems.slice(MAX_DIRECT)
+
   const isMoreActive = moreItems.some((item) => location.pathname.startsWith(item.path))
 
   return (
@@ -45,17 +54,19 @@ export function BottomNav() {
             {item.label}
           </NavLink>
         ))}
-        <button
-          type="button"
-          onClick={() => setMoreOpen(true)}
-          className={cn(
-            "flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium text-muted-foreground transition-colors",
-            isMoreActive && "text-primary"
-          )}
-        >
-          <MoreHorizontal className="size-5" />
-          Plus
-        </button>
+        {moreItems.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={cn(
+              "flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium text-muted-foreground transition-colors",
+              isMoreActive && "text-primary"
+            )}
+          >
+            <MoreHorizontal className="size-5" />
+            Plus
+          </button>
+        )}
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>

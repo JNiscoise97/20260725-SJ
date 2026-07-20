@@ -40,7 +40,7 @@ export function MaMissionPage() {
     return map
   }, [acceptances])
 
-  if (!person || person.role !== "referent") {
+  if (!person) {
     return <Navigate to="/" replace />
   }
 

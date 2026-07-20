@@ -1,9 +1,10 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Users } from "lucide-react"
 
 import { PageHeader } from "@/components/shared/PageHeader"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useIdentity } from "@/context/IdentityContext"
 import { useResponsableEntries } from "@/hooks/use-responsable-entries"
 import { useDomaines } from "@/hooks/queries/use-domaines"
@@ -12,8 +13,9 @@ import { usePeople } from "@/hooks/queries/use-people"
 import { useDocuments } from "@/hooks/queries/use-documents"
 import { useAllChecklistItems, useAllChecklists } from "@/hooks/queries/use-checklists"
 import { ReferentCard } from "@/components/referents/ReferentCard"
+import { AssignationsPage } from "@/pages/assignations"
 
-export function ReferentsPage() {
+function ReferentsTab() {
   const { person } = useIdentity()
   const { isLoading: entriesLoading, entries } = useResponsableEntries()
   const { data: domaines, isLoading: domainesLoading } = useDomaines()
@@ -96,6 +98,26 @@ export function ReferentsPage() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Page composite ─────────────────────────────────────────────────────────────
+
+type EquipeTab = "referents" | "assignations"
+
+export function ReferentsPage() {
+  const [tab, setTab] = useState<EquipeTab>("referents")
+  return (
+    <div className="space-y-6">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as EquipeTab)}>
+        <TabsList>
+          <TabsTrigger value="referents">Référents</TabsTrigger>
+          <TabsTrigger value="assignations">Assignations</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {tab === "referents" && <ReferentsTab />}
+      {tab === "assignations" && <AssignationsPage />}
     </div>
   )
 }

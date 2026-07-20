@@ -1,4 +1,4 @@
-import type { RosDelivererType, RosDeliveryMode, RosMessage, RosRecipientType } from "@/types/domain"
+import type { MissionAcceptanceStatus, RosDelivererType, RosDeliveryMode, RosMessage, RosRecipientType } from "@/types/domain"
 import { createMockTable } from "@/services/mock/db"
 import { supabase, USE_SUPABASE } from "@/supabase/client"
 
@@ -11,6 +11,8 @@ function rowToMsg(r: {
   deliverer_person_id: string | null; recipient_type: string | null
   recipient_guest_id: string | null; recipient_person_id: string | null
   recipient_label: string | null; scheduled_time: string | null
+  deliverer_status: string | null
+  not_delivered: boolean | null
 }): RosMessage {
   return {
     id: r.id,
@@ -28,6 +30,8 @@ function rowToMsg(r: {
     recipientPersonId: r.recipient_person_id,
     recipientLabel: r.recipient_label,
     scheduledTime: r.scheduled_time,
+    delivererStatus: r.deliverer_status as MissionAcceptanceStatus | null,
+    notDelivered: r.not_delivered,
   }
 }
 
@@ -61,6 +65,8 @@ export interface RosMessagePatch {
   recipientPersonId?: string | null
   recipientLabel?: string | null
   scheduledTime?: string | null
+  delivererStatus?: MissionAcceptanceStatus | null
+  notDelivered?: boolean | null
 }
 
 export const rosMessagesService = {
@@ -116,6 +122,8 @@ export const rosMessagesService = {
       recipientPersonId: input.recipientPersonId ?? null,
       recipientLabel: input.recipientLabel ?? null,
       scheduledTime: input.scheduledTime ?? null,
+      delivererStatus: null,
+      notDelivered: null,
     }
     return mock.insert(msg)
   },
@@ -129,6 +137,8 @@ export const rosMessagesService = {
         deliverer_person_id?: string | null; recipient_type?: string | null
         recipient_guest_id?: string | null; recipient_person_id?: string | null
         recipient_label?: string | null; scheduled_time?: string | null
+        deliverer_status?: string | null
+        not_delivered?: boolean | null
       } = {}
       if ("subject" in patch) row.subject = patch.subject
       if (patch.content !== undefined) row.content = patch.content
@@ -143,6 +153,8 @@ export const rosMessagesService = {
       if ("recipientPersonId" in patch) row.recipient_person_id = patch.recipientPersonId
       if ("recipientLabel" in patch) row.recipient_label = patch.recipientLabel
       if ("scheduledTime" in patch) row.scheduled_time = patch.scheduledTime
+      if ("delivererStatus" in patch) row.deliverer_status = patch.delivererStatus ?? null
+      if ("notDelivered" in patch) row.not_delivered = patch.notDelivered ?? null
       const { error } = await supabase!.from("_20260725_ros_messages").update(row).eq("id", id)
       if (error) throw error
       return
@@ -161,6 +173,8 @@ export const rosMessagesService = {
     if ("recipientPersonId" in patch) mockPatch.recipientPersonId = patch.recipientPersonId ?? null
     if ("recipientLabel" in patch) mockPatch.recipientLabel = patch.recipientLabel ?? null
     if ("scheduledTime" in patch) mockPatch.scheduledTime = patch.scheduledTime ?? null
+    if ("delivererStatus" in patch) mockPatch.delivererStatus = patch.delivererStatus ?? null
+    if ("notDelivered" in patch) mockPatch.notDelivered = patch.notDelivered ?? null
     await mock.update(id, mockPatch)
   },
 

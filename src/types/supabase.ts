@@ -373,6 +373,8 @@ type RosMessageRow = {
   recipient_person_id: string | null
   recipient_label: string | null
   scheduled_time: string | null
+  deliverer_status: string | null
+  not_delivered: boolean | null
 }
 
 type RosDelayRow = {
@@ -589,7 +591,7 @@ export interface Database {
         EquipmentRow,
         "id" | "status" | "guest_name" | "notes" | "sort_order" | "created_at"
       >
-      _20260725_ros_messages: TableDef<RosMessageRow, "id" | "sort_order" | "sent_at" | "subject" | "delivery_mode" | "deliverer_type" | "deliverer_guest_id" | "deliverer_person_id" | "recipient_type" | "recipient_guest_id" | "recipient_person_id" | "recipient_label" | "scheduled_time">
+      _20260725_ros_messages: TableDef<RosMessageRow, "id" | "sort_order" | "sent_at" | "subject" | "delivery_mode" | "deliverer_type" | "deliverer_guest_id" | "deliverer_person_id" | "recipient_type" | "recipient_guest_id" | "recipient_person_id" | "recipient_label" | "scheduled_time" | "deliverer_status" | "not_delivered">
       _20260725_ros_delays: TableDef<RosDelayRow, "id" | "step_id" | "reason" | "logged_at">
       _20260725_ros_launches: TableDef<RosLaunchRow, "id" | "mission_id" | "label" | "scheduled_time" | "launched_at" | "sort_order" | "created_at">
     }

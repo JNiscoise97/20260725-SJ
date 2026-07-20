@@ -8,10 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useGuestGroups, useGuests } from "@/hooks/queries/use-guests"
 import { GuestTable } from "@/components/invites/GuestTable"
 import { GuestCreateDialog } from "@/components/invites/GuestCreateDialog"
+import { PlanTablePage } from "@/pages/plan-table"
+import { EnfantsPage } from "@/pages/enfants"
+import { PersonnesAgeesPage } from "@/pages/personnes-agees"
 
 const ALL_GROUPS = "all"
 
@@ -32,7 +36,7 @@ function guestAgeValue(guest: Guest): number {
   return match ? Number(match[0]) : Number.POSITIVE_INFINITY
 }
 
-export function InvitesPage() {
+export function InvitesList() {
   const { data: guests, isLoading: guestsLoading } = useGuests()
   const { data: groups, isLoading: groupsLoading } = useGuestGroups()
   const [search, setSearch] = useState("")
@@ -167,6 +171,30 @@ export function InvitesPage() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Page composite ─────────────────────────────────────────────────────────────
+
+type InvitesTab = "liste" | "plan-table" | "enfants" | "accessibilite"
+
+export function InvitesPage() {
+  const [tab, setTab] = useState<InvitesTab>("liste")
+  return (
+    <div className="space-y-6">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as InvitesTab)}>
+        <TabsList>
+          <TabsTrigger value="liste">Invités</TabsTrigger>
+          <TabsTrigger value="plan-table">Plan de table</TabsTrigger>
+          <TabsTrigger value="enfants">Enfants</TabsTrigger>
+          <TabsTrigger value="accessibilite">Accessibilité</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {tab === "liste" && <InvitesList />}
+      {tab === "plan-table" && <PlanTablePage />}
+      {tab === "enfants" && <EnfantsPage />}
+      {tab === "accessibilite" && <PersonnesAgeesPage />}
     </div>
   )
 }

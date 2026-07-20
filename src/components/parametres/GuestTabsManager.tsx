@@ -64,11 +64,16 @@ function GuestTabCard({ guestId, fullName }: { guestId: string; fullName: string
     () => (guest?.allowedTabs ?? INVITE_DEFAULT) as Capability[],
     [guest?.allowedTabs]
   )
+  // Seuls les onglets encore présents dans NAV_ITEMS comptent (stale caps ignorées)
+  const visibleCount = useMemo(
+    () => effectiveTabs.filter(c => CONFIGURABLE_TABS.some(t => t.capability === c)).length,
+    [effectiveTabs]
+  )
 
   async function handleToggle(cap: Capability, val: boolean) {
-    const next = val
-      ? [...new Set([...effectiveTabs, cap])]
-      : effectiveTabs.filter(c => c !== cap)
+    const knownCaps = new Set(CONFIGURABLE_TABS.map(t => t.capability))
+    const base = effectiveTabs.filter(c => knownCaps.has(c))
+    const next = val ? [...new Set([...base, cap])] : base.filter(c => c !== cap)
     await update.mutateAsync({ id: guestId, patch: { allowedTabs: next } })
   }
 
@@ -87,7 +92,7 @@ function GuestTabCard({ guestId, fullName }: { guestId: string; fullName: string
         {open ? <ChevronDown className="size-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
         <span className="flex-1 text-sm font-medium text-foreground">{fullName}</span>
         <span className="text-xs text-muted-foreground">
-          {effectiveTabs.length} onglet{effectiveTabs.length !== 1 ? "s" : ""}
+          {visibleCount} onglet{visibleCount !== 1 ? "s" : ""}
         </span>
         {isCustomized ? (
           <Badge variant="outline" className="text-[10px] text-dore border-dore/40">Personnalisé</Badge>

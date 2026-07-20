@@ -19,7 +19,7 @@ export function DashboardPage() {
   const { daysUntilEvent, isDayOf } = useEventConfig()
   const { isLoading, summary } = useDashboardSummary()
 
-  if (person?.role === "referent" && isDayOf) {
+  if (person?.assignable && isDayOf) {
     return <Navigate to="/ma-mission" replace />
   }
 

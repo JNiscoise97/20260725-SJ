@@ -38,6 +38,8 @@ export interface Identity {
   introductionSeen?: boolean
   /** Surcharge des onglets visibles — si défini, remplace les permissions du rôle. `null` = utilise les defaults du rôle. */
   allowedTabs?: string[] | null
+  /** Vrai si l'invité est marqué comme responsable potentiel de domaine (`assignable`). Absent pour les fiancés. */
+  assignable?: boolean
 }
 
 export interface Pole {
@@ -173,6 +175,8 @@ export interface RosMessage {
   recipientPersonId: string | null
   recipientLabel: string | null
   scheduledTime: string | null
+  delivererStatus: MissionAcceptanceStatus | null
+  notDelivered: boolean | null
 }
 
 export interface RosLaunch {

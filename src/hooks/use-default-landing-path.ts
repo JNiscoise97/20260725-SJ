@@ -16,6 +16,14 @@ export function useDefaultLandingPath(identity: Identity | null) {
     return { path: "/", isLoading: false }
   }
 
+  // Invité avec onglets personnalisés : si l'intro est déjà vue, aller au briefing ;
+  // sinon ProtectedLayout s'occupera de la redirection vers /introduction.
+  if (identity.role === "invite" && identity.allowedTabs != null) {
+    const hasBriefing = (identity.allowedTabs as string[]).includes("view:briefing")
+    const target = hasBriefing ? "/mes-responsabilites" : "/infos-pratiques"
+    return { path: target, isLoading: false }
+  }
+
   if (entriesLoading || missionsLoading) {
     return { path: "/", isLoading: true }
   }

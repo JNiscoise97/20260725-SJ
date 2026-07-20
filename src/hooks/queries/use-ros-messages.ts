@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { rosMessagesService, type RosMessageInput, type RosMessagePatch } from "@/services/ros-messages.service"
+import type { MissionAcceptanceStatus } from "@/types/domain"
 
 const KEY = ["ros-messages"] as const
 
@@ -43,6 +44,15 @@ export function useMarkMessageSent() {
   return useMutation({
     mutationFn: ({ id, sent }: { id: string; sent: boolean }) =>
       rosMessagesService.update(id, { sentAt: sent ? new Date().toISOString() : null }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRespondToMessage() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: MissionAcceptanceStatus }) =>
+      rosMessagesService.update(id, { delivererStatus: status }),
     onSuccess: invalidate,
   })
 }

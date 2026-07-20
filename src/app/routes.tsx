@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Navigate } from "react-router-dom"
 
 import { AppShell } from "@/layouts/AppShell"
 import { ProtectedLayout } from "@/layouts/ProtectedLayout"
@@ -8,7 +8,6 @@ import { GuestInfoPage } from "@/pages/guest"
 import { IntroductionPage } from "@/pages/introduction"
 import { DashboardPage } from "@/pages/dashboard"
 import { MissionsPage } from "@/pages/missions"
-import { AssignationsPage } from "@/pages/assignations"
 import { ReferentsPage } from "@/pages/referents"
 import { PlanningPage } from "@/pages/planning"
 import { DeroulePage } from "@/pages/deroule"
@@ -20,15 +19,12 @@ import { MaterielPage } from "@/pages/materiel"
 import { SejourPage } from "@/pages/sejour"
 import { InvitesPage } from "@/pages/invites"
 import { GuestDetailPage } from "@/pages/invites/guest-detail"
-import { PlanTablePage } from "@/pages/plan-table"
-import { EnfantsPage } from "@/pages/enfants"
-import { PersonnesAgeesPage } from "@/pages/personnes-agees"
 import { PrestatairesPage } from "@/pages/prestataires"
 import { DocumentsPage } from "@/pages/documents"
 import { ParametresPage } from "@/pages/parametres"
 import { RevueContenuPage } from "@/pages/revue-contenu"
 import { MaMissionPage } from "@/pages/ma-mission"
-import { TimingPage } from "@/pages/timing"
+import { MesResponsabilitesPage } from "@/pages/mes-responsabilites"
 import { NotFoundPage } from "@/pages/not-found"
 
 export function AppRoutes() {
@@ -63,14 +59,7 @@ export function AppRoutes() {
               </RoleGuard>
             }
           />
-          <Route
-            path="assignations"
-            element={
-              <RoleGuard capability="view:assignations">
-                <AssignationsPage />
-              </RoleGuard>
-            }
-          />
+          <Route path="assignations" element={<Navigate to="/referents" replace />} />
           <Route
             path="referents"
             element={
@@ -95,14 +84,7 @@ export function AppRoutes() {
               </RoleGuard>
             }
           />
-          <Route
-            path="timing"
-            element={
-              <RoleGuard capability="view:timing">
-                <TimingPage />
-              </RoleGuard>
-            }
-          />
+          <Route path="timing" element={<Navigate to="/deroule" replace />} />
           <Route
             path="photos-groupe"
             element={
@@ -167,30 +149,9 @@ export function AppRoutes() {
               </RoleGuard>
             }
           />
-          <Route
-            path="plan-table"
-            element={
-              <RoleGuard capability="view:guests">
-                <PlanTablePage />
-              </RoleGuard>
-            }
-          />
-          <Route
-            path="enfants"
-            element={
-              <RoleGuard capability="view:guests">
-                <EnfantsPage />
-              </RoleGuard>
-            }
-          />
-          <Route
-            path="personnes-agees"
-            element={
-              <RoleGuard capability="view:guests">
-                <PersonnesAgeesPage />
-              </RoleGuard>
-            }
-          />
+          <Route path="plan-table" element={<Navigate to="/invites" replace />} />
+          <Route path="enfants" element={<Navigate to="/invites" replace />} />
+          <Route path="personnes-agees" element={<Navigate to="/invites" replace />} />
           <Route
             path="prestataires"
             element={
@@ -228,6 +189,14 @@ export function AppRoutes() {
             element={
               <RoleGuard capability="view:role">
                 <MaMissionPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="mes-responsabilites"
+            element={
+              <RoleGuard capability="view:briefing">
+                <MesResponsabilitesPage />
               </RoleGuard>
             }
           />
