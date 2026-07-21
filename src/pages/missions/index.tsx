@@ -622,7 +622,7 @@ export function MissionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Missions"
+        title="Les missions"
         description={
           myDomaineIds === null
             ? "Toutes les missions, regroupées par pôle et domaine, avec leurs checklists."

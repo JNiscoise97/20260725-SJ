@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
-import { Check, Copy, Eye, KeyRound, Pencil, Plus, Trash2, X } from "lucide-react"
+import { Check, ChevronDown, ChevronRight, Copy, Eye, KeyRound, Pencil, RotateCcw, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 import { useNavigate } from "react-router-dom"
 
+import type { Capability } from "@/types/permissions"
 import type { AccessCodeEntry } from "@/services/access-codes.service"
 import {
   useAccessCodes,
@@ -12,9 +13,10 @@ import {
   type CreateAccountInput,
   type UpdateAccountInput,
 } from "@/hooks/queries/use-access-codes"
-import { useGuests } from "@/hooks/queries/use-guests"
+import { useGuests, useUpdateGuest } from "@/hooks/queries/use-guests"
 import { identityService } from "@/services/identity.service"
 import { useIdentity } from "@/context/IdentityContext"
+import { NAV_ITEMS } from "@/lib/constants"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -27,7 +29,20 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
-// ── Copier ────────────────────────────────────────────────────────────────────
+// ── Onglets configurables ─────────────────────────────────────────────────────
+
+const CONFIGURABLE_TABS: { capability: Capability; label: string }[] = NAV_ITEMS
+  .filter(item => {
+    if (!item.capability.startsWith("view:")) return false
+    if (item.visibleToRoles?.length === 1 && item.visibleToRoles[0] === "fiance") return false
+    return true
+  })
+  .filter((item, i, arr) => arr.findIndex(x => x.capability === item.capability) === i)
+  .map(item => ({ capability: item.capability as Capability, label: item.label }))
+
+const INVITE_DEFAULT: Capability[] = ["view:introduction"]
+
+// ── Sous-composants utilitaires ───────────────────────────────────────────────
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false)
@@ -49,8 +64,6 @@ function CopyButton({ value }: { value: string }) {
     </Tooltip>
   )
 }
-
-// ── Suppression deux-temps ────────────────────────────────────────────────────
 
 function DeleteButton({ onConfirm, isPending }: { onConfirm: () => void; isPending: boolean }) {
   const [confirming, setConfirming] = useState(false)
@@ -78,8 +91,6 @@ function DeleteButton({ onConfirm, isPending }: { onConfirm: () => void; isPendi
     </Tooltip>
   )
 }
-
-// ── Sélecteur d'invité ────────────────────────────────────────────────────────
 
 function GuestPicker({
   value,
@@ -148,7 +159,7 @@ function GuestPicker({
   )
 }
 
-// ── Dialog création ───────────────────────────────────────────────────────────
+// ── Dialogs création / édition ────────────────────────────────────────────────
 
 function CreateDialog({ existingGuestIds }: { existingGuestIds: Set<string> }) {
   const [open, setOpen] = useState(false)
@@ -188,7 +199,6 @@ function CreateDialog({ existingGuestIds }: { existingGuestIds: Set<string> }) {
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset() }}>
       <DialogTrigger asChild>
         <Button size="sm" className="gap-1.5">
-          <Plus className="size-3.5" />
           Nouveau compte
         </Button>
       </DialogTrigger>
@@ -238,8 +248,6 @@ function CreateDialog({ existingGuestIds }: { existingGuestIds: Set<string> }) {
     </Dialog>
   )
 }
-
-// ── Dialog édition ────────────────────────────────────────────────────────────
 
 function EditDialog({ entry }: { entry: AccessCodeEntry }) {
   const [open, setOpen] = useState(false)
@@ -298,20 +306,10 @@ function EditDialog({ entry }: { entry: AccessCodeEntry }) {
   )
 }
 
-// ── Ligne de compte ───────────────────────────────────────────────────────────
+// ── Ligne fiancé ──────────────────────────────────────────────────────────────
 
-function AccountRow({ entry }: { entry: AccessCodeEntry }) {
+function FianceRow({ entry }: { entry: AccessCodeEntry }) {
   const deleteAccount = useDeleteAccount()
-  const { impersonate } = useIdentity()
-  const navigate = useNavigate()
-
-  async function handleImpersonate() {
-    const identity = await identityService.getById(entry.id)
-    if (!identity) { toast.error("Impossible de charger ce compte."); return }
-    impersonate(identity)
-    navigate("/")
-  }
-
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
@@ -325,7 +323,94 @@ function AccountRow({ entry }: { entry: AccessCodeEntry }) {
         <CopyButton value={entry.accessCode} />
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
-        {entry.kind === "guest" && (
+        <EditDialog entry={entry} />
+        <DeleteButton
+          isPending={deleteAccount.isPending}
+          onConfirm={async () => {
+            await deleteAccount.mutateAsync(entry)
+            toast.success("Compte supprimé.")
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ── Ligne invité (expansible + onglets) ───────────────────────────────────────
+
+function GuestRow({ entry }: { entry: AccessCodeEntry }) {
+  const [open, setOpen] = useState(false)
+  const { data: guests } = useGuests()
+  const updateGuest = useUpdateGuest()
+  const deleteAccount = useDeleteAccount()
+  const { impersonate } = useIdentity()
+  const navigate = useNavigate()
+
+  const guest = guests?.find(g => g.id === entry.id)
+  const isCustomized = guest?.allowedTabs != null
+  const effectiveTabs = useMemo<Capability[]>(
+    () => (guest?.allowedTabs ?? INVITE_DEFAULT) as Capability[],
+    [guest?.allowedTabs]
+  )
+  const visibleCount = useMemo(
+    () => effectiveTabs.filter(c => CONFIGURABLE_TABS.some(t => t.capability === c)).length,
+    [effectiveTabs]
+  )
+
+  async function handleToggle(cap: Capability, val: boolean) {
+    const knownCaps = new Set(CONFIGURABLE_TABS.map(t => t.capability))
+    const base = effectiveTabs.filter(c => knownCaps.has(c))
+    const next = val ? [...new Set([...base, cap])] : base.filter(c => c !== cap)
+    await updateGuest.mutateAsync({ id: entry.id, patch: { allowedTabs: next } })
+  }
+
+  async function handleReset() {
+    await updateGuest.mutateAsync({ id: entry.id, patch: { allowedTabs: null } })
+    toast.success("Onglets réinitialisés.")
+  }
+
+  async function handleImpersonate() {
+    const identity = await identityService.getById(entry.id)
+    if (!identity) { toast.error("Impossible de charger ce compte."); return }
+    impersonate(identity)
+    navigate("/")
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setOpen(v => !v)}
+          className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={open ? "Réduire" : "Configurer les onglets"}
+        >
+          {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground">{entry.fullName}</p>
+          {!entry.isActive && <p className="text-xs text-muted-foreground">Inactif</p>}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          <code className="rounded-md border border-border bg-muted/60 px-2.5 py-1 font-mono text-xs text-foreground">
+            {entry.accessCode}
+          </code>
+          <CopyButton value={entry.accessCode} />
+        </div>
+
+        <Badge
+          variant="outline"
+          className={cn(
+            "shrink-0 text-[10px]",
+            isCustomized ? "border-dore/40 text-dore" : "text-muted-foreground"
+          )}
+        >
+          {visibleCount} onglet{visibleCount !== 1 ? "s" : ""}
+        </Badge>
+
+        <div className="flex shrink-0 items-center gap-0.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button type="button" variant="ghost" size="icon-xs" onClick={handleImpersonate}>
@@ -334,15 +419,87 @@ function AccountRow({ entry }: { entry: AccessCodeEntry }) {
             </TooltipTrigger>
             <TooltipContent>Voir en tant que {entry.fullName}</TooltipContent>
           </Tooltip>
+          <EditDialog entry={entry} />
+          <DeleteButton
+            isPending={deleteAccount.isPending}
+            onConfirm={async () => {
+              await deleteAccount.mutateAsync(entry)
+              toast.success("Accès révoqué.")
+            }}
+          />
+        </div>
+      </div>
+
+      {open && (
+        <div className="border-t border-border bg-muted/20 px-4 py-3 space-y-3">
+          <p className="text-xs font-medium text-muted-foreground">Onglets accessibles</p>
+          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {CONFIGURABLE_TABS.map(({ capability, label }) => (
+              <label
+                key={capability}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 hover:bg-muted/40 transition-colors"
+              >
+                <Switch
+                  checked={effectiveTabs.includes(capability)}
+                  onCheckedChange={val => handleToggle(capability, val)}
+                  className="shrink-0"
+                />
+                <span className="text-sm text-foreground">{label}</span>
+              </label>
+            ))}
+          </div>
+          {isCustomized && (
+            <div className="flex justify-end border-t border-border pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={handleReset}
+                disabled={updateGuest.isPending}
+              >
+                <RotateCcw className="size-3.5" />
+                Réinitialiser aux défauts
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Section ───────────────────────────────────────────────────────────────────
+
+function AccountSection({
+  title,
+  entries,
+  badge,
+}: {
+  title: string
+  entries: AccessCodeEntry[]
+  badge: "fiance" | "guest"
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+        <Badge
+          variant="outline"
+          className={cn(
+            "text-[10px]",
+            badge === "fiance" ? "border-dore/40 text-dore" : "border-bordeaux/40 text-bordeaux"
+          )}
+        >
+          {entries.length}
+        </Badge>
+      </div>
+      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+        {entries.map((entry) =>
+          entry.kind === "fiance"
+            ? <FianceRow key={entry.id} entry={entry} />
+            : <GuestRow key={entry.id} entry={entry} />
         )}
-        <EditDialog entry={entry} />
-        <DeleteButton
-          isPending={deleteAccount.isPending}
-          onConfirm={async () => {
-            await deleteAccount.mutateAsync(entry)
-            toast.success(entry.kind === "fiance" ? "Compte supprimé." : "Accès révoqué.")
-          }}
-        />
       </div>
     </div>
   )
@@ -367,7 +524,7 @@ export function AccessCodesManager() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <KeyRound className="size-4 text-muted-foreground" />
-            Comptes et codes d'accès
+            Comptes et accès
           </CardTitle>
           <CreateDialog existingGuestIds={existingGuestIds} />
         </div>
@@ -381,27 +538,11 @@ export function AccessCodesManager() {
           <p className="text-sm text-muted-foreground">Aucun compte avec un code d'accès.</p>
         ) : (
           <div className="space-y-6">
-            {fiances.length > 0 && <Section title="Fiancés" entries={fiances} badge="fiance" />}
-            {guests.length > 0 && <Section title="Invités" entries={guests} badge="guest" />}
+            {fiances.length > 0 && <AccountSection title="Fiancés" entries={fiances} badge="fiance" />}
+            {guests.length > 0 && <AccountSection title="Invités" entries={guests} badge="guest" />}
           </div>
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function Section({ title, entries, badge }: { title: string; entries: AccessCodeEntry[]; badge: "fiance" | "guest" }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-        <Badge variant="outline" className={cn("text-[10px]", badge === "fiance" ? "text-dore border-dore/40" : "text-bordeaux border-bordeaux/40")}>
-          {entries.length}
-        </Badge>
-      </div>
-      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
-        {entries.map((entry) => <AccountRow key={entry.id} entry={entry} />)}
-      </div>
-    </div>
   )
 }

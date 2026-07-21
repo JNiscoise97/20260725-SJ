@@ -13,7 +13,7 @@ const PARAGRAPHS = [
 ]
 
 export function IntroductionPage() {
-  const { person, patchPerson } = useIdentity()
+  const { person, patchPerson, isImpersonating } = useIdentity()
   const firstName = person?.fullName.split(" ")[0] ?? ""
   const updateGuest = useUpdateGuest()
 
@@ -22,7 +22,7 @@ export function IntroductionPage() {
   // fiancés, qui sont toujours portés par une ligne _20260725_guests, donc
   // person.id y correspond directement (voir identity.service.ts).
   useEffect(() => {
-    if (!person || person.role === "fiance" || person.introductionSeen) return
+    if (!person || person.role === "fiance" || person.introductionSeen || isImpersonating) return
     updateGuest.mutate({ id: person.id, patch: { introductionSeen: true } })
     patchPerson({ introductionSeen: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps

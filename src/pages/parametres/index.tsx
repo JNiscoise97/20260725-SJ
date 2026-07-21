@@ -17,7 +17,6 @@ import { ResetCheckInsButton } from "@/components/parametres/ResetCheckInsButton
 import { ResetPhotoGroupsButton } from "@/components/parametres/ResetPhotoGroupsButton"
 import { EquipmentManager } from "@/components/parametres/EquipmentManager"
 import { AccessCodesManager } from "@/components/parametres/AccessCodesManager"
-import { GuestTabsManager } from "@/components/parametres/GuestTabsManager"
 import { MessagesConfig } from "@/components/timing/MessagesConfig"
 import { useRunOfShow } from "@/hooks/queries/use-run-of-show"
 import { useRosMessages } from "@/hooks/queries/use-ros-messages"
@@ -36,7 +35,6 @@ type Section =
   | "materiel"
   | "acces-fiancies"
   | "acces-comptes"
-  | "acces-onglets"
   | "outils"
 
 interface NavItem { id: Section; label: string }
@@ -71,8 +69,7 @@ const NAV: NavGroup[] = [
     label: "Accès",
     items: [
       { id: "acces-fiancies", label: "Profils fiancés" },
-      { id: "acces-comptes", label: "Comptes & codes" },
-      { id: "acces-onglets", label: "Onglets par compte" },
+      { id: "acces-comptes", label: "Comptes & accès" },
     ],
   },
   {
@@ -143,7 +140,6 @@ function ContentPanel({ section }: { section: Section }) {
     case "materiel":        return <EquipmentManager />
     case "acces-fiancies":  return <PersonManager />
     case "acces-comptes":   return <AccessCodesManager />
-    case "acces-onglets":   return <GuestTabsManager />
     case "outils":          return <OutilsSection />
   }
 }

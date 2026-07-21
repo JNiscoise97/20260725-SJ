@@ -37,7 +37,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Mon rôle", path: "/ma-mission", icon: UserCheck, capability: "view:role" },
   { label: "Tableau de bord", path: "/", icon: Home, capability: "view:dashboard", visibleToRoles: ["fiance"] },
   {
-    label: "Missions",
+    label: "Les missions",
     path: "/missions",
     icon: ListChecks,
     capability: "view:missions",
