@@ -32,6 +32,9 @@ function toChecklistItem(row: {
   estimated_start_time: string | null
   estimated_end_date: string | null
   estimated_end_time: string | null
+  assignee_guest_id: string | null
+  task_scheduling_type: string | null
+  task_phase: string | null
 }): ChecklistItem {
   return {
     id: row.id,
@@ -45,6 +48,9 @@ function toChecklistItem(row: {
     estimatedStartTime: row.estimated_start_time,
     estimatedEndDate: row.estimated_end_date,
     estimatedEndTime: row.estimated_end_time,
+    assigneeGuestId: row.assignee_guest_id,
+    taskSchedulingType: (row.task_scheduling_type as ChecklistItem["taskSchedulingType"]) ?? null,
+    taskPhase: row.task_phase,
   }
 }
 
@@ -59,6 +65,9 @@ type ChecklistItemRowPatch = Partial<{
   estimated_start_time: string | null
   estimated_end_date: string | null
   estimated_end_time: string | null
+  assignee_guest_id: string | null
+  task_scheduling_type: string | null
+  task_phase: string | null
 }>
 
 function toItemRow(input: Partial<ChecklistItem>): ChecklistItemRowPatch {
@@ -69,10 +78,13 @@ function toItemRow(input: Partial<ChecklistItem>): ChecklistItemRowPatch {
   if (input.sortOrder !== undefined) row.sort_order = input.sortOrder
   if (input.priority !== undefined) row.priority = input.priority
   if (input.status !== undefined) row.status = input.status
-  if (input.estimatedStartDate !== undefined) row.estimated_start_date = input.estimatedStartDate
-  if (input.estimatedStartTime !== undefined) row.estimated_start_time = input.estimatedStartTime
-  if (input.estimatedEndDate !== undefined) row.estimated_end_date = input.estimatedEndDate
-  if (input.estimatedEndTime !== undefined) row.estimated_end_time = input.estimatedEndTime
+  if (input.estimatedStartDate !== undefined) row.estimated_start_date = input.estimatedStartDate ?? null
+  if (input.estimatedStartTime !== undefined) row.estimated_start_time = input.estimatedStartTime ?? null
+  if (input.estimatedEndDate !== undefined) row.estimated_end_date = input.estimatedEndDate ?? null
+  if (input.estimatedEndTime !== undefined) row.estimated_end_time = input.estimatedEndTime ?? null
+  if (input.assigneeGuestId !== undefined) row.assignee_guest_id = input.assigneeGuestId ?? null
+  if (input.taskSchedulingType !== undefined) row.task_scheduling_type = input.taskSchedulingType ?? null
+  if (input.taskPhase !== undefined) row.task_phase = input.taskPhase ?? null
   return row
 }
 

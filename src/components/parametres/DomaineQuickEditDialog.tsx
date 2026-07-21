@@ -355,62 +355,48 @@ export function DomaineQuickEditDialog({ domaine, missions, checklists, items }:
     setApplying(true)
     try {
       const origMissions = buildOrigMissions()
-      const newMissions = parseText(text)
       const { missionNodes, toDeleteMissions, toDeleteChecklists, toDeleteItems } = reconcileResult
 
-      // Suppression : bottom-up
-      for (const item of toDeleteItems)      await deleteItem.mutateAsync(item.id)
-      for (const cl of toDeleteChecklists)   await deleteChecklist.mutateAsync(cl.id)
-      for (const m of toDeleteMissions)      await deleteMission.mutateAsync(m.id)
+      // Phase 1 : suppressions séquentielles par niveau (bottom-up)
+      // Les mutations TanStack Query ne supportent pas les appels concurrents sur
+      // la même instance hook — on séquentialise pour éviter les promises orphelines.
+      for (const i of toDeleteItems)      await deleteItem.mutateAsync(i.id)
+      for (const c of toDeleteChecklists) await deleteChecklist.mutateAsync(c.id)
+      for (const m of toDeleteMissions)   await deleteMission.mutateAsync(m.id)
 
-      // Création / mise à jour
-      for (const node of missionNodes) {
-        let missionId: string
-
-        if (node.origId) {
-          missionId = node.origId
-          const origM = origMissions.find((o) => o.id === node.origId)
-          const needsUpdate = origM?.sortOrder !== node.newIndex
-          if (needsUpdate) {
-            await updateMission.mutateAsync({ id: missionId, patch: { sortOrder: node.newIndex } })
-          }
-        } else {
-          const created = await createMission.mutateAsync({
-            title: node.newTitle,
-            domaineId: domaine.id,
-            status: "todo",
-            sortOrder: node.newIndex,
-          })
-          missionId = created.id
+      // Phase 2 : réordonnement des missions existantes
+      for (const n of missionNodes) {
+        if (!n.origId) continue
+        const orig = origMissions.find((o) => o.id === n.origId)
+        if (orig && orig.sortOrder !== n.newIndex) {
+          await updateMission.mutateAsync({ id: n.origId, patch: { sortOrder: n.newIndex } })
         }
+      }
+
+      // Phase 3 : créations séquentielles (chaîne d'IDs)
+      for (const node of missionNodes) {
+        const missionId = node.origId
+          ?? (await createMission.mutateAsync({
+              title: node.newTitle,
+              domaineId: domaine.id,
+              status: "todo",
+              sortOrder: node.newIndex,
+             })).id
 
         for (const clNode of node.checklists) {
-          let checklistId: string
+          const checklistId = clNode.origId
+            ?? (await createChecklist.mutateAsync({
+                ownerType: "mission",
+                ownerId: missionId,
+                title: clNode.newTitle || null,
+               })).id
 
-          if (clNode.origId) {
-            checklistId = clNode.origId
-          } else {
-            const created = await createChecklist.mutateAsync({
-              ownerType: "mission",
-              ownerId: missionId,
-              title: clNode.newTitle || null,
-            })
-            checklistId = created.id
-          }
+          const origItems = origMissions
+            .flatMap((m) => m.checklists)
+            .find((c) => c.id === clNode.origId)?.items ?? []
 
           for (const itemNode of clNode.items) {
-            if (itemNode.origId) {
-              const origCl = origMissions
-                .flatMap((m) => m.checklists)
-                .find((c) => c.id === clNode.origId)
-              const origItem = origCl?.items.find((i) => i.id === itemNode.origId)
-              if (origItem && origItem.sortOrder !== itemNode.newIndex) {
-                await updateItem.mutateAsync({
-                  id: itemNode.origId,
-                  patch: { sortOrder: itemNode.newIndex },
-                })
-              }
-            } else {
+            if (!itemNode.origId) {
               await createItem.mutateAsync({
                 checklistId,
                 label: itemNode.newLabel,
@@ -419,6 +405,11 @@ export function DomaineQuickEditDialog({ domaine, missions, checklists, items }:
                 priority: "normal",
                 status: "todo",
               })
+            } else {
+              const orig = origItems.find((o) => o.id === itemNode.origId)
+              if (orig && orig.sortOrder !== itemNode.newIndex) {
+                await updateItem.mutateAsync({ id: itemNode.origId, patch: { sortOrder: itemNode.newIndex } })
+              }
             }
           }
         }
@@ -426,7 +417,8 @@ export function DomaineQuickEditDialog({ domaine, missions, checklists, items }:
 
       toast.success("Modifications appliquées.")
       setOpen(false)
-    } catch {
+    } catch (err) {
+      console.error("[DomaineQuickEditDialog] handleApply:", err)
       toast.error("Une erreur est survenue lors de l'application.")
     } finally {
       setApplying(false)

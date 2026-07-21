@@ -375,7 +375,7 @@ export function ParametresTree() {
   function renderChecklistNode(checklist: Checklist, depth: number) {
     const checklistItems = itemsByChecklistId.get(checklist.id) ?? []
     const visibleItems = checklistItems.filter(itemMatches)
-    const isOpen = effectiveOpen(checklist.id, !checklist.title) || hasActiveFilter
+    const isOpen = effectiveOpen(checklist.id, true) || hasActiveFilter
     return (
       <div key={checklist.id} className="space-y-1">
         <TreeRow

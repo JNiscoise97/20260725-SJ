@@ -1,0 +1,24 @@
+Collecter les réponses
+  TODO
+    Enregistrer les réponses des invités.
+    Enregistrer les accompagnants déclarés.
+    Enregistrer les réponses incomplètes.
+    Mettre à jour le suivi des présences.
+Relancer les invités
+  TODO
+    Identifier les invités sans réponse.
+    Envoyer une relance adaptée.
+    Répondre aux éventuelles questions.
+    Mettre à jour les réponses reçues.
+Gérer les modifications de présence
+  TODO
+    Enregistrer les changements de participation.
+    Mettre à jour le nombre de participants.
+    Vérifier l'impact sur l'organisation.
+    Informer les personnes concernées.
+Clôturer les confirmations de présence
+  TODO
+    Vérifier que toutes les réponses sont enregistrées.
+    Valider la liste définitive des participants.
+    Communiquer les effectifs aux responsables concernés.
+    Archiver le suivi des confirmations.

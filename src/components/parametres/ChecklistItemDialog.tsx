@@ -47,25 +47,30 @@ export function ChecklistItemDialog({ item, checklistId }: ChecklistItemDialogPr
 
   async function handleSubmit() {
     if (!label.trim()) return
-    if (item) {
-      await updateItem.mutateAsync({
-        id: item.id,
-        patch: { label, priority, status, isDone: status === "done" },
-      })
-      toast.success("Item mis à jour.")
-    } else {
-      if (!checklistId) return
-      await createItem.mutateAsync({
-        checklistId,
-        label,
-        isDone: status === "done",
-        sortOrder: 0,
-        priority,
-        status,
-      })
-      toast.success("Item créé.")
+    try {
+      if (item) {
+        await updateItem.mutateAsync({
+          id: item.id,
+          patch: { label, priority, status, isDone: status === "done" },
+        })
+        toast.success("Item mis à jour.")
+      } else {
+        if (!checklistId) return
+        await createItem.mutateAsync({
+          checklistId,
+          label,
+          isDone: status === "done",
+          sortOrder: 0,
+          priority,
+          status,
+        })
+        toast.success("Item créé.")
+      }
+      setOpen(false)
+    } catch (err) {
+      console.error("[ChecklistItemDialog] handleSubmit:", err)
+      toast.error("Erreur lors de l'enregistrement.")
     }
-    setOpen(false)
   }
 
   return (

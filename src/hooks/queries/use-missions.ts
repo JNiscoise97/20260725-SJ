@@ -21,7 +21,18 @@ export function useUpdateMission() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Mission> }) => missionsService.update(id, patch),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: MISSIONS_KEY }),
+    onMutate: async ({ id, patch }) => {
+      await queryClient.cancelQueries({ queryKey: MISSIONS_KEY })
+      const previous = queryClient.getQueryData<Mission[]>(MISSIONS_KEY)
+      queryClient.setQueryData<Mission[]>(MISSIONS_KEY, (cur) =>
+        (cur ?? []).map((m) => (m.id === id ? { ...m, ...patch } : m))
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(MISSIONS_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: MISSIONS_KEY }),
   })
 }
 
@@ -51,6 +62,15 @@ export function useDeleteMission() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => missionsService.remove(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: MISSIONS_KEY }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: MISSIONS_KEY })
+      const previous = queryClient.getQueryData<Mission[]>(MISSIONS_KEY)
+      queryClient.setQueryData<Mission[]>(MISSIONS_KEY, (cur) => (cur ?? []).filter((m) => m.id !== id))
+      return { previous }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(MISSIONS_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: MISSIONS_KEY }),
   })
 }

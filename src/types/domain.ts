@@ -117,6 +117,8 @@ export interface Checklist {
   responsiblePersonId?: string | null
 }
 
+export type TaskSchedulingType = "en_continu" | "periode"
+
 export interface ChecklistItem {
   id: string
   checklistId: string
@@ -129,6 +131,9 @@ export interface ChecklistItem {
   estimatedStartTime?: string | null
   estimatedEndDate?: string | null
   estimatedEndTime?: string | null
+  assigneeGuestId?: string | null
+  taskSchedulingType?: TaskSchedulingType | null
+  taskPhase?: string | null
 }
 
 export type PlanningMilestone = "j_moins_30" | "j_moins_15" | "j_moins_7" | "j_moins_1" | "jour_j" | "j_plus_1"

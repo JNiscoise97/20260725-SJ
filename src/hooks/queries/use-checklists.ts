@@ -16,18 +16,29 @@ export function useCreateChecklist() {
   return useMutation({
     mutationFn: (input: Omit<Checklist, "id">) => checklistsService.create(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["checklists"] })
+      queryClient.invalidateQueries({ queryKey: ALL_CL_KEY })
     },
   })
 }
+
+const ALL_CL_KEY = ["checklists", "all"] as const
 
 export function useUpdateChecklist() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Checklist> }) => checklistsService.update(id, patch),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["checklists"] })
+    onMutate: async ({ id, patch }) => {
+      await queryClient.cancelQueries({ queryKey: ALL_CL_KEY })
+      const previous = queryClient.getQueryData<Checklist[]>(ALL_CL_KEY)
+      queryClient.setQueryData<Checklist[]>(ALL_CL_KEY, (cur) =>
+        (cur ?? []).map((c) => (c.id === id ? { ...c, ...patch } : c))
+      )
+      return { previous }
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(ALL_CL_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["checklists"] }),
   })
 }
 
@@ -35,7 +46,20 @@ export function useDeleteChecklist() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => checklistsService.remove(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ALL_CL_KEY })
+      await queryClient.cancelQueries({ queryKey: ALL_ITEMS_KEY })
+      const prevCl    = queryClient.getQueryData<Checklist[]>(ALL_CL_KEY)
+      const prevItems = queryClient.getQueryData<ChecklistItem[]>(ALL_ITEMS_KEY)
+      queryClient.setQueryData<Checklist[]>(ALL_CL_KEY, (cur) => (cur ?? []).filter((c) => c.id !== id))
+      queryClient.setQueryData<ChecklistItem[]>(ALL_ITEMS_KEY, (cur) => (cur ?? []).filter((i) => i.checklistId !== id))
+      return { prevCl, prevItems }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prevCl)    queryClient.setQueryData(ALL_CL_KEY, context.prevCl)
+      if (context?.prevItems) queryClient.setQueryData(ALL_ITEMS_KEY, context.prevItems)
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["checklists"] })
       queryClient.invalidateQueries({ queryKey: ["checklist-items"] })
     },
@@ -132,7 +156,7 @@ export function useCreateChecklistItem() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: Omit<ChecklistItem, "id">) => checklistsService.createItem(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["checklist-items"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ALL_ITEMS_KEY }),
   })
 }
 
@@ -141,7 +165,18 @@ export function useUpdateChecklistItem() {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<ChecklistItem> }) =>
       checklistsService.updateItem(id, patch),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["checklist-items"] }),
+    onMutate: async ({ id, patch }) => {
+      await queryClient.cancelQueries({ queryKey: ALL_ITEMS_KEY })
+      const previous = queryClient.getQueryData<ChecklistItem[]>(ALL_ITEMS_KEY)
+      queryClient.setQueryData<ChecklistItem[]>(ALL_ITEMS_KEY, (cur) =>
+        (cur ?? []).map((i) => (i.id === id ? { ...i, ...patch } : i))
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(ALL_ITEMS_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["checklist-items"] }),
   })
 }
 
@@ -149,6 +184,15 @@ export function useDeleteChecklistItem() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => checklistsService.removeItem(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["checklist-items"] }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ALL_ITEMS_KEY })
+      const previous = queryClient.getQueryData<ChecklistItem[]>(ALL_ITEMS_KEY)
+      queryClient.setQueryData<ChecklistItem[]>(ALL_ITEMS_KEY, (cur) => (cur ?? []).filter((i) => i.id !== id))
+      return { previous }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(ALL_ITEMS_KEY, context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["checklist-items"] }),
   })
 }

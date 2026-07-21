@@ -20,6 +20,7 @@ import { AccessCodesManager } from "@/components/parametres/AccessCodesManager"
 import { MessagesConfig } from "@/components/timing/MessagesConfig"
 import { MessagesManager } from "@/components/parametres/MessagesManager"
 import { MissionsManager } from "@/components/parametres/MissionsManager"
+import { TachesManager } from "@/components/parametres/TachesManager"
 import { useRunOfShow } from "@/hooks/queries/use-run-of-show"
 import { useRosMessages } from "@/hooks/queries/use-ros-messages"
 import { useRosLaunches } from "@/hooks/queries/use-ros-launches"
@@ -33,6 +34,7 @@ type Section =
   | "timing-messages-crud"
   | "timing-messages"
   | "timing-missions"
+  | "timing-taches"
   | "invites-groupes"
   | "invites-photos"
   | "invites-tables"
@@ -57,6 +59,7 @@ const NAV: NavGroup[] = [
     label: "Timing",
     items: [
       { id: "timing-missions",      label: "Missions" },
+      { id: "timing-taches",        label: "Tâches" },
       { id: "timing-messages-crud", label: "Messages" },
       { id: "timing-messages",      label: "Historique" },
     ],
@@ -142,6 +145,7 @@ function ContentPanel({ section }: { section: Section }) {
     case "evenement":              return <EventConfigForm />
     case "organisation":           return <ParametresTree />
     case "timing-missions":         return <MissionsManager />
+    case "timing-taches":           return <TachesManager />
     case "timing-messages-crud":   return <MessagesManager />
     case "timing-messages":        return <TimingMessagesSection />
     case "invites-groupes": return <GuestGroupsManager />
