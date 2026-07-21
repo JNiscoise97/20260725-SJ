@@ -18,6 +18,8 @@ import { ResetPhotoGroupsButton } from "@/components/parametres/ResetPhotoGroups
 import { EquipmentManager } from "@/components/parametres/EquipmentManager"
 import { AccessCodesManager } from "@/components/parametres/AccessCodesManager"
 import { MessagesConfig } from "@/components/timing/MessagesConfig"
+import { MessagesManager } from "@/components/parametres/MessagesManager"
+import { MissionsManager } from "@/components/parametres/MissionsManager"
 import { useRunOfShow } from "@/hooks/queries/use-run-of-show"
 import { useRosMessages } from "@/hooks/queries/use-ros-messages"
 import { useRosLaunches } from "@/hooks/queries/use-ros-launches"
@@ -28,7 +30,9 @@ import { cn } from "@/lib/utils"
 type Section =
   | "evenement"
   | "organisation"
+  | "timing-messages-crud"
   | "timing-messages"
+  | "timing-missions"
   | "invites-groupes"
   | "invites-photos"
   | "invites-tables"
@@ -51,7 +55,11 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Timing",
-    items: [{ id: "timing-messages", label: "Messages" }],
+    items: [
+      { id: "timing-missions",      label: "Missions" },
+      { id: "timing-messages-crud", label: "Messages" },
+      { id: "timing-messages",      label: "Historique" },
+    ],
   },
   {
     label: "Invités",
@@ -131,9 +139,11 @@ function OutilsSection() {
 
 function ContentPanel({ section }: { section: Section }) {
   switch (section) {
-    case "evenement":         return <EventConfigForm />
-    case "organisation":      return <ParametresTree />
-    case "timing-messages":   return <TimingMessagesSection />
+    case "evenement":              return <EventConfigForm />
+    case "organisation":           return <ParametresTree />
+    case "timing-missions":         return <MissionsManager />
+    case "timing-messages-crud":   return <MessagesManager />
+    case "timing-messages":        return <TimingMessagesSection />
     case "invites-groupes": return <GuestGroupsManager />
     case "invites-photos":  return <PhotoGroupsManager />
     case "invites-tables":  return <SeatingTablesManager />

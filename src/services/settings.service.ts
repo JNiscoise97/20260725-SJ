@@ -1,32 +1,70 @@
 import { EVENT_DATE, EVENT_NAME } from "@/lib/constants"
+import { USE_SUPABASE } from "@/supabase/client"
 
-const SETTINGS_KEY = "sj-app-settings"
+export type EventType = "fiancailles" | "mariage" | "pacs" | "anniversaire" | "autre"
+
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  fiancailles: "Fiançailles",
+  mariage: "Mariage",
+  pacs: "PACS",
+  anniversaire: "Anniversaire",
+  autre: "Autre",
+}
 
 export interface AppSettings {
   eventName: string
-  eventDate: string
+  eventDate: string        // date début Jour J (yyyy-MM-dd)
+  eventType: EventType
+  mainEnd?: string         // date fin Jour J (si > 1 jour)
+  mainTime?: string        // heure début Jour J (HH:mm)
+  mainEndTime?: string     // heure fin Jour J (HH:mm)
+  setupStart?: string      // date début installation (override, sinon J-1 calculé)
+  setupEnd?: string        // date fin installation (si > 1 jour)
+  setupTime?: string       // heure début installation (HH:mm)
+  setupEndTime?: string    // heure fin installation (HH:mm)
+  cleanupStart?: string    // date début désinstallation (override, sinon J+1 calculé)
+  cleanupEnd?: string      // date fin désinstallation (si > 1 jour)
+  cleanupTime?: string     // heure début désinstallation (HH:mm)
+  cleanupEndTime?: string  // heure fin désinstallation (HH:mm)
 }
 
-// Lecture/écriture synchrone volontairement : ce singleton n'est stocké que dans
-// localStorage et lu une fois au montage de EventConfigProvider. Contrairement aux
-// autres services (tasks, people...), il n'y a pas de bascule Supabase prévue ici
-// dans l'immédiat ; le jour où app_settings sera lu depuis Supabase, ce service
-// devra devenir asynchrone comme les autres.
-function readSettings(): AppSettings {
-  const raw = localStorage.getItem(SETTINGS_KEY)
-  if (raw) return JSON.parse(raw) as AppSettings
-  return { eventName: EVENT_NAME, eventDate: EVENT_DATE }
+export interface SettingsService {
+  get(): Promise<AppSettings>
+  update(patch: Partial<AppSettings>): Promise<AppSettings>
 }
 
-function writeSettings(settings: AppSettings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+export const SETTINGS_DEFAULTS: AppSettings = {
+  eventName: EVENT_NAME,
+  eventDate: EVENT_DATE,
+  eventType: "fiancailles",
 }
 
-export const settingsService = {
-  get: readSettings,
-  update(patch: Partial<AppSettings>): AppSettings {
-    const next = { ...readSettings(), ...patch }
-    writeSettings(next)
-    return next
-  },
+// ── Mock (localStorage) ───────────────────────────────────────────────────────
+
+const STORAGE_KEY = "sj-app-settings"
+
+function readFromStorage(): AppSettings {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  if (raw) return { ...SETTINGS_DEFAULTS, ...(JSON.parse(raw) as Partial<AppSettings>) }
+  return { ...SETTINGS_DEFAULTS }
 }
+
+function writeToStorage(settings: AppSettings): AppSettings {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+  return settings
+}
+
+const settingsMockService: SettingsService = {
+  async get() { return readFromStorage() },
+  async update(patch) { return writeToStorage({ ...readFromStorage(), ...patch }) },
+}
+
+// ── Export selon l'environnement ──────────────────────────────────────────────
+
+// Import dynamique pour éviter d'instancier le client Supabase quand USE_SUPABASE est faux.
+// Le dynamic import est résolu à la compilation (Vite tree-shake le mock quand Supabase est actif).
+import { settingsSupabaseService } from "@/services/supabase/settings"
+
+export const settingsService: SettingsService = USE_SUPABASE
+  ? settingsSupabaseService
+  : settingsMockService

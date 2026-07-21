@@ -225,6 +225,10 @@ export function MissionEditDialog({ mission }: { mission: Mission }) {
   const [prerequisites, setPrerequisites] = useState(mission.prerequisites ?? "")
   const [status, setStatus] = useState<ProgressStatus>(mission.status)
   const [schedulingType, setSchedulingType] = useState<MissionSchedulingType | null>(mission.schedulingType ?? null)
+  const [scheduledStartDate, setScheduledStartDate] = useState(mission.scheduledStartDate ?? "")
+  const [scheduledStartTime, setScheduledStartTime] = useState(mission.scheduledStartTime ?? "")
+  const [scheduledEndDate, setScheduledEndDate] = useState(mission.scheduledEndDate ?? "")
+  const [scheduledEndTime, setScheduledEndTime] = useState(mission.scheduledEndTime ?? "")
 
   const { data: allChecklists } = useAllChecklists()
   const { data: allItems } = useAllChecklistItems()
@@ -242,6 +246,10 @@ export function MissionEditDialog({ mission }: { mission: Mission }) {
     setPrerequisites(mission.prerequisites ?? "")
     setStatus(mission.status)
     setSchedulingType(mission.schedulingType ?? null)
+    setScheduledStartDate(mission.scheduledStartDate ?? "")
+    setScheduledStartTime(mission.scheduledStartTime ?? "")
+    setScheduledEndDate(mission.scheduledEndDate ?? "")
+    setScheduledEndTime(mission.scheduledEndTime ?? "")
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -276,6 +284,10 @@ export function MissionEditDialog({ mission }: { mission: Mission }) {
         prerequisites: prerequisites.trim() || null,
         status,
         schedulingType: schedulingType ?? null,
+        scheduledStartDate: schedulingType === "planifiee" ? (scheduledStartDate || null) : null,
+        scheduledStartTime: schedulingType === "planifiee" ? (scheduledStartTime || null) : null,
+        scheduledEndDate:   schedulingType === "planifiee" ? (scheduledEndDate || null) : null,
+        scheduledEndTime:   schedulingType === "planifiee" ? (scheduledEndTime || null) : null,
       },
     })
     toast.success("Mission mise à jour.")
@@ -376,6 +388,52 @@ export function MissionEditDialog({ mission }: { mission: Mission }) {
                 })}
               </div>
             </Field>
+
+            {schedulingType === "planifiee" && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 space-y-3 dark:border-indigo-800 dark:bg-indigo-950/30">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  Période planifiée
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="med-start-date">Début — date</FieldLabel>
+                    <Input
+                      id="med-start-date"
+                      type="date"
+                      value={scheduledStartDate}
+                      onChange={(e) => setScheduledStartDate(e.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="med-start-time">Début — heure</FieldLabel>
+                    <Input
+                      id="med-start-time"
+                      type="time"
+                      value={scheduledStartTime}
+                      onChange={(e) => setScheduledStartTime(e.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="med-end-date">Fin — date</FieldLabel>
+                    <Input
+                      id="med-end-date"
+                      type="date"
+                      value={scheduledEndDate}
+                      onChange={(e) => setScheduledEndDate(e.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="med-end-time">Fin — heure</FieldLabel>
+                    <Input
+                      id="med-end-time"
+                      type="time"
+                      value={scheduledEndTime}
+                      onChange={(e) => setScheduledEndTime(e.target.value)}
+                    />
+                  </Field>
+                </div>
+              </div>
+            )}
           </FieldGroup>
 
           <div className="flex items-center justify-between">

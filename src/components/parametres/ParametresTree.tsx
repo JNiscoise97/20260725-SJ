@@ -43,6 +43,7 @@ import { DomaineDialog } from "@/components/parametres/DomaineManager"
 import { MissionDialog } from "@/components/parametres/MissionManager"
 import { ChecklistDialog } from "@/components/parametres/ChecklistDialog"
 import { ChecklistItemDialog } from "@/components/parametres/ChecklistItemDialog"
+import { DomaineQuickEditDialog } from "@/components/parametres/DomaineQuickEditDialog"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { PriorityBadge } from "@/components/shared/PriorityBadge"
 import { DomaineResponsableSelect } from "@/components/shared/DomaineResponsableSelect"
@@ -196,7 +197,7 @@ function TreeRow({ depth, level, expandable, expanded, onToggle, label, meta, ac
           <span className="inline-block size-6" />
         )}
         <TypeBadge level={level} />
-        <span className="truncate text-sm text-foreground">{label}</span>
+        <span className="text-sm text-foreground">{label}</span>
         {meta}
       </div>
       <div className="flex shrink-0 items-center gap-0.5">{actions}</div>
@@ -529,6 +530,12 @@ export function ParametresTree() {
                 <TooltipContent>Créer la checklist Definition of Done</TooltipContent>
               </Tooltip>
             ) : null}
+            <DomaineQuickEditDialog
+              domaine={domaine}
+              missions={missions ?? []}
+              checklists={checklists ?? []}
+              items={items ?? []}
+            />
             <MissionDialog initialDomaineId={domaine.id} />
             <DomaineDialog domaine={domaine} />
             <ConfirmDeleteButton

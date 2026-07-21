@@ -88,6 +88,10 @@ export interface Mission {
   prerequisites?: string | null
   status: ProgressStatus
   schedulingType?: MissionSchedulingType | null
+  scheduledStartDate?: string | null
+  scheduledStartTime?: string | null
+  scheduledEndDate?: string | null
+  scheduledEndTime?: string | null
   sortOrder: number
 }
 

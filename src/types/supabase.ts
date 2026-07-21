@@ -93,6 +93,18 @@ type AppSettingsRow = {
   event_name: string
   event_date: string
   day_of_override: string | null
+  event_type: string
+  main_end: string | null
+  main_time: string | null
+  main_end_time: string | null
+  setup_start: string | null
+  setup_end: string | null
+  setup_time: string | null
+  setup_end_time: string | null
+  cleanup_start: string | null
+  cleanup_end: string | null
+  cleanup_time: string | null
+  cleanup_end_time: string | null
   updated_at: string
 }
 
