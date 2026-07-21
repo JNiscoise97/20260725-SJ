@@ -116,6 +116,10 @@ type MissionRow = {
   prerequisites: string | null
   status: ProgressStatusRow
   scheduling_type: string | null
+  scheduled_start_date: string | null
+  scheduled_start_time: string | null
+  scheduled_end_date: string | null
+  scheduled_end_time: string | null
   sort_order: number
   created_at: string
   updated_at: string
@@ -155,6 +159,9 @@ type ChecklistItemRow = {
   estimated_end_time: string | null
   done_by: string | null
   done_at: string | null
+  assignee_guest_id: string | null
+  task_scheduling_type: string | null
+  task_phase: string | null
 }
 
 type PlanningEventRow = {
@@ -473,7 +480,19 @@ export interface Database {
       _20260725_app_settings: TableDef<AppSettingsRow, "id" | "day_of_override" | "updated_at">
       _20260725_missions: TableDef<
         MissionRow,
-        "id" | "domaine_id" | "description" | "prerequisites" | "status" | "scheduling_type" | "sort_order" | "created_at" | "updated_at"
+        | "id"
+        | "domaine_id"
+        | "description"
+        | "prerequisites"
+        | "status"
+        | "scheduling_type"
+        | "scheduled_start_date"
+        | "scheduled_start_time"
+        | "scheduled_end_date"
+        | "scheduled_end_time"
+        | "sort_order"
+        | "created_at"
+        | "updated_at"
       >
       _20260725_mission_acceptances: TableDef<
         MissionAcceptanceRow,
@@ -496,6 +515,9 @@ export interface Database {
         | "estimated_end_time"
         | "done_by"
         | "done_at"
+        | "assignee_guest_id"
+        | "task_scheduling_type"
+        | "task_phase"
       >
       _20260725_planning_events: TableDef<
         PlanningEventRow,

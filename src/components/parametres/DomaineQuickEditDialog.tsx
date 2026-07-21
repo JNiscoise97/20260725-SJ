@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import type { Checklist, ChecklistItem, Domaine, Mission } from "@/types/domain"
 import { useCreateMission, useUpdateMission, useDeleteMission } from "@/hooks/queries/use-missions"
 import {
-  useCreateChecklist, useUpdateChecklist, useDeleteChecklist,
+  useCreateChecklist, useDeleteChecklist,
   useCreateChecklistItem, useUpdateChecklistItem, useDeleteChecklistItem,
 } from "@/hooks/queries/use-checklists"
 import { Button } from "@/components/ui/button"
@@ -273,7 +273,6 @@ export function DomaineQuickEditDialog({ domaine, missions, checklists, items }:
   const updateMission = useUpdateMission()
   const deleteMission = useDeleteMission()
   const createChecklist = useCreateChecklist()
-  const updateChecklist = useUpdateChecklist()
   const deleteChecklist = useDeleteChecklist()
   const createItem = useCreateChecklistItem()
   const updateItem = useUpdateChecklistItem()

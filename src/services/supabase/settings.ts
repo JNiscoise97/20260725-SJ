@@ -49,7 +49,23 @@ export const settingsSupabaseService: SettingsService = {
   },
 
   async update(patch) {
-    const fields: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    const fields: Partial<{
+      updated_at: string
+      event_name: string
+      event_date: string
+      event_type: string
+      main_end: string | null
+      main_time: string | null
+      main_end_time: string | null
+      setup_start: string | null
+      setup_end: string | null
+      setup_time: string | null
+      setup_end_time: string | null
+      cleanup_start: string | null
+      cleanup_end: string | null
+      cleanup_time: string | null
+      cleanup_end_time: string | null
+    }> = { updated_at: new Date().toISOString() }
     if (patch.eventName !== undefined)    fields.event_name       = patch.eventName
     if (patch.eventDate !== undefined)    fields.event_date       = patch.eventDate
     if (patch.eventType !== undefined)    fields.event_type       = patch.eventType
