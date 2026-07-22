@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom"
 import { useIdentity } from "@/context/IdentityContext"
 
 export function ProtectedLayout() {
-  const { person, isLoading, justLoggedOut } = useIdentity()
+  const { person, isLoading, justLoggedOut, isImpersonating } = useIdentity()
   const location = useLocation()
 
   if (isLoading) return null
@@ -17,18 +17,10 @@ export function ProtectedLayout() {
 
   // Tout invité (référent ou simple) qui n'a pas encore vu l'introduction y
   // est forcé avant toute autre page — les fiancés n'ont pas ce champ.
-  const needsIntroduction = person.role !== "fiance" && !person.introductionSeen
+  const needsIntroduction = person.role !== "fiance" && !person.introductionSeen && !isImpersonating
   if (needsIntroduction && location.pathname !== "/introduction") {
     return <Navigate to="/introduction" replace />
   }
 
-  // Un invité sans onglets personnalisés n'a accès qu'à la page d'infos pratiques.
-  // S'il a des allowedTabs, il peut naviguer librement parmi ses onglets autorisés.
-  const isPlainInvite = person.role === "invite" && person.allowedTabs == null
-  const plainInviteAllowed = ["/infos-pratiques", "/introduction"]
-  if (isPlainInvite && !needsIntroduction && !plainInviteAllowed.includes(location.pathname)) {
-    return <Navigate to="/infos-pratiques" replace />
-  }
-
-  return <Outlet />
+return <Outlet />
 }

@@ -40,7 +40,7 @@ const CONFIGURABLE_TABS: { capability: Capability; label: string }[] = NAV_ITEMS
   .filter((item, i, arr) => arr.findIndex(x => x.capability === item.capability) === i)
   .map(item => ({ capability: item.capability as Capability, label: item.label }))
 
-const INVITE_DEFAULT: Capability[] = ["view:introduction"]
+const INVITE_DEFAULT: Capability[] = ["view:introduction", "view:guest-home"]
 
 // ── Sous-composants utilitaires ───────────────────────────────────────────────
 

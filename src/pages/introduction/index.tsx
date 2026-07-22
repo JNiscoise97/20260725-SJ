@@ -1,10 +1,11 @@
-import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { HeartHandshake } from "lucide-react"
 
 import { useIdentity } from "@/context/IdentityContext"
 import { useUpdateGuest } from "@/hooks/queries/use-guests"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 const PARAGRAPHS = [
   "Nous avons choisi de te confier un rôle particulier lors de nos fiançailles.",
@@ -16,19 +17,25 @@ export function IntroductionPage() {
   const { person, patchPerson, isImpersonating } = useIdentity()
   const firstName = person?.fullName.split(" ")[0] ?? ""
   const updateGuest = useUpdateGuest()
+  const navigate = useNavigate()
 
-  // Accessible aux référents et aux invités simples (voir ProtectedLayout,
-  // qui force ce passage tant que introductionSeen est faux) — jamais aux
-  // fiancés, qui sont toujours portés par une ligne _20260725_guests, donc
-  // person.id y correspond directement (voir identity.service.ts).
-  useEffect(() => {
-    if (!person || person.role === "fiance" || person.introductionSeen || isImpersonating) return
-    updateGuest.mutate({ id: person.id, patch: { introductionSeen: true } })
-    patchPerson({ introductionSeen: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [person?.id])
+  function handleAcknowledge() {
+    if (!person || person.role === "fiance" || isImpersonating) {
+      navigate("/")
+      return
+    }
+    updateGuest.mutate(
+      { id: person.id, patch: { introductionSeen: true } },
+      {
+        onSuccess: () => {
+          patchPerson({ introductionSeen: true })
+          navigate("/")
+        },
+      }
+    )
+  }
 
-  return (
+return (
     <div className="space-y-6">
       <PageHeader title="Introduction" />
 
@@ -42,6 +49,14 @@ export function IntroductionPage() {
             </p>
           ))}
           <p className="font-heading text-base font-semibold text-foreground">Sarah &amp; Jordan</p>
+
+          {!isImpersonating && !person?.introductionSeen && (
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button onClick={handleAcknowledge} disabled={updateGuest.isPending}>
+                Découvre comment tu peux nous aider
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

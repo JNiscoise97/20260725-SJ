@@ -4,9 +4,8 @@ import { AppShell } from "@/layouts/AppShell"
 import { ProtectedLayout } from "@/layouts/ProtectedLayout"
 import { RoleGuard } from "@/layouts/RoleGuard"
 import { LoginPage } from "@/pages/auth"
-import { GuestInfoPage } from "@/pages/guest"
 import { IntroductionPage } from "@/pages/introduction"
-import { DashboardPage } from "@/pages/dashboard"
+import { IndexPage } from "@/pages/home"
 import { MissionsPage } from "@/pages/missions"
 import { ReferentsPage } from "@/pages/referents"
 import { PlanningPage } from "@/pages/planning"
@@ -30,8 +29,7 @@ export function AppRoutes() {
 
       <Route element={<ProtectedLayout />}>
         <Route element={<AppShell />}>
-          <Route path="/infos-pratiques" element={<GuestInfoPage />} />
-          <Route
+<Route
             path="introduction"
             element={
               <RoleGuard capability="view:introduction">
@@ -39,14 +37,7 @@ export function AppRoutes() {
               </RoleGuard>
             }
           />
-          <Route
-            index
-            element={
-              <RoleGuard capability="view:dashboard">
-                <DashboardPage />
-              </RoleGuard>
-            }
-          />
+          <Route index element={<IndexPage />} />
           <Route
             path="missions"
             element={

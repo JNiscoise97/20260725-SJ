@@ -1,17 +1,20 @@
-import type { ChecklistOwnerType, Person } from "@/types/domain"
+import type { ChecklistOwnerType, Guest, Person } from "@/types/domain"
 import {
   useChecklistsForOwner,
   useChecklistItems,
   useToggleChecklistItem,
   useUpdateChecklist,
+  useUpdateChecklistItem,
 } from "@/hooks/queries/use-checklists"
 import { usePeople } from "@/hooks/queries/use-people"
+import { useGuests } from "@/hooks/queries/use-guests"
 import { useIdentity } from "@/context/IdentityContext"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ItemScheduleTrigger } from "@/components/missions/ItemScheduleDialog"
 
 const NONE = "__none__"
 
@@ -20,6 +23,8 @@ interface ChecklistWidgetProps {
   ownerId: string
   /** Permet à un fiancé de se déléguer la checklist (select Sarah/Jordan) — désactivé sur certaines pages où ça n'a pas sa place (ex. /missions). */
   allowAssignment?: boolean
+  /** Affiche l'icône de planification sur chaque item (phases installation/jour_j/désinstallation). */
+  schedulable?: boolean
 }
 
 function SingleChecklist({
@@ -29,6 +34,8 @@ function SingleChecklist({
   responsiblePersonId,
   canAssign,
   fiances,
+  schedulable,
+  guests,
 }: {
   checklistId: string
   title: string | null
@@ -36,10 +43,13 @@ function SingleChecklist({
   responsiblePersonId: string | null
   canAssign: boolean
   fiances: Person[]
+  schedulable?: boolean
+  guests: Guest[]
 }) {
   const { data: items, isLoading } = useChecklistItems(checklistId)
   const toggleItem = useToggleChecklistItem()
   const updateChecklist = useUpdateChecklist()
+  const updateItem = useUpdateChecklistItem()
   const responsible = fiances.find((f) => f.id === responsiblePersonId)
 
   if (isLoading || !items) return <Skeleton className="h-20 rounded-xl" />
@@ -84,29 +94,63 @@ function SingleChecklist({
       </div>
       <Progress value={progress} />
       <ul className="space-y-1.5">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-center gap-2">
-            <Checkbox
-              id={item.id}
-              checked={item.isDone}
-              onCheckedChange={(checked) => toggleItem.mutate({ itemId: item.id, isDone: checked === true })}
-            />
-            <label
-              htmlFor={item.id}
-              className={item.isDone ? "text-sm text-muted-foreground line-through" : "text-sm text-foreground"}
-            >
-              {item.label}
-            </label>
-          </li>
-        ))}
+        {items.map((item) => {
+          const assignee =
+            guests.find((g) => g.id === item.assigneeGuestId) ??
+            fiances.find((f) => f.id === item.assigneeGuestId)
+          return (
+            <li key={item.id} className="flex items-center gap-2">
+              <Checkbox
+                id={item.id}
+                checked={item.isDone}
+                onCheckedChange={(checked) => toggleItem.mutate({ itemId: item.id, isDone: checked === true })}
+              />
+              <label
+                htmlFor={item.id}
+                className={item.isDone ? "flex-1 text-sm text-muted-foreground line-through" : "flex-1 text-sm text-foreground"}
+              >
+                {item.label}
+              </label>
+              {(guests.length > 0 || fiances.length > 0) && (
+                <Select
+                  value={item.assigneeGuestId ?? NONE}
+                  onValueChange={(val) =>
+                    updateItem.mutate({ id: item.id, patch: { assigneeGuestId: val === NONE ? null : val } })
+                  }
+                >
+                  <SelectTrigger size="sm" className="h-6 w-auto max-w-32 shrink-0 border-dashed text-xs">
+                    <SelectValue placeholder="—">
+                      {assignee ? assignee.fullName.split(" ")[0] : "—"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>—</SelectItem>
+                    {fiances.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.fullName}
+                      </SelectItem>
+                    ))}
+                    {guests.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.fullName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {schedulable && <ItemScheduleTrigger item={item} />}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
 }
 
-export function ChecklistWidget({ ownerType, ownerId, allowAssignment = true }: ChecklistWidgetProps) {
+export function ChecklistWidget({ ownerType, ownerId, allowAssignment = true, schedulable }: ChecklistWidgetProps) {
   const { data: checklists, isLoading } = useChecklistsForOwner(ownerType, ownerId)
   const { data: people } = usePeople()
+  const { data: guestsData } = useGuests()
   const { person } = useIdentity()
 
   if (isLoading) return <Skeleton className="h-24 rounded-xl" />
@@ -119,11 +163,9 @@ export function ChecklistWidget({ ownerType, ownerId, allowAssignment = true }: 
   // logistique...) — on ne le réaffiche que s'il y en a plusieurs (ex.
   // Coordinateur général, qui a 3 checklists distinctes pour la même mission).
   const showTitle = checklists.length > 1
-  // Seuls les fiancés peuvent se déléguer une checklist entre eux (voir
-  // 0040_checklists_responsible_person.sql) ; les référents/invités la voient
-  // en lecture seule via le badge ci-dessus.
   const fiances = (people ?? []).filter((p) => p.role === "fiance")
   const canAssign = allowAssignment && person?.role === "fiance"
+  const assignableGuests = (guestsData ?? []).filter((g) => g.assignable)
 
   return (
     <div className="space-y-4">
@@ -136,6 +178,8 @@ export function ChecklistWidget({ ownerType, ownerId, allowAssignment = true }: 
           responsiblePersonId={checklist.responsiblePersonId ?? null}
           canAssign={canAssign}
           fiances={fiances}
+          schedulable={schedulable}
+          guests={assignableGuests}
         />
       ))}
     </div>

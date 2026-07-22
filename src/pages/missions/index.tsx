@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Badge } from "@/components/ui/badge"
 import { ChecklistWidget } from "@/components/shared/ChecklistWidget"
@@ -27,10 +27,12 @@ import { usePoles } from "@/hooks/queries/use-poles"
 import { useAllChecklists, useAllChecklistItems, useUpdateChecklistItem } from "@/hooks/queries/use-checklists"
 import { useAllMissionAcceptances, useRespondToMission } from "@/hooks/queries/use-mission-acceptances"
 import { useGuests } from "@/hooks/queries/use-guests"
+import { usePeople } from "@/hooks/queries/use-people"
 import { useIdentity } from "@/context/IdentityContext"
 import { useResponsableEntries } from "@/hooks/use-responsable-entries"
 import { MissionEditDialog } from "@/components/missions/MissionEditDialog"
 import { DOMAINE_PHASE_LABELS, DOMAINE_PHASE_ORDER } from "@/lib/constants"
+import { cn } from "@/lib/utils"
 
 const NO_POLE = "__no_pole__"
 const DASHBOARD_TAB = "__dashboard__"
@@ -55,7 +57,20 @@ function contextLabel(mission?: Mission, domaine?: Domaine) {
   return [domaine?.name, mission?.title].filter(Boolean).join(" · ") || undefined
 }
 
-function DomaineMissionsCard({ domaine, missions }: { domaine: Domaine; missions: Mission[] }) {
+const SCHEDULABLE_PHASES = new Set(["installation", "jour_j", "desinstallation"])
+
+function DomaineMissionsCard({
+  domaine,
+  missions,
+  responsableNames,
+  stats,
+}: {
+  domaine: Domaine
+  missions: Mission[]
+  responsableNames?: string[]
+  stats?: { done: number; total: number; percent: number }
+}) {
+  const schedulable = SCHEDULABLE_PHASES.has(domaine.phase ?? "")
   return (
     <Card>
       <CardHeader>
@@ -66,6 +81,11 @@ function DomaineMissionsCard({ domaine, missions }: { domaine: Domaine; missions
           ) : null}
         </div>
         {domaine.description ? <p className="text-xs text-muted-foreground">{domaine.description}</p> : null}
+        {responsableNames && responsableNames.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Responsable{responsableNames.length > 1 ? "s" : ""} : {responsableNames.join(", ")}
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {missions.map((mission) => (
@@ -78,7 +98,7 @@ function DomaineMissionsCard({ domaine, missions }: { domaine: Domaine; missions
               <MissionEditDialog mission={mission} />
             </div>
             {mission.description ? <p className="text-xs text-muted-foreground">{mission.description}</p> : null}
-            <ChecklistWidget ownerType="mission" ownerId={mission.id} allowAssignment={false} />
+            <ChecklistWidget ownerType="mission" ownerId={mission.id} allowAssignment={false} schedulable={schedulable} />
           </div>
         ))}
         <div className="space-y-1.5 rounded-xl border border-dashed border-border p-3">
@@ -179,6 +199,7 @@ export function MissionsPage() {
   const { data: checklists, isLoading: checklistsLoading } = useAllChecklists()
   const { data: checklistItems, isLoading: itemsLoading } = useAllChecklistItems()
   const { data: guests, isLoading: guestsLoading } = useGuests()
+  const { data: people, isLoading: peopleLoading } = usePeople()
   const { data: acceptances, isLoading: acceptancesLoading } = useAllMissionAcceptances()
   const { data: rosLaunches = [] } = useRosLaunches()
   const updateItem = useUpdateChecklistItem()
@@ -187,7 +208,7 @@ export function MissionsPage() {
 
   const isLoading =
     missionsLoading || domainesLoading || polesLoading || checklistsLoading ||
-    itemsLoading || entriesLoading || guestsLoading || acceptancesLoading
+    itemsLoading || entriesLoading || guestsLoading || acceptancesLoading || peopleLoading
 
   const myDomaineIds = useMemo(() => {
     if (!person || person.role === "fiance") return null
@@ -391,10 +412,16 @@ export function MissionsPage() {
 
   const isFiance = person?.role === "fiance"
   const [activeTab, setActiveTab] = useState(DASHBOARD_TAB)
-  const [fianceView, setFianceView] = useState<"pilotage" | "operationnelle">("operationnelle")
+  const [fianceView, setFianceView] = useState<"pilotage" | "operationnelle">("pilotage")
+  const [phaseFilter, setPhaseFilter] = useState<string | null>(null)
+
+  function switchTab(tab: string) {
+    setActiveTab(tab)
+    setPhaseFilter(null)
+  }
 
   function goToPole(poleId: string) {
-    setActiveTab(poleId)
+    switchTab(poleId)
   }
 
   const dashboardContent = (
@@ -593,7 +620,11 @@ export function MissionsPage() {
     </>
   )
 
-  const poleTabsContents = poleGroups.map(({ pole, domaineGroups, stats }) => (
+  const poleTabsContents = poleGroups.map(({ pole, domaineGroups, stats }) => {
+    const responsiblePerson = pole.responsiblePersonId
+      ? (people ?? []).find((p) => p.id === pole.responsiblePersonId)
+      : undefined
+    return (
     <TabsContent key={pole.id} value={pole.id} className="space-y-4">
       <Card>
         <CardContent className="space-y-2">
@@ -609,15 +640,80 @@ export function MissionsPage() {
             <span>
               {stats.done} / {stats.total} items terminés ({stats.percent}%)
             </span>
+            {responsiblePerson && (
+              <>
+                <span aria-hidden>·</span>
+                <span>
+                  Responsable : <span className="font-medium text-foreground">{responsiblePerson.fullName}</span>
+                </span>
+              </>
+            )}
           </div>
           <Progress value={stats.percent} />
         </CardContent>
       </Card>
-      {domaineGroups.map(({ domaine, missions: domaineMissions }) => (
-        <DomaineMissionsCard key={domaine.id} domaine={domaine} missions={domaineMissions} />
-      ))}
+      {(() => {
+        const SCHEDULABLE = new Set(["installation", "jour_j", "desinstallation"])
+        const byPhase = new Map<string, { done: number; total: number; unscheduled: number }>()
+        for (const { domaine, missions: dm } of domaineGroups) {
+          const phase = domaine.phase ?? "__none__"
+          const items = dm.flatMap((m) => itemsByMissionId.get(m.id) ?? [])
+          const ds = itemStats(items)
+          const unscheduled = SCHEDULABLE.has(phase) ? items.filter((i) => !i.taskSchedulingType).length : 0
+          const prev = byPhase.get(phase) ?? { done: 0, total: 0, unscheduled: 0 }
+          byPhase.set(phase, { done: prev.done + ds.done, total: prev.total + ds.total, unscheduled: prev.unscheduled + unscheduled })
+        }
+        const rows = DOMAINE_PHASE_ORDER
+          .filter((p) => byPhase.has(p))
+          .map((p) => ({ phase: p, label: DOMAINE_PHASE_LABELS[p], ...byPhase.get(p)! }))
+        if (byPhase.has("__none__")) rows.push({ phase: "__none__", label: "Sans phase", ...byPhase.get("__none__")!, unscheduled: 0 })
+        if (rows.length === 0) return null
+        return (
+          <Card className="w-fit">
+            <CardContent className="space-y-1">
+              {rows.map(({ phase, label, done, total, unscheduled }) => {
+                const isFiltered = phaseFilter === phase
+                return (
+                  <div key={phase} className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className={cn("w-28", isFiltered && "font-medium text-foreground")}>{label}</span>
+                    <span className="tabular-nums">{done} / {total}</span>
+                    {SCHEDULABLE.has(phase) && unscheduled > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPhaseFilter(isFiltered ? null : phase)}
+                        className={cn(
+                          "tabular-nums font-medium transition-colors",
+                          isFiltered ? "text-foreground underline" : "text-red-500 hover:text-red-600"
+                        )}
+                      >
+                        {unscheduled} sans temporalité
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </CardContent>
+          </Card>
+        )
+      })()}
+      {domaineGroups
+        .filter(({ domaine }) => phaseFilter === null || domaine.phase === phaseFilter)
+        .map(({ domaine, missions: domaineMissions }) => {
+          const responsableNames = entries
+            .filter((e) => e.domaineIds.includes(domaine.id))
+            .map((e) => e.identity.fullName)
+          return (
+            <DomaineMissionsCard
+              key={domaine.id}
+              domaine={domaine}
+              missions={domaineMissions}
+              responsableNames={responsableNames}
+            />
+          )
+        })}
     </TabsContent>
-  ))
+    )
+  })
 
   return (
     <div className="space-y-6">
@@ -716,24 +812,51 @@ export function MissionsPage() {
               <EmptyState icon={ListChecks} title="Aucune mission ne vous a été confiée pour le moment" />
             ) : (
               <div className="space-y-4">
-                {myDomaineGroups.map(({ domaine, missions: domaineMissions }) => (
-                  <DomaineMissionsCard key={domaine.id} domaine={domaine} missions={domaineMissions} />
-                ))}
+                {myDomaineGroups.map(({ domaine, missions: domaineMissions }) => {
+                  const responsableNames = entries
+                    .filter((e) => e.domaineIds.includes(domaine.id))
+                    .map((e) => e.identity.fullName)
+                  return (
+                    <DomaineMissionsCard
+                      key={domaine.id}
+                      domaine={domaine}
+                      missions={domaineMissions}
+                      responsableNames={responsableNames}
+                    />
+                  )
+                })}
               </div>
             )
           ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0">
-              <div className="min-w-0 max-w-full overflow-x-auto">
-                <TabsList>
-                  <TabsTrigger value={DASHBOARD_TAB} className="flex-none">
-                    Dashboard
-                  </TabsTrigger>
-                  {poleGroups.map(({ pole }) => (
-                    <TabsTrigger key={pole.id} value={pole.id} className="flex-none">
-                      {pole.name}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+            <Tabs value={activeTab} onValueChange={switchTab} className="min-w-0">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => switchTab(DASHBOARD_TAB)}
+                  className={cn(
+                    "rounded-full border px-3.5 py-1 text-sm font-medium transition-colors",
+                    activeTab === DASHBOARD_TAB
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  )}
+                >
+                  Dashboard
+                </button>
+                {poleGroups.map(({ pole }) => (
+                  <button
+                    key={pole.id}
+                    type="button"
+                    onClick={() => switchTab(pole.id)}
+                    className={cn(
+                      "rounded-full border px-3.5 py-1 text-sm font-medium transition-colors",
+                      activeTab === pole.id
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                    )}
+                  >
+                    {pole.name}
+                  </button>
+                ))}
               </div>
 
               <TabsContent value={DASHBOARD_TAB} className="space-y-4">

@@ -15,10 +15,7 @@ export function RoleGuard({ capability, children }: RoleGuardProps) {
   const { person } = useIdentity()
 
   if (!can(capability)) {
-    // Les invités avec onglets personnalisés évitent la boucle infinie sur "/" :
-    // on les renvoie sur infos-pratiques (toujours accessible).
-    const fallback = role === "invite" || person?.allowedTabs != null ? "/infos-pratiques" : "/"
-    return <Navigate to={fallback} replace />
+    return <Navigate to="/" replace />
   }
 
   return children

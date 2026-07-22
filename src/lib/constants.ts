@@ -23,6 +23,27 @@ export const EVENT_NAME = "Fiançailles de Sarah & Jordan"
 
 export const EVENT_DATE = import.meta.env.VITE_EVENT_DATE ?? "2026-07-25"
 
+function offsetDate(base: string, days: number): string {
+  const d = new Date(base)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+export const INSTALLATION_DATE = import.meta.env.VITE_INSTALLATION_DATE ?? offsetDate(EVENT_DATE, -1)
+export const DESINSTALLATION_DATE = import.meta.env.VITE_DESINSTALLATION_DATE ?? offsetDate(EVENT_DATE, 1)
+
+export const PHASE_DAYS: { date: string; label: string }[] = [
+  { date: INSTALLATION_DATE, label: formatPhaseDay(INSTALLATION_DATE, "Installation") },
+  { date: EVENT_DATE, label: formatPhaseDay(EVENT_DATE, "Jour J") },
+  { date: DESINSTALLATION_DATE, label: formatPhaseDay(DESINSTALLATION_DATE, "Désinstallation") },
+]
+
+function formatPhaseDay(iso: string, prefix: string): string {
+  const d = new Date(iso)
+  const short = d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })
+  return `${prefix} · ${short}`
+}
+
 export interface NavItem {
   label: string
   path: string
@@ -36,6 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Introduction", path: "/introduction", icon: Heart, capability: "view:introduction" },
   { label: "Mon rôle", path: "/ma-mission", icon: UserCheck, capability: "view:role" },
   { label: "Tableau de bord", path: "/", icon: Home, capability: "view:dashboard", visibleToRoles: ["fiance"] },
+  { label: "Accueil", path: "/", icon: Home, capability: "view:referent-home" },
   {
     label: "Les missions",
     path: "/missions",
@@ -48,7 +70,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Déroulé", path: "/deroule", icon: PartyPopper, capability: "view:deroule" },
   { label: "Mes missions", path: "/mes-responsabilites", icon: ClipboardList, capability: "view:briefing" },
   { label: "Photos de groupe", path: "/photos-groupe", icon: Camera, capability: "view:photos-groupe" },
-  { label: "Accueil", path: "/accueil", icon: DoorOpen, capability: "view:accueil" },
+  { label: "Réception", path: "/accueil", icon: DoorOpen, capability: "view:accueil" },
   { label: "Logistique", path: "/logistique", icon: Truck, capability: "view:logistique" },
   { label: "Invités", path: "/invites", icon: Armchair, capability: "view:guests" },
   { label: "Documents", path: "/documents", icon: FolderOpen, capability: "view:documents" },

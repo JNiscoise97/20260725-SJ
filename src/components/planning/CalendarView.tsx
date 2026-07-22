@@ -2,12 +2,14 @@ import { eachDayOfInterval, format, isSameDay, isWithinInterval, parseISO } from
 import { fr } from "date-fns/locale"
 import { useEffect, useRef, useState } from "react"
 
-import type { DomainePhase, Mission, PlanningEvent, RosMessage, RunOfShowStep } from "@/types/domain"
+import type { ChecklistItem, PlanningEvent, RosMessage, RunOfShowStep } from "@/types/domain"
 import type { PhaseRange } from "@/context/EventConfigContext"
 import { useEventConfig } from "@/context/EventConfigContext"
 import { EVENT_TYPE_LABELS } from "@/services/settings.service"
-import { useDomaines } from "@/hooks/queries/use-domaines"
+import { useAllChecklistItems, useAllChecklists } from "@/hooks/queries/use-checklists"
 import { useMissions } from "@/hooks/queries/use-missions"
+import { useDomaines } from "@/hooks/queries/use-domaines"
+import { usePoles } from "@/hooks/queries/use-poles"
 import { usePlanningEvents } from "@/hooks/queries/use-planning-events"
 import { useRosMessages } from "@/hooks/queries/use-ros-messages"
 import { useGuests } from "@/hooks/queries/use-guests"
@@ -66,6 +68,14 @@ function minToLabel(m: number) {
   return `${Math.floor(m / 60).toString().padStart(2, "0")}h${(m % 60).toString().padStart(2, "0")}`
 }
 
+function fmtDuration(min: number): string {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  if (h === 0) return `${m} min`
+  if (m === 0) return `${h}h`
+  return `${h}h${m.toString().padStart(2, "0")}`
+}
+
 function parseToMinutes(dt?: string | null, label?: string | null): number | null {
   if (dt) {
     const d = new Date(dt)
@@ -116,20 +126,16 @@ interface DayCol {
 
 interface TimedEvent {
   id: string
-  kind: "step" | "jalon" | "message"
+  kind: "step" | "jalon" | "message" | "task"
   title: string
   startMin: number
   duration: number
   isHighlight?: boolean
-  raw: RunOfShowStep | PlanningEvent | RosMessage
-}
-
-interface AllDayItem {
-  id: string
-  title: string
-  color?: string
-  isFirst: boolean
-  raw: Mission
+  raw: RunOfShowStep | PlanningEvent | RosMessage | ChecklistItem
+  assigneeName?: string
+  missionTitle?: string
+  domaineName?: string
+  poleName?: string
 }
 
 // ── Segments (gestion chevauchements) ────────────────────────────────────────
@@ -177,12 +183,7 @@ const PHASE_DEFS: Array<{ name: PhaseName; key: PhaseKey }> = [
   { name: "Désinstallation", key: "cleanup" },
 ]
 
-// Correspondance clé de filtre → valeur DomainePhase
-const DOMAIN_PHASE: Record<PhaseKey, string> = {
-  setup:   "installation",
-  main:    "jour_j",
-  cleanup: "desinstallation",
-}
+
 
 function computeDayData(
   dayDate: Date,
@@ -264,20 +265,31 @@ interface CalendarViewProps {
 
 export function CalendarView({ dateRange, phaseFilter, granularity = "1h", messageFilter = false }: CalendarViewProps) {
   const CELL_H = granularity === "15min" ? CELL_H_EXPANDED : CELL_H_COMPACT
+  const [taskFilter, setTaskFilter] = useState(false)
   const { phaseSetup, phaseMain, phaseCleanup, eventType } = useEventConfig()
   const displayPhaseName = (name: PhaseName) =>
     name === "Jour J" ? EVENT_TYPE_LABELS[eventType] : name
-  const { data: steps    = [], isLoading: l1 } = useRunOfShow()
-  const { data: missions = [], isLoading: l2 } = useMissions()
-  const { data: domaines = [], isLoading: l3 } = useDomaines()
-  const { data: planEvts = [], isLoading: l4 } = usePlanningEvents()
-  const { data: messages = [], isLoading: l5 } = useRosMessages()
-  const { data: guests   = [], isLoading: l6 } = useGuests()
-  const { data: people   = [], isLoading: l7 } = usePeople()
-  const isLoading = l1 || l2 || l3 || l4 || l5 || l6 || l7
+  const { data: steps          = [], isLoading: l1 } = useRunOfShow()
+  const { data: planEvts       = [], isLoading: l4 } = usePlanningEvents()
+  const { data: messages       = [], isLoading: l5 } = useRosMessages()
+  const { data: guests         = [], isLoading: l6 } = useGuests()
+  const { data: people         = [], isLoading: l7 } = usePeople()
+  const { data: allItems       = [], isLoading: l8 } = useAllChecklistItems()
+  const { data: allChecklists  = []                } = useAllChecklists()
+  const { data: missions       = []                } = useMissions()
+  const { data: domaines       = []                } = useDomaines()
+  const { data: poles          = []                } = usePoles()
+  const isLoading = l1 || l4 || l5 || l6 || l7 || l8
 
-  const guestMap  = new Map(guests.map((g) => [g.id, g.fullName]))
-  const personMap = new Map(people.map((p) => [p.id, p.fullName]))
+  const guestMap   = new Map(guests.map((g)   => [g.id, g.fullName]))
+  const personMap  = new Map(people.map((p)   => [p.id, p.fullName]))
+  const missionMap = new Map(missions.map((m)  => [m.id, m]))
+  const domaineMap = new Map(domaines.map((d)  => [d.id, d]))
+  const poleMap    = new Map(poles.map((p)     => [p.id, p]))
+  const checklistMissionMap = new Map<string, string>()
+  for (const c of allChecklists) {
+    if (c.ownerType === "mission" && c.ownerId) checklistMissionMap.set(c.id, c.ownerId)
+  }
 
   const today    = new Date()
   const calStart = dateRange?.start ?? parseISO(phaseSetup.startIso)
@@ -290,38 +302,6 @@ export function CalendarView({ dateRange, phaseFilter, granularity = "1h", messa
     const { bands, phaseLabels } = computeDayData(d, ranges)
     return { date: d, iso, isToday: isSameDay(d, today), phaseLabels, bands }
   })
-
-  const domainePhaseMap = new Map<string, DomainePhase | null | undefined>(
-    domaines.map((d) => [d.id, d.phase])
-  )
-  const domaineColorMap = new Map<string, string | undefined>(
-    domaines.map((d) => [d.id, d.color])
-  )
-
-  // Missions : filtrées par phase si filtre actif
-  const allDayByIso = new Map<string, AllDayItem[]>(days.map((d) => [d.iso, []]))
-  for (const m of missions) {
-    if (!m.domaineId) continue
-    const phase = domainePhaseMap.get(m.domaineId)
-    if (phaseFilter && phase !== DOMAIN_PHASE[phaseFilter]) continue
-    let range: PhaseRange | null = null
-    if (phase === "installation")         range = phaseSetup
-    else if (phase === "jour_j")          range = phaseMain
-    else if (phase === "desinstallation") range = phaseCleanup
-    if (!range) continue
-    let isFirst = true
-    for (const d of days) {
-      if (!isWithinInterval(d.date, phaseInterval(range))) continue
-      allDayByIso.get(d.iso)!.push({
-        id: `${m.id}-${d.iso}`,
-        title: m.title,
-        color: domaineColorMap.get(m.domaineId!),
-        isFirst,
-        raw: m,
-      })
-      isFirst = false
-    }
-  }
 
   // Événements horaires
   const timedByIso = new Map<string, TimedEvent[]>(days.map((d) => [d.iso, []]))
@@ -368,6 +348,39 @@ export function CalendarView({ dateRange, phaseFilter, granularity = "1h", messa
     })
   }
 
+  // Checklist items ponctuel avec début et fin complets
+  for (const item of allItems) {
+    if (
+      item.taskSchedulingType !== "periode" ||
+      !item.estimatedStartDate || !item.estimatedStartTime ||
+      !item.estimatedEndDate   || !item.estimatedEndTime
+    ) continue
+    const dayIso = item.estimatedStartDate
+    if (!timedByIso.has(dayIso)) continue
+    if (phaseFilter) {
+      const range = { setup: phaseSetup, main: phaseMain, cleanup: phaseCleanup }[phaseFilter]
+      if (!isWithinInterval(parseISO(dayIso), phaseInterval(range))) continue
+    }
+    const startMin = hmToMin(item.estimatedStartTime)
+    const startDt  = new Date(`${dayIso}T${item.estimatedStartTime}`)
+    const endDt    = new Date(`${item.estimatedEndDate}T${item.estimatedEndTime}`)
+    const duration = Math.max(15, Math.round((endDt.getTime() - startDt.getTime()) / 60000))
+    const assigneeName = item.assigneeGuestId
+      ? (guestMap.get(item.assigneeGuestId) ?? personMap.get(item.assigneeGuestId))
+      : undefined
+    const missionId   = checklistMissionMap.get(item.checklistId)
+    const mission     = missionId ? missionMap.get(missionId) : undefined
+    const domaine     = mission?.domaineId ? domaineMap.get(mission.domaineId) : undefined
+    const pole        = domaine?.poleId    ? poleMap.get(domaine.poleId)       : undefined
+    timedByIso.get(dayIso)!.push({
+      id: item.id, kind: "task", title: item.label,
+      startMin, duration, raw: item, assigneeName,
+      missionTitle: mission?.title,
+      domaineName:  domaine?.name,
+      poleName:     pole?.name,
+    })
+  }
+
   // Scroll initial : 8h pour avoir le début de matinée visible en haut
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -380,13 +393,22 @@ export function CalendarView({ dateRange, phaseFilter, granularity = "1h", messa
 
   const gridH     = HOUR_END * CELL_H  // hauteur totale de la grille horaire (0h–24h)
   const colDef    = `52px repeat(${days.length}, minmax(160px, 1fr))`
-  const hasMissions = days.some((d) => (allDayByIso.get(d.iso)?.length ?? 0) > 0)
-
   return (
     <div className="flex flex-col gap-3">
 
       {/* Légende événements */}
       <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setTaskFilter((v) => !v)}
+          className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
+            taskFilter
+              ? "border-emerald-500 bg-emerald-100 text-emerald-900 ring-2 ring-emerald-400/40 ring-offset-1 dark:border-emerald-400 dark:bg-emerald-900 dark:text-emerald-100"
+              : "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
+          }`}
+        >
+          Tâche
+        </button>
         <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-600 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-400">
           Jalon
         </span>
@@ -448,28 +470,6 @@ export function CalendarView({ dateRange, phaseFilter, granularity = "1h", messa
               </div>
             )
           })}
-
-          {/* ── Bande missions ───────────────────────────────────────── */}
-
-          {hasMissions && (
-            <>
-              <div className="sticky left-0 z-10 flex items-center justify-end border-b border-r border-border bg-card px-2 py-1">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Missions
-                </span>
-              </div>
-              {days.map((d) => (
-                <div
-                  key={`ad-${d.iso}`}
-                  className={`flex min-h-[30px] flex-col gap-0.5 border-b border-r border-border p-1 last:border-r-0 ${d.isToday ? "bg-primary/5" : ""}`}
-                >
-                  {allDayByIso.get(d.iso)?.map((item) => (
-                    <AllDayChip key={item.id} item={item} />
-                  ))}
-                </div>
-              ))}
-            </>
-          )}
 
           {/* ── Grille horaire 0h–24h ────────────────────────────────── */}
 
@@ -587,7 +587,7 @@ export function CalendarView({ dateRange, phaseFilter, granularity = "1h", messa
 
                 {/* Événements */}
                 {timedByIso.get(d.iso)
-                  ?.filter((ev) => !messageFilter || ev.kind === "message")
+                  ?.filter((ev) => (!messageFilter || ev.kind === "message") && (!taskFilter || ev.kind === "task"))
                   .map((ev) => <TimedBlock key={ev.id} ev={ev} cellH={CELL_H} guestMap={guestMap} personMap={personMap} />)
                 }
               </div>
@@ -624,37 +624,6 @@ function NowIndicator({ cellH }: { cellH: number }) {
   )
 }
 
-// ── AllDayChip ────────────────────────────────────────────────────────────────
-
-function AllDayChip({ item }: { item: AllDayItem }) {
-  const [open, setOpen] = useState(false)
-  const color = item.color ?? "#6366f1"
-
-  if (!item.isFirst) {
-    return <div className="h-1.5 w-full rounded-sm opacity-30" style={{ backgroundColor: color }} />
-  }
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          className="w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium text-white shadow-sm transition-opacity hover:opacity-80"
-          style={{ backgroundColor: color }}
-        >
-          {item.title}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64" side="bottom" align="start">
-        <div className="space-y-1 text-sm">
-          <p className="font-medium">{item.raw.title}</p>
-          {item.raw.description && (
-            <p className="text-xs text-muted-foreground">{item.raw.description}</p>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
-}
 
 // ── TimedBlock ────────────────────────────────────────────────────────────────
 
@@ -669,7 +638,9 @@ function TimedBlock({ ev, cellH, guestMap, personMap }: { ev: TimedEvent; cellH:
   const compact = height < 38
 
   let blockCls: string
-  if (ev.kind === "jalon") {
+  if (ev.kind === "task") {
+    blockCls = "border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+  } else if (ev.kind === "jalon") {
     blockCls = "border border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300"
   } else if (ev.kind === "message") {
     blockCls = "border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300"
@@ -712,6 +683,20 @@ function TimedDetail({ ev, guestMap, personMap }: { ev: TimedEvent; guestMap: Ma
   const endMin    = ev.startMin + ev.duration
   const timeRange = `${minToLabel(ev.startMin)} – ${minToLabel(endMin)}`
 
+  if (ev.kind === "task") {
+    return (
+      <div className="space-y-2">
+        <p className="font-semibold">{ev.title}</p>
+        <div className="space-y-0.5 text-xs text-muted-foreground">
+          {ev.missionTitle && <p>Mission · {ev.missionTitle}</p>}
+          {ev.domaineName  && <p>Domaine · {ev.domaineName}</p>}
+          {ev.poleName     && <p>Pôle · {ev.poleName}</p>}
+          <p className="font-semibold text-foreground">{timeRange} · {fmtDuration(ev.duration)}</p>
+          {ev.assigneeName && <p>👤 {ev.assigneeName}</p>}
+        </div>
+      </div>
+    )
+  }
   if (ev.kind === "message") {
     const msg       = ev.raw as RosMessage
     const deliverer = resolveDeliverer(msg, guestMap, personMap)
