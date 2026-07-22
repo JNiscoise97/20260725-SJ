@@ -149,9 +149,18 @@ export const checklistsSupabaseService: ChecklistsService = {
     return (data ?? []).map(toChecklistItem)
   },
   async listAllItems() {
-    const { data, error } = await db.from("_20260725_checklist_items").select("*")
-    if (error) throw error
-    return (data ?? []).map(toChecklistItem)
+    const all: ReturnType<typeof toChecklistItem>[] = []
+    const PAGE = 1000
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await db
+        .from("_20260725_checklist_items")
+        .select("*")
+        .range(from, from + PAGE - 1)
+      if (error) throw error
+      all.push(...(data ?? []).map(toChecklistItem))
+      if ((data?.length ?? 0) < PAGE) break
+    }
+    return all
   },
   async createItem(input) {
     const row = toItemRow(input) as ChecklistItemRowPatch & { checklist_id: string; label: string }

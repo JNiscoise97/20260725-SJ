@@ -252,17 +252,14 @@ export function ParametresTree() {
     next.add(NO_POLE)
     for (const d of domaines ?? []) next.add(d.id)
     for (const m of missions ?? []) next.add(m.id)
-    for (const c of checklists ?? []) {
-      if (c.title) next.add(c.id)
-    }
+    // Checklists defaultent toutes à ouvert (defaultOpen=true) — ne pas les ajouter
     setExpanded(next)
   }
 
   function collapseAll() {
     const next = new Set<string>()
-    for (const c of checklists ?? []) {
-      if (!c.title) next.add(c.id)
-    }
+    // Toutes les checklists defaultent à ouvert, il faut les ajouter pour les fermer
+    for (const c of checklists ?? []) next.add(c.id)
     setExpanded(next)
   }
 
