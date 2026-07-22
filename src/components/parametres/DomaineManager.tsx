@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
-import { useCreateDomaine, useUpdateDomaine } from "@/hooks/queries/use-domaines"
+import { useCreateDomaine, useDomaines, useUpdateDomaine } from "@/hooks/queries/use-domaines"
 import { usePoles } from "@/hooks/queries/use-poles"
 import { usePeople } from "@/hooks/queries/use-people"
 import type { Domaine, DomainePhase, PlanningMilestone } from "@/types/domain"
@@ -43,6 +43,7 @@ export function DomaineDialog({ domaine, initialPoleId }: { domaine?: Domaine; i
   const [contactId, setContactId] = useState(domaine?.preferredContactId ?? NONE)
   const { data: poles } = usePoles()
   const { data: people } = usePeople()
+  const { data: domaines } = useDomaines()
   const fiances = (people ?? []).filter((p) => p.role === "fiance")
   const createDomaine = useCreateDomaine()
   const updateDomaine = useUpdateDomaine()
@@ -60,7 +61,8 @@ export function DomaineDialog({ domaine, initialPoleId }: { domaine?: Domaine; i
       await updateDomaine.mutateAsync({ id: domaine.id, patch: { name, slug: slugify(name), ...patch } })
       toast.success("Domaine mis à jour.")
     } else {
-      await createDomaine.mutateAsync({ name, slug: slugify(name), sortOrder: 99, ...patch })
+      const maxOrder = Math.max(0, ...(domaines ?? []).map((d) => d.sortOrder))
+      await createDomaine.mutateAsync({ name, slug: slugify(name), sortOrder: maxOrder + 1, ...patch })
       toast.success("Domaine créé.")
     }
     setOpen(false)

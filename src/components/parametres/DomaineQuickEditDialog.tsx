@@ -55,6 +55,18 @@ interface DiffLine {
   description: string
 }
 
+// ── Transformation du format □ / Mission : ───────────────────────────────────
+
+function applyInputTransform(raw: string): string {
+  return raw
+    .split("\n")
+    .map((line) => {
+      if (line.startsWith("Mission : ")) return line.slice("Mission : ".length) + "\n  TODO"
+      return line.replace("□ ", "    ")
+    })
+    .join("\n")
+}
+
 // ── Parsing du texte ──────────────────────────────────────────────────────────
 
 function parseText(text: string): NewMission[] {
@@ -473,7 +485,10 @@ export function DomaineQuickEditDialog({ domaine, missions, checklists, items }:
             <textarea
               ref={taRef}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value
+                setText(val.includes("□") ? applyInputTransform(val) : val)
+              }}
               onKeyDown={handleKeyDown}
               className="min-h-[320px] flex-1 resize-none rounded-xl border border-border bg-card p-3 font-mono text-sm text-foreground outline-none focus:ring-1 focus:ring-primary/40"
               placeholder={"Mission A\n  Checklist\n    Item 1\n    Item 2\nMission B"}
